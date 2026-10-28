@@ -512,6 +512,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// A list that upstream serves from its API cache carries
 	// meta.generated (servedFromCache).
 	cached := servedFromCache(lf, params, q, suffixed, depth, limit)
+	if !cached && lf.liveFilter != nil {
+		opts.Filters = append(opts.Filters, lf.liveFilter)
+	}
 	baseMeta := h.listMeta(cached)
 	// ?page= narrows opts to the rows of the page and applies the depth
 	// cut first, so the paths below serve the page as a list that is
@@ -1208,6 +1211,9 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	}
 
 	filters := lf.preds
+	if lf.liveFilter != nil {
+		filters = append(filters, lf.liveFilter)
+	}
 	// A name_search that matches no row is upstream qset.none(), which
 	// get_queryset returns before it slices the query (2.83.0
 	// rest.py:550-553, :755-760). So it is the miss 404, also with a

@@ -478,8 +478,13 @@ The digit test follows Python `isdigit` + `int` (`pyDigitNotDecimal`, `ndValue`,
 Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_NameSearchNone`.
 
 **Reverse relation keys (`internal/pdbcompat/reverse_set_filter.go`).**
-`reverseSets` holds the upstream `<related_name>` keys that no traversal key reaches: today only fac `ix_side_set` (netixlan `ix_side`).
-They resolve in `addKey` before `parseFieldOp`, one hop only, with upstream's `_id` strips and no status filter on the related rows; the other `_set` names stay ignored (registered row).
+`reverseSets` holds upstream `<related_name>` keys for org, ix, ixlan, net, fac and carrier.
+They resolve in `addKey` before `parseFieldOp`, one hop only, with upstream's `_id` strips and no status filter on related rows.
+Contact visibility and field exclusions still apply.
+Nested related names inside `prepare_query` keys remain registered divergences.
+`hideIXNoFac` supplies `listFilters.liveFilter` for ix, ixlan, net and netixlan.
+It reads stored counts after the API cache gate, before pagination, and on details.
+It does not set `upstreamFilter`: upstream cached lists bypass the mixin.
 
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.

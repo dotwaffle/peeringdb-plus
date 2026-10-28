@@ -547,36 +547,6 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_hide_ix_no_fac_silent_ignore", func(t *testing.T) {
-		t.Parallel()
-		// DIVERGENCE: upstream handles hide_ix_no_fac in Python after the
-		// status filter: the IXFilterMixin of the ix, ixlan, net and
-		// netixlan views. It is not a model field, and the mirror does
-		// not implement it, so it is silent-ignored and the list is
-		// unfiltered.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: 2.83.0 rest.py:1267-1297 (hide_ix_no_fac)
-		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "QueryOrgA", t0)
-		mustOrg(ctx, t, c, 2, "QueryOrgB", t0)
-		mustIX(ctx, t, c, 300, "QueryIXA", 1, t0)
-		mustIX(ctx, t, c, 301, "QueryIXB", 2, t0)
-
-		srv := newTestServer(t, c)
-		// Both IXs have fac_count 0 (the mustIX default), and
-		// IXFilterMixin reads the stored fac_count (rest.py:1288-1289),
-		// so upstream returns [] for the list.
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
-			// A single-object GET ignores it too. Upstream: 404, the
-			// mixin filters the detail query (rest.py:752-753,
-			// :1288-1289).
-			{path: "/api/ix/300?hide_ix_no_fac=1", want: []int{300}},
-		})
-	})
-
 	t.Run("prepare_query_presence_keys", func(t *testing.T) {
 		t.Parallel()
 		// upstream: 2.83.0 serializers.py:3750-3760 (net not_ix,
@@ -2245,40 +2215,28 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_reverse_set_keys_silent_ignore", func(t *testing.T) {
+	t.Run("reverse_set_keys", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream names a reverse relation by its
-		// related_name, for example ixlan_set on ix and ix_set on org
-		// (2.83.0 models.py:3308, :2621-2622). The reverse relation
-		// reports the ForeignKey type (Django reverse_related.py:127-128),
-		// so field_names holds the bare related_name and
-		// queryable_relations adds <related_name>__<field>
-		// (serializers.py:970-996). Upstream then:
-		//   - filters <related_name>__<field> on the related rows with an
-		//     exact match (rest.py:670-683);
-		//   - filters <related_name>__in, __lt, __lte, __gt and __gte on
-		//     the related row ids (rest.py:633-669), with distinct()
-		//     (:715-716);
-		//   - returns 400 for a bare <related_name>: rest.py:676-677
-		//     builds <related_name>_id, which Django cannot resolve
-		//     (FieldError, :702-703).
-		// The mirror knows no _set names and ignores these keys.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// Upstream 2.84.0 rest.py:608-709 and serializers.py:970-996
+		// accept reverse related names and scalar fields of their rows.
+		srv := newTestServer(t, seedRelationKeys(t))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?ixlan_set__status=pending", want: []int{20}},
+			{path: "/api/org?ix_set__name=RelIXA", want: []int{1}},
+			{path: "/api/org?ix_set__in=20", want: []int{1}},
+			{path: "/api/org/1?ix_set__name=RelIXB", want: []int{1}},
+		})
+		assertFilterError(t, srv, "/api/org?ix_set__in=", "filter ix_set__in:")
+		assertFilterError(t, srv, "/api/org?ix_set=20", "Invalid query")
+		assertFilterError(t, srv, "/api/org?ix_set__contains=20", "Invalid query")
+	})
+
+	t.Run("DIVERGENCE_nested_reverse_set_keys_silent_ignore", func(t *testing.T) {
+		t.Parallel()
+		// Upstream 2.84.0 models.py:223-234 also filters related names
+		// inside prepare_query keys. These nested forms remain ignored.
 		srv := newTestServer(t, seedRelationKeys(t))
 		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			// Upstream: [20].
-			{path: "/api/ix?ixlan_set__status=pending", want: []int{20, 21}},
-			// Upstream: [1]. Org 1 owns IX 20 (RelIXA).
-			{path: "/api/org?ix_set__name=RelIXA", want: []int{1, 3}},
-			// Upstream: [1].
-			{path: "/api/org?ix_set__in=20", want: []int{1, 3}},
-			// Upstream: 400.
-			{path: "/api/org?ix_set=20", want: []int{1, 3}},
-			// A related name as the field of a prepare_query relation
-			// key filters the related rows upstream (models.py:223-234;
-			// related names at :3308, :5883, :5988). Upstream: [] for
-			// each request.
 			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
 			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
 			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},

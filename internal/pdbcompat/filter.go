@@ -337,11 +337,17 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 	if err != nil {
 		return nil, false, err
 	}
+	if lf.liveFilter != nil {
+		lf.preds = append(lf.preds, lf.liveFilter)
+	}
 	return lf.preds, lf.emptyResult, nil
 }
 
 // listFilters is the parsed filter set of a list or detail request.
 type listFilters struct {
+	// liveFilter runs after the API cache gate and before pagination.
+	// It does not contribute to upstreamFilter.
+	liveFilter func(*sql.Selector)
 	// preds are the filter predicates. nil when emptyResult is set.
 	preds []func(*sql.Selector)
 	// emptyResult is set when a filter matches no row without a query
@@ -435,6 +441,10 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 	if params.Has(ctfParam) {
 		st.ctf = map[string]func(*sql.Selector){}
 	}
+	liveFilter, hideKnown := hideIXNoFac(tc.Name, params)
+	if hideKnown {
+		st.consumed["hide_ix_no_fac"] = true
+	}
 	var orderBy func(*sql.Selector)
 	ds, err := parseDistanceSearch(tc.Name, params)
 	if err != nil {
@@ -491,6 +501,7 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 	}
 	return listFilters{
 		preds:          st.preds,
+		liveFilter:     liveFilter,
 		orderBy:        orderBy,
 		searchHit:      ns.hit,
 		upstreamFilter: st.adjusted || len(st.preds) > 0,
@@ -635,10 +646,9 @@ func (st *filterState) addKey(key string, vals []string) error {
 		st.preds = append(st.preds, ipaddr6Predicate(value))
 		return nil
 	}
-	// A reverse relation key in upstream spelling (fac?ix_side_set__asn=)
-	// where no traversal key reaches the related rows.
+	// A reverse relation key in upstream spelling (org?ix_set__name=).
 	if rs, relField, relOp, isSet := lookupReverseSetKey(tc.Name, key); isSet {
-		p, ok, empty, err := buildReverseSetPredicate(rs, relField, relOp, value)
+		p, ok, empty, err := buildReverseSetPredicate(rs, relField, relOp, value, tier)
 		if err != nil {
 			return fmt.Errorf("filter %s: %w", key, err)
 		}
