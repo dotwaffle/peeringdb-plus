@@ -3,6 +3,10 @@ min_version = "2026.10.22"
 [settings]
 lockfile = true
 
+[env]
+# Trim source paths so compiles can share the Go cache across worktrees.
+GOFLAGS = "-trimpath"
+
 [tool_alias]
 govulncheck = "go:golang.org/x/vuln/cmd/govulncheck"
 gqlgen = "go:github.com/99designs/gqlgen"
@@ -38,7 +42,7 @@ run = "go generate ./..."
 
 [tasks.build]
 description = "Compile all Go packages"
-run = "go build -trimpath ./..."
+run = "go build ./..."
 
 [tasks.test]
 description = "Run the complete Go race suite"

@@ -127,6 +127,9 @@ The GraphQL CSP in `cmd/peeringdb-plus/main.go` allows the pinned CDN and same-o
 | `mise run vulncheck` | Check the Go vulnerability database |
 | `mise run check` | Run the canonical local validation sweep |
 
+`mise.toml` sets `GOFLAGS=-trimpath` for Go commands, including tests and generators.
+This removes local source paths from build output and allows compilation cache reuse across worktrees.
+
 ## Toolchain updates
 
 `mise.toml` uses `latest` for independent tools and exact versions for generators coupled to Go modules.
