@@ -212,7 +212,7 @@ Each request is one id window:
   By then the parent windows are committed, and the normal fetch of that cycle gets the parent rows that the cursor rule (below) dropped.
   So a swept row finds each parent that upstream returns in a `?since=` list, with no FK backfill request, unless the parent table is empty (see the limits below).
   It does the ids of each type in fixed-width windows (`historySpecs`).
-- The widths keep each window of tombstones below about 0.9 MB.
+- The widths keep ordinary tombstone windows below about 0.9 MB.
   Upstream limits a repeated URL only after that URL returned 1 MB or more, and each window is a new URL.
 - The last window of a type has no `id__lt`.
   It starts where a window would reach the largest stored id, so it also gets the ids above that id.
@@ -234,7 +234,7 @@ It never deletes a row:
 - The windows stage into the scratch database after the normal fetch.
   Phase B upserts them in the same transaction as the rest of the cycle, with the incremental gate: a stored row changes only when the window row has a later `updated`.
 - In scratch, a window row does not replace a row of the normal fetch that has a later `updated`.
-- The sweep drops a window row whose `updated` is later than the newest `updated` value of its table before the cycle.
+- For a populated type, the sweep drops a window row whose `updated` is later than the newest `updated` value of its table before the cycle.
   Such a row can have changed after the normal fetch of the cycle, and its commit would move the next watermark past the other rows that changed in that gap.
   The next `?since=` fetch gets the row.
 - A stored live row becomes a tombstone when upstream has a tombstone for it with a later `updated`.
@@ -249,16 +249,22 @@ Limits:
 - `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` (default 15, `0` turns the sweep off) caps the windows of one cycle.
 - The sweep runs only in incremental cycles.
   A full cycle skips it.
-- The sweep skips a type whose table is empty, as in the first cycle of a new install, and does not mark it done.
-  The later types go on.
-  A later cycle sweeps the type after its table has rows.
-  A required FK to an empty type means an empty child table.
-  So only the nullable fac `campus_id` can point into an empty type, when upstream has no live campus.
-  FK backfill fetches the campus of a swept fac, as for any fac, and the stored campus lets a later cycle sweep `campus`.
-  With FK backfill off, the fac keeps a null `campus_id`, as on the normal fetch path.
-- The worker does not send a window again within 65 minutes (`historyMemoTTL`).
-  So the retries of a failed cycle (30 s, 2 m and 8 m) and a restart send no repeated URL.
-  A window that is in the memo stops the sweep for that cycle.
+- When a type has an empty local table but the normal fetch already staged rows, the sweep waits for that normal commit to establish a cursor.
+- An empty type with no staged rows gets one complete `?since=1&id__gte=1&depth=0` response without a status filter.
+  This includes live rows, tombstones and, for campus, pending rows.
+  A deleted-only snapshot could advance the watermark past older live or pending rows.
+  A complete feed establishes coverage for the next `MAX(updated)` cursor.
+  The request counts against the cycle budget and the cycle stops after that type.
+  It can exceed the ordinary window size, but rows stream into scratch storage without a full Go row slice.
+- A type that stays empty is eligible again no sooner than 65 minutes after the last successful check.
+  The committed `updated_at` stores the request start time, so a worker restart preserves this protection.
+  This also catches rows that appear after an empty response.
+  Unfinished types run first in parent order.
+  Completed empty checks run oldest first.
+  Small request budgets cannot starve later types.
+- The in-memory memo prevents a repeated window within 65 minutes, including after a failed request or rolled-back cycle.
+  It survives a history restart request, but not a process restart after an uncommitted attempt.
+  In that case upstream throttling and the existing retry rules still apply.
 - The first failed window stops the sweep.
   The windows before it keep their rows and their progress.
   A 429 or a WAF block logs WARN `history sweep stopped by upstream rate limit`.
@@ -272,16 +278,16 @@ Progress:
   `InitStatusTable` creates it.
 - The sync transaction writes the progress, so a cycle that rolls back also rolls back its progress.
   A cycle that changes no progress writes nothing.
-- When every type is done, the sweep sends no request.
+- When every populated type is done, the sweep only rechecks still-empty types after their repeat window.
   `POST /sync?mode=history` deletes the progress and runs an incremental cycle (never a full one) that starts again at the first window.
   Within 65 minutes of the first window, the memo holds the restart until the window expires.
 
 Observability:
 
-- Span `sync-history-sweep` with the attributes `pdbplus.sync.history.{restart,requests,rows,dropped,stop}`.
-  `stop` is `budget`, `type_done`, `complete`, `memo`, `zero_cursor` (only types with an empty table are left), `rate_limited` or `error`.
+- Span `sync-history-sweep` with the attributes `pdbplus.sync.history.{restart,requests,bootstraps,rows,dropped,stop}`.
+  `stop` is `budget`, `type_done`, `complete`, `memo`, `zero_cursor` (waiting for a normal snapshot commit to establish a cursor), `rate_limited` or `error`.
 - Counter `pdbplus.sync.history.requests{type,result}`, where `result` is `ok`, `rate_limited` or `error`.
-- After the commit: INFO `history sweep progress` (`requests`, `rows`, `dropped`, `stop`, `next_type`, `next_id`) when the cycle sent a window, INFO `history sweep complete` when the last type is done, and INFO `history sweep restarted` (`stop`).
+- After the commit: INFO `history sweep progress` (`requests`, `bootstraps`, `rows`, `dropped`, `stop`, `next_type`, `next_id`) when the cycle sent a window, INFO `history sweep complete` when the last type is done, and INFO `history sweep restarted` (`stop`).
 
 ### Daily full reconcile
 

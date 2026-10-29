@@ -155,8 +155,17 @@ A cycle stops the sweep after the last window of a type (`type_done`), so a type
 The last window of a type is open-ended (`from+width > local MAX(id)`).
 Rows with `updated` later than the type's pre-cycle `MAX(updated)` are dropped (committing them would move the next watermark past rows changed after the normal fetch; the gate is NOT the watermark: a held cursor is below MAX and the normal fetch covers the rows between); scratch `ON CONFLICT` keeps the newer `updated` (`json_extract(CAST(data AS TEXT), ...)`: a BLOB argument is read as JSONB, so always CAST).
 Phase B merges with the incremental gate; no deletes.
-A type with an empty table is skipped, not marked done, and later types go on (`zero_cursor` when only such types are left).
-Only fac `campus_id` (nullable) can point into an empty type (upstream has no live campus): `prefetchStagedFacCampuses` backfills a swept fac's campus, which then lets campus be swept; backfill off nulls it as on the normal path (Codex re-check 2026-09-24: kept as a known limit, no zero-cursor window).
+An empty type waits if normal scratch rows will establish its cursor (`zero_cursor`).
+Otherwise a complete feed bootstraps it within the request budget.
+Each cycle still stops after one type.
+A deleted-only window is unsafe for an empty cursor.
+The complete feed covers all rows before MAX(updated) advances.
+Still-empty types recheck after 65 minutes.
+Committed check times protect empty types across process restarts.
+Failed attempts remain protected by the in-memory memo.
+No new schema column.
+Bootstrap rows stream to scratch, even for large responses.
+Locked by `TestHistoryBootstrap*`.
 Stops: budget, `type_done`, `complete`, memo hit, first failed window (429/WAF: WARN, `rate_limited`; other: WARN, `error`; never fails the cycle, except `errScratchDB`).
 `Worker.historyMemo` (key = window, TTL 65m > 30s+2m+8m retry ladder and upstream's 1h repeat window) blocks resending a URL.
 Progress = raw table `sync_history_sweep` (type, next_id, done, updated_at; `InitStatusTable`), written in the sync tx (`writeHistoryProgress`, nothing when unchanged), logged after commit (`logHistoryCommitted`).
