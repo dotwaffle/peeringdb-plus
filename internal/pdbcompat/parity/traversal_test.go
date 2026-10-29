@@ -468,38 +468,12 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/netixlan?ix_side__location_method=google", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__version=-1", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__notified_for_geocoords=true", want: []int{5000, 5001, 5002}},
-			// The unserialized version and the unfiltered meta column of
-			// the netixlans through the ix_side_set reverse relation.
+			// The unserialized version of the netixlans through the
+			// ix_side_set reverse relation.
 			{path: "/api/fac?ix_side_set__version=-1", want: []int{200, 202}},
-			{path: "/api/fac?ix_side_set__meta=x", want: []int{200, 202}},
 		})
-	})
-
-	t.Run("DIVERGENCE_social_media_filter_ignored", func(t *testing.T) {
-		t.Parallel()
-		// DIVERGENCE: social_media is a model JSONField of org, fac,
-		// net, ix, carrier and campus (django-peeringdb abstract.py:146,
-		// :186, :411, :668, :986, :1047), so the upstream filter loop
-		// filters its JSON text: a key without an operator is __iexact,
-		// __contains is __icontains (2.83.0 rest.py:525-528, :633-683),
-		// and queryable_relations adds <fk>__social_media
-		// (serializers.py:970-996). The mirror stores and serves the
-		// column, but pdbcompat has no filter key for it, so every form
-		// is ignored. See docs/API.md § Known Divergences.
-		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "SocialOrg", t0)
-		mustNet(ctx, t, c, 100, "SocialNetA", 64500, 1, t0)
-		mustNet(ctx, t, c, 101, "SocialNetB", 64501, 1, t0)
-		mustFac(ctx, t, c, 200, "SocialFac", 1, t0)
-		srv := newTestServer(t, c)
-		// Upstream: []. No seeded row has a social media entry.
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/net?social_media=x", want: []int{100, 101}},
-			{path: "/api/net?social_media__contains=website", want: []int{100, 101}},
-			{path: "/api/org?social_media__startswith=[", want: []int{1}},
-			{path: "/api/fac?social_media=x", want: []int{200}},
-			{path: "/api/net?org__social_media__contains=x", want: []int{100, 101}},
+		assertKeysResolve(t, srv2, []silentIgnoreCase{
+			{path: "/api/fac?ix_side_set__meta=x", want: []int{}},
 		})
 	})
 

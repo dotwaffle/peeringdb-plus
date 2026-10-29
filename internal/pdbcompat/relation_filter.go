@@ -50,10 +50,7 @@ var unservedModelNames = map[string]map[string]bool{
 	// Network (models.py:5310).
 	peeringdb.TypeNet: {
 		"version":                          true,
-		"social_media":                     true,
-		"meta":                             true, // abstract.py:417
 		"notes_private":                    true, // abstract.py:436
-		"ixp_update_exclude":               true, // models.py:5332
 		"rir_status_notified":              true, // :5345
 		"irr_as_set_auto_prefix_candidate": true, // :5350
 		"irr_as_set_auto_prefix_checked":   true, // :5353
@@ -68,7 +65,6 @@ var unservedModelNames = map[string]map[string]bool{
 	// InternetExchange (models.py:2580).
 	peeringdb.TypeIX: {
 		"version":                 true,
-		"social_media":            true,
 		"ixf_import_request_user": true, // models.py:2612
 		"ix_email_set":            true, // :7303
 	},
@@ -93,7 +89,6 @@ var unservedModelNames = map[string]map[string]bool{
 	// relation.
 	peeringdb.TypeFac: {
 		"version":                true,
-		"social_media":           true,
 		"location_method":        true, // models.py:2207
 		"location_place_id":      true, // :2214
 		"notified_for_geocoords": true, // :2257
@@ -104,7 +99,6 @@ var unservedModelNames = map[string]map[string]bool{
 	// NetworkIXLan (models.py:6075).
 	peeringdb.TypeNetIXLan: {
 		"version":                true,
-		"meta":                   true, // abstract.py:953
 		"ixf_import_log_entries": true, // models.py:3786
 	},
 	// NetworkFacility (models.py:5980).

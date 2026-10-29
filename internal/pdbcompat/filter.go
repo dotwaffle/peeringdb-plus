@@ -1180,7 +1180,7 @@ func numericText(ft FieldType) string {
 		return "CAST(%s AS TEXT)"
 	case FieldFloat:
 		return "CASE WHEN %[1]s IS NULL THEN NULL ELSE printf('%%.6f', %[1]s) END"
-	case FieldString, FieldTime, FieldMultiChoice:
+	case FieldString, FieldTime, FieldMultiChoice, FieldJSON:
 		return ""
 	default:
 		return ""
@@ -1341,6 +1341,9 @@ func intTextMatch(col, value string) func(*sql.Selector) {
 // unifold.Fold(value) RHS for diacritic-insensitive matching. A
 // multi-value field has its own operators (buildMultiChoicePredicate).
 func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
+	if ft == FieldJSON {
+		return buildJSONPredicate(field, op, value)
+	}
 	if ft == FieldMultiChoice {
 		return buildMultiChoicePredicate(field, op, value)
 	}
@@ -1421,6 +1424,8 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 			return nil, fmt.Errorf("convert %q to float: %w", value, err)
 		}
 		return sql.FieldEQ(field, v), nil
+	case FieldJSON:
+		return buildJSONPredicate(field, "", value)
 	case FieldMultiChoice:
 		return buildMultiChoicePredicate(field, "", value)
 	default:
@@ -1541,6 +1546,8 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 			times = append(times, v)
 		}
 		return sql.FieldIn(field, times...), nil
+	case FieldJSON:
+		return buildJSONPredicate(field, "in", value)
 	case FieldMultiChoice:
 		return buildMultiChoicePredicate(field, "in", value)
 	default:
@@ -1635,9 +1642,8 @@ func convertValue(s string, ft FieldType) (any, error) {
 		return t, err
 	case FieldFloat:
 		return strconv.ParseFloat(s, 64)
-	case FieldMultiChoice:
-		// A comparison converts the value to the stored form, which
-		// needs the choice list (buildMultiChoicePredicate).
+	case FieldMultiChoice, FieldJSON:
+		// Structured fields use their specialized predicate builders.
 		return nil, fmt.Errorf("unsupported field type %s", ft)
 	default:
 		return nil, fmt.Errorf("unsupported field type %s", ft)

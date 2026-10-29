@@ -50,7 +50,7 @@ var registryFieldExclusions = map[string]string{
 // scalarFieldType maps a struct field's Go type to the FieldType the
 // Registry must declare for it. Pointers (Nillable columns) dereference.
 // Non-scalar columns (e.g. social_media's []SocialMedia) return ok=false
-// and are not filterable by design.
+// and are outside this scalar-column check.
 func scalarFieldType(t reflect.Type) (FieldType, bool) {
 	if t.Kind() == reflect.Pointer {
 		t = t.Elem()

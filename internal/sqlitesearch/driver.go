@@ -15,6 +15,7 @@ func NewDriver() *sqlite.Driver {
 	for name, fn := range map[string]func(string) string{
 		"pdbplus_search_lower":  strings.ToLower,
 		"pdbplus_search_tokens": Tokens,
+		"pdbplus_json_text":     JSONText,
 	} {
 		d.MustRegisterDeterministicScalarFunction(name, 1,
 			func(_ *sqlite.FunctionContext, args []driver.Value) (driver.Value, error) {
