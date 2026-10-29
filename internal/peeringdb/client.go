@@ -227,7 +227,7 @@ func WithSince(t time.Time) FetchOption {
 
 // FetchMeta contains metadata from PeeringDB API responses.
 type FetchMeta struct {
-	// Generated is the earliest meta.generated epoch across all pages.
+	// Generated is the meta.generated epoch of the response.
 	// Zero value means no generated timestamp was found.
 	Generated time.Time
 }
@@ -238,7 +238,7 @@ type FetchResult struct {
 	Meta FetchMeta
 }
 
-// FetchAll pages through all objects of the given type, collecting each
+// FetchAll fetches all objects of the given type, collecting each
 // element as a json.RawMessage in a FetchResult. It is a thin wrapper
 // over StreamAll — new callers should prefer StreamAll directly to avoid
 // the allocation of a full []json.RawMessage slice. FetchAll exists for

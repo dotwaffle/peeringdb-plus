@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // fixtureDir is the location of shared PeeringDB fixture JSON files.
@@ -332,5 +333,28 @@ func TestStreamingDecoder_HandlerError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), TypeNet) {
 		t.Errorf("error message does not contain objectType %q: %v", TypeNet, err)
+	}
+}
+
+func TestStreamAllMissingData(t *testing.T) {
+	t.Parallel()
+	for _, incremental := range []bool{false, true} {
+		t.Run(fmt.Sprint(incremental), func(t *testing.T) {
+			t.Parallel()
+			server := newFixtureServer(TypeOrg, []byte(`{"meta":{}}`))
+			defer server.Close()
+			client := newStreamingTestClient(server.URL)
+			var opts []FetchOption
+			if incremental {
+				opts = append(opts, WithSince(time.Unix(1000, 0)))
+			}
+			_, err := client.StreamAll(t.Context(), TypeOrg, func(json.RawMessage) error {
+				t.Error("unexpected row")
+				return nil
+			}, opts...)
+			if !errors.Is(err, errNoDataArray) {
+				t.Fatalf("error = %v, want errNoDataArray", err)
+			}
+		})
 	}
 }

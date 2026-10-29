@@ -109,7 +109,13 @@ A table with rows and no watermark row uses that newest `updated` value.
 This occurs once, in the first cycle after the upgrade, and the worker logs INFO `sync watermark missing, using MAX(updated)`.
 An empty table has no cursor, whatever its watermark row holds.
 
-In incremental mode, a type with rows fetches `?since=<cursor>` in pages of 250.
+In incremental mode, a type with rows fetches `?since=<cursor>&depth=0` in one response.
+The decoder streams each row into scratch storage, so a larger delta does not require a full in-memory row slice.
+Upstream orders a delta by `updated` alone (2.84.0 `rest.py:750-758`).
+Offset pages can omit tied rows or rows that move between requests; one response removes that page-boundary gap.
+`TestFetchAllDeltaCompleteness` checks 250, 350 and 550 tied rows against a server that reverses the order between requests.
+The existing request limiter, retry handling and fetch spans still apply.
+A large delta can reach upstream's repeated-URL throttle if the same cursor is retried within an hour; rate-limit failures follow the existing fallback and retry rules.
 An empty table fetches the bare list, which holds only live rows.
 When that list is not empty, the worker then fetches a `?since=` window from the newest `updated` value in the list.
 If an incremental fetch fails, the worker deletes the rows of that type from the scratch staging database and fetches the bare list.
@@ -279,7 +285,7 @@ Observability:
 
 ### Daily full reconcile
 
-An incremental cycle fetches `?since=<cursor>` in pages of 250 rows, and its upserts skip a row whose `updated` value did not advance.
+An incremental cycle streams `?since=<cursor>` in one response, and its upserts skip a row whose `updated` value did not advance.
 It cannot see a change that upstream makes without a new `updated` value.
 Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`), the cycle runs in full mode instead.
 It fetches each bare list in one request and also rewrites rows whose `updated` value did not advance: the `withReconcileAll` marker relaxes the `updated` skip gate of the upserts from `>` to `>=` (`internal/sync/upsert.go`).
@@ -292,10 +298,6 @@ Only a full-mode cycle repairs this data:
   Upstream saves them without a change to `updated` (2.83.0 `signals.py:92-177`).
 - `name`, `city` and `country` on `netfac` and `ixfac`, and `name` on `carrierfac`.
   Upstream copies these values from the facility (2.83.0 `docs/api/obj_netfac.md:8-9`, `obj_ixfac.md:8-9`, `obj_carrierfac.md:12`), so a facility edit changes them without a change to the row's `updated`.
-- Live rows that a paged `?since=` fetch skipped.
-  Upstream orders the window by `updated` only and pages it with an offset (2.83.0 `rest.py:738-745`, `:757-760`).
-  Rows that share one `updated` value can move across a page edge between two requests, and the cursor then moves past the rows that were skipped.
-  Upstream migration `0160_netixlan_not_operational_status` gives about 600 netixlans one `updated` value.
 - Values that upstream set before the mirror stored the field, for example `meta` on `net` and `netixlan`.
 - FK columns that the sync set to `NULL` because the parent was missing, and a newly added `_fold` column.
 
@@ -310,8 +312,7 @@ Two rules keep a stale snapshot from rolling rows back:
   An IX-F import-log rollback gets a new `updated` value, because it runs in a revision and handleref saves the row again (2.83.0 `models.py:3745-3747`, django-handleref `models.py:9-16`).
 - The window fetch that follows the snapshot starts at the earlier of the cursor and the newest `updated` value in the snapshot (see [Soft-delete tombstones](#soft-delete-tombstones)).
   Its `?since=` filter matches every row that changed after upstream built the cache.
-  The window is paged like any `?since=` fetch, so rows that share one `updated` value can be skipped at a page edge, as described above.
-  The next full cycle fetches them again.
+  The window streams in one response, so it has no offset page edges.
 
 These rules protect data that the mirror holds when the cycle starts.
 A full cycle before v1.28.1 could turn an upstream delete back into a live row.

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -49,44 +50,55 @@ func emptyResponse() []byte {
 	return []byte(`{"meta": {}, "data": []}`)
 }
 
-func TestFetchAllPagination(t *testing.T) {
+func TestFetchAllDeltaCompleteness(t *testing.T) {
 	t.Parallel()
-
-	// Incremental sync (WithSince) paginates: 250 items on page 0, 100 on
-	// page 1. The short page terminates the stream — no trailing
-	// empty-page request is issued.
-	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		page := requestCount.Add(1)
-		switch page {
-		case 1:
-			_, _ = w.Write(makeOrgPage(1, 250))
-		case 2:
-			_, _ = w.Write(makeOrgPage(251, 100))
-		default:
-			_, _ = w.Write(emptyResponse())
-		}
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, slog.Default())
-	// Use a fast rate limiter for testing.
-	client.limiter.SetLimit(1000)
-	client.limiter.SetBurst(1000)
-
-	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
-	if err != nil {
-		t.Fatalf("FetchAll: %v", err)
-	}
-
-	if len(result.Data) != 350 {
-		t.Errorf("got %d items, want 350", len(result.Data))
-	}
-
-	// Verify we made exactly 2 requests (250, then the short 100-row
-	// page which ends the stream without a trailing empty-page fetch).
-	if got := requestCount.Load(); got != 2 {
-		t.Errorf("made %d requests, want 2", got)
+	for _, count := range []int{250, 350, 550} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			t.Parallel()
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				n := requests.Add(1)
+				// Equal updated values have no upstream tie-breaker. A second
+				// query can return the same rows in reverse order.
+				data := make([]map[string]any, 0, count)
+				start, end := 0, count
+				q := r.URL.Query()
+				if q.Get("limit") != "" {
+					start, _ = strconv.Atoi(q.Get("skip"))
+					end = min(start+pageSize, count)
+				}
+				for i := start; i < end; i++ {
+					id := i + 1
+					if n > 1 {
+						id = count - i
+					}
+					data = append(data, map[string]any{"id": id, "updated": "2026-10-01T00:00:00Z"})
+				}
+				if err := json.NewEncoder(w).Encode(map[string]any{"data": data, "meta": map[string]any{}}); err != nil {
+					t.Error(err)
+				}
+			}))
+			defer server.Close()
+			client := newStreamingTestClient(server.URL)
+			result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			ids := make(map[int]bool)
+			for _, raw := range result.Data {
+				var row struct{ ID int }
+				if err := json.Unmarshal(raw, &row); err != nil {
+					t.Fatal(err)
+				}
+				ids[row.ID] = true
+			}
+			if len(ids) != count {
+				t.Errorf("unique IDs = %d, want %d", len(ids), count)
+			}
+			if got := requests.Load(); got != 1 {
+				t.Errorf("requests = %d, want 1", got)
+			}
+		})
 	}
 }
 
@@ -376,55 +388,13 @@ func TestFetchAllEmptyFirstPage(t *testing.T) {
 	}
 }
 
-func TestFetchAllAccumulatesAllPages(t *testing.T) {
-	t.Parallel()
-
-	// Incremental sync (WithSince) accumulates across pages.
-	var requestCount atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		page := requestCount.Add(1)
-		switch page {
-		case 1:
-			_, _ = w.Write(makeOrgPage(1, 250))
-		case 2:
-			_, _ = w.Write(makeOrgPage(251, 250))
-		case 3:
-			_, _ = w.Write(makeOrgPage(501, 50))
-		default:
-			_, _ = w.Write(emptyResponse())
-		}
-	}))
-	defer server.Close()
-
-	client := NewClient(server.URL, slog.Default())
-	client.limiter.SetLimit(1000)
-	client.limiter.SetBurst(1000)
-
-	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
-	if err != nil {
-		t.Fatalf("FetchAll: %v", err)
-	}
-
-	if len(result.Data) != 550 {
-		t.Errorf("got %d items, want 550", len(result.Data))
-	}
-}
-
 func TestFetchAllRateLimiter(t *testing.T) {
 	t.Parallel()
 
-	// Incremental sync (WithSince) paginates and is rate-limited.
-	// Non-final pages must be exactly pageSize rows: StreamAll stops on
-	// the first short page (the trailing empty-page request was dropped),
-	// so a short page 1 would end the fetch after a single request.
 	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		n := requestCount.Add(1)
-		if n <= 2 {
-			_, _ = w.Write(makeOrgPage(int(n)*pageSize, pageSize))
-			return
-		}
-		_, _ = w.Write(makeOrgPage(3*pageSize, 10))
+		requestCount.Add(1)
+		_, _ = w.Write(makeOrgPage(1, 10))
 	}))
 	defer server.Close()
 
@@ -434,14 +404,18 @@ func TestFetchAllRateLimiter(t *testing.T) {
 	client.limiter.SetBurst(1)
 
 	start := time.Now()
-	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
-	elapsed := time.Since(start)
-	if err != nil {
-		t.Fatalf("FetchAll: %v", err)
+	for range 3 {
+		result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(result.Data) != 10 {
+			t.Fatalf("rows = %d, want 10", len(result.Data))
+		}
 	}
-
-	if want := 2*pageSize + 10; len(result.Data) != want {
-		t.Errorf("got %d items, want %d", len(result.Data), want)
+	elapsed := time.Since(start)
+	if got := requestCount.Load(); got != 3 {
+		t.Errorf("requests = %d, want 3", got)
 	}
 
 	// With 3 requests at 10/sec (burst 1), we need at least ~200ms.
@@ -601,18 +575,8 @@ func TestFetchAllRecordsStreamedEvent(t *testing.T) {
 	// Not parallel: mutates global TracerProvider.
 	exporter := setupTraceTest(t)
 
-	// Incremental sync (WithSince) paginates and records final streamed event.
-	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		n := requestCount.Add(1)
-		switch n {
-		case 1:
-			_, _ = w.Write(makeOrgPage(1, 250))
-		case 2:
-			_, _ = w.Write(makeOrgPage(251, 50))
-		default:
-			_, _ = w.Write(emptyResponse())
-		}
+		_, _ = w.Write(makeOrgPage(1, 300))
 	}))
 	defer server.Close()
 
@@ -1005,38 +969,23 @@ func TestFetchMetaMissing(t *testing.T) {
 	}
 }
 
-func TestFetchMetaEarliestAcrossPages(t *testing.T) {
+func TestFetchMetaIncremental(t *testing.T) {
 	t.Parallel()
-
-	// Incremental sync (WithSince) tracks earliest meta.generated across pages.
-	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		n := requestCount.Add(1)
-		switch n {
-		case 1:
-			// Page 1: newer generated timestamp
-			_, _ = w.Write(makeOrgPageWithMeta(1, 250, 1711234567.0))
-		case 2:
-			// Page 2: older generated timestamp (this should be used)
-			_, _ = w.Write(makeOrgPageWithMeta(251, 50, 1711234500.0))
-		default:
-			_, _ = w.Write(emptyResponse())
-		}
+		_, _ = w.Write(makeOrgPageWithMeta(1, 300, 1711234567.0))
 	}))
 	defer server.Close()
-
-	client := NewClient(server.URL, slog.Default())
-	client.limiter.SetLimit(1000)
-	client.limiter.SetBurst(1000)
-
+	client := newStreamingTestClient(server.URL)
 	result, err := client.FetchAll(t.Context(), TypeOrg, WithSince(time.Unix(1000, 0)))
 	if err != nil {
-		t.Fatalf("FetchAll: %v", err)
+		t.Fatal(err)
 	}
-
-	want := time.Unix(1711234500, 0)
+	want := time.Unix(1711234567, 0)
 	if !result.Meta.Generated.Equal(want) {
-		t.Errorf("Meta.Generated = %v, want %v (should use earliest)", result.Meta.Generated, want)
+		t.Errorf("Meta.Generated = %v, want %v", result.Meta.Generated, want)
+	}
+	if len(result.Data) != 300 {
+		t.Errorf("rows = %d, want 300", len(result.Data))
 	}
 }
 
@@ -1220,19 +1169,11 @@ func TestFetchAll_IncrementalBodyReadError(t *testing.T) {
 func TestFetchAll_IncrementalFetchError(t *testing.T) {
 	t.Parallel()
 
-	// Server returns a valid first page then becomes unavailable.
-	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		page := requestCount.Add(1)
-		if page == 1 {
-			_, _ = w.Write(makeOrgPage(1, 250)) // Full first page triggers pagination.
-		} else {
-			// Close connection abruptly for the second page.
-			hj, ok := w.(http.Hijacker)
-			if ok {
-				conn, _, _ := hj.Hijack()
-				conn.Close()
-			}
+		hj, ok := w.(http.Hijacker)
+		if ok {
+			conn, _, _ := hj.Hijack()
+			_ = conn.Close()
 		}
 	}))
 	defer server.Close()
@@ -1243,7 +1184,7 @@ func TestFetchAll_IncrementalFetchError(t *testing.T) {
 
 	_, err := client.FetchAll(t.Context(), "test", WithSince(time.Unix(1000, 0)))
 	if err == nil {
-		t.Fatal("expected error from paginated fetch failure")
+		t.Fatal("expected error from incremental fetch failure")
 	}
 	if !strings.Contains(err.Error(), "fetch") {
 		t.Errorf("error = %q, want substring %q", err, "fetch")
