@@ -1033,8 +1033,8 @@ func TestParity_Status(t *testing.T) {
 		// upstream sends Allow: GET there, and an anonymous write fails
 		// the permission check first: 401 (drf views.py:174-180,
 		// permissions.py:191-199; tests/test_api_cache_keys.py:222-245).
-		// The mirror is read-only: every method other than GET and HEAD
-		// gets 405, with Allow: GET, HEAD, or Allow: GET on as_set. The
+		// The mirror serves read-only OPTIONS metadata and rejects writes
+		// with 405. Allow lists the supported methods. The
 		// self and organization users routes answer OPTIONS, and
 		// /api/search every method, as upstream
 		// (self_redirects_302_like_upstream,
@@ -1044,10 +1044,9 @@ func TestParity_Status(t *testing.T) {
 		seedNet(t, c, 1, 64501, "ok", t0)
 		srv := newTestServer(t, c)
 		for _, tc := range []struct{ method, path, wantAllow string }{
-			{http.MethodPost, "/api/net", "GET, HEAD"},
-			{http.MethodPatch, "/api/net/1", "GET, HEAD"},
-			{http.MethodDelete, "/api/net/1", "GET, HEAD"},
-			{http.MethodOptions, "/api/net", "GET, HEAD"},
+			{http.MethodPost, "/api/net", "GET, HEAD, OPTIONS"},
+			{http.MethodPatch, "/api/net/1", "GET, HEAD, OPTIONS"},
+			{http.MethodDelete, "/api/net/1", "GET, HEAD, OPTIONS"},
 			{http.MethodPost, "/api/as_set", "GET"},
 		} {
 			status, hdr, body := httpDo(t, srv, tc.method, tc.path, nil)

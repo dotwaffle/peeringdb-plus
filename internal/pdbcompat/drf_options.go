@@ -4,6 +4,10 @@ import (
 	_ "embed"
 	"encoding/json"
 	"net/http"
+	"strings"
+	"unicode"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/pdbtypes"
 )
 
 // drfMetadata is the body of the DRF OPTIONS response of a view:
@@ -84,4 +88,42 @@ func orgUsersMetadata(actions json.RawMessage) drfMetadata {
 // writeDRFMetadata writes the 200 OPTIONS response with the body m.
 func writeDRFMetadata(w http.ResponseWriter, m drfMetadata) {
 	WriteResponse(w, []drfMetadata{m})
+}
+
+// readAllow lists only methods that the mirror supports on an ordinary
+// API route. Upstream's GET-only routes keep their method restrictions.
+func readAllow(typeName string) string {
+	if getOnly(typeName) {
+		return "GET"
+	}
+	return "GET, HEAD, OPTIONS"
+}
+
+// readMetadata describes a read-only route without advertising writes.
+// DRF 3.18.1 routers.py adds List and Instance to viewset names.
+func readMetadata(typeName string, detail bool) drfMetadata {
+	name := "API Root"
+	if typeName != "" {
+		model, _ := pdbtypes.DjangoModelOf(typeName)
+		name = modelWords(model)
+		if detail {
+			name += " Instance"
+		} else {
+			name += " List"
+		}
+	}
+	return drfMetadata{Name: name, Description: "", Renders: drfRenders, Parses: drfParses}
+}
+
+func modelWords(model string) string {
+	runes := []rune(model)
+	var b strings.Builder
+	for i, r := range runes {
+		if i > 0 && unicode.IsUpper(r) && (unicode.IsLower(runes[i-1]) ||
+			i+1 < len(runes) && unicode.IsLower(runes[i+1])) {
+			b.WriteByte(' ')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

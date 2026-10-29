@@ -32,7 +32,7 @@ func TestE2E_PdbcompatErrorEnvelope(t *testing.T) {
 			method:     http.MethodPost,
 			path:       "/api/net",
 			wantStatus: http.StatusMethodNotAllowed,
-			wantAllow:  "GET, HEAD",
+			wantAllow:  "GET, HEAD, OPTIONS",
 			wantError:  `Method "POST" not allowed.`,
 		},
 		{
