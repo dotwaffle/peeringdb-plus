@@ -6,6 +6,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -398,6 +399,41 @@ func TestParity_NameSearch(t *testing.T) {
 
 	})
 
+	t.Run("word_boundary_corpus", func(t *testing.T) {
+		t.Parallel()
+		// Lucene StandardTokenizerImpl.jflex keeps internal apostrophes,
+		// dots and underscores, and separates Han and hiragana characters.
+		c := seedNameSearch(t, t0)
+		for i, aka := range []string{"Gamma.Net", "O'Reilly", "Alpha_Net", "東京Net", "あいNet", "カタカナNet"} {
+			id := 110 + i
+			mustNet(t.Context(), t, c, id, fmt.Sprintf("Fixture %d", id), 6451000+i, 2, t0)
+			c.Network.UpdateOneID(id).SetAka(aka).ExecX(t.Context())
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			query string
+			want  []int
+		}{
+			{"gamma-net", []int{}},
+			{"o-reilly", []int{}},
+			{"alpha-net", []int{}},
+			{"京-net", []int{113}},
+			{"い-net", []int{114}},
+			{"カタカナ-net", []int{115}},
+		} {
+			t.Run(tc.query, func(t *testing.T) {
+				q := url.QueryEscape(tc.query)
+				assertNameSearchIDs(t, srv, []silentIgnoreCase{{path: "/api/net?name_search=" + q, want: tc.want}})
+				code, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q="+q, http.Header{"Authorization": {"x y"}})
+				got := searchIDs(t, body)["net"]
+				slices.Sort(got)
+				if code != 200 || !slices.Equal(got, tc.want) {
+					t.Errorf("search: status %d, ids %v, want %v", code, got, tc.want)
+				}
+			})
+		}
+	})
+
 	t.Run("DIVERGENCE_name_search_error_status", func(t *testing.T) {
 		t.Parallel()
 		// DIVERGENCE: upstream answers 500 for a partial IPv4 address
@@ -620,6 +656,28 @@ func TestParity_NameSearch(t *testing.T) {
 		code, list := httpGet(t, srv, "/api/org?name_search=cap")
 		if got := len(extractIDs(t, list)); code != 200 || got != 1001 {
 			t.Errorf("name_search cap: status %d, rows %d, want 1001", code, got)
+		}
+
+		var aggregated []int
+		for skip := 0; ; skip += 73 {
+			code, body := httpGet(t, srv, fmt.Sprintf("/api/org?name_search=cap&limit=73&skip=%d", skip))
+			if code != 200 {
+				t.Fatalf("page status = %d", code)
+			}
+			ids := extractIDs(t, body)
+			aggregated = append(aggregated, ids...)
+			if len(ids) < 73 {
+				break
+			}
+		}
+		slices.Sort(aggregated)
+		if len(aggregated) != 1001 {
+			t.Fatalf("aggregated rows = %d, want 1001", len(aggregated))
+		}
+		for i, id := range aggregated {
+			if id != i+1 {
+				t.Fatalf("aggregated ID[%d] = %d, want %d", i, id, i+1)
+			}
 		}
 
 		_, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q=cap", http.Header{"Authorization": {"Api-Key k"}})

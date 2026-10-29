@@ -4,7 +4,6 @@ package sqlitesearch
 import (
 	"database/sql/driver"
 	"strings"
-	"unicode"
 
 	"modernc.org/sqlite"
 )
@@ -24,13 +23,4 @@ func NewDriver() *sqlite.Driver {
 			})
 	}
 	return d
-}
-
-// Tokens covers common standard-analyzer word boundaries.
-// It retains Unicode letters, numbers and combining marks. Lucene's
-// full Unicode word-break rules remain a registered divergence.
-func Tokens(value string) string {
-	return strings.Join(strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsNumber(r) && !unicode.IsMark(r)
-	}), " ")
 }
