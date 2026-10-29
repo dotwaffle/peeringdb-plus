@@ -452,7 +452,7 @@ Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`
 **ix `capacity` (`internal/pdbcompat/capacity_filter.go`).**
 `ix?capacity[__lt|lte|gt|gte|in|contains|startswith]=` resolves in `ParseFiltersCtx` after the ixpfx whereis key, first value: `id IN (SELECT ixlan_id FROM network_ix_lans WHERE status <> 'deleted' GROUP BY ixlan_id HAVING SUM(speed) <op> ?)` (upstream `filter_capacity`, `models.py:2895-2942`, takes `ixlan_id` as the ix id; do not join `ixlan` or use `netixlan.ix_id`).
 Values parse with `pyInt` (saturated, bound as integers; `__in` as ONE JSON array); `capacity__in=` is a 400 (upstream int-converts every item), not `errEmptyIn`; contains/startswith match `CAST(SUM AS TEXT)` and never 400.
-Two different capacity keys AND (upstream applies only the form whose first occurrence is last): `DIVERGENCE_relation_filter_forms_all_apply`.
+`selectPrepareForms` resolves competing capacity forms from raw query order, as for relation, count and whereis keys.
 Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (uncorrelated `LIST SUBQUERY` on `networkixlan_ixlan_id`).
 
 **Distance filter (`internal/pdbcompat/distance_filter.go`).**
@@ -483,6 +483,15 @@ Every new `prepare_query` key resolver MUST be added to `isPrepareQueryKey` (`fi
 Detail and negative skip: upstream's `qset.none()` comes before the slice, so `nameSearchMisses` (`none`, or `searchHit` once via `tc.List`, limit 1) runs for a sliced detail or a negative `skip` (list or detail); a miss is the miss `404` (detail) or the empty result (list), not the slice `404` or the negative skip `400`.
 The digit test follows Python `isdigit` + `int` (`pyDigitNotDecimal`, `ndValue`, `pyIntMaxStrDigits`): a value that `int()` rejects is `400`, as upstream.
 Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_NameSearchNone`.
+
+**Competing prepare_query forms (`internal/pdbcompat/relation_precedence.go`).**
+`parseRequestFilters` selects one form per translated relation and field before parsing values.
+The raw URL provides first-key order.
+Repeated keys keep their first position and their full value list.
+The last form in that order wins, and prepare_query reads its first value.
+Excluded keys never replace valid filters.
+Ordinary model filters and different relation fields remain independent.
+The request parameter map is copied only when a form is superseded.
 
 **Reverse relation keys (`internal/pdbcompat/reverse_set_filter.go`).**
 `reverseSets` holds upstream `<related_name>` keys for org, ix, ixlan, net, fac and carrier.

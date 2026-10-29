@@ -1010,6 +1010,7 @@ func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.R
 // of the result, not its sort key.
 func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig, afterPrepare func() error) (listFilters, error) {
 	ctx := WithUnknownFields(r.Context())
+	params = selectPrepareForms(r.URL.RawQuery, params, tc)
 	lf, err := parseListFilters(ctx, params, tc, afterPrepare)
 	if err != nil {
 		return listFilters{}, err

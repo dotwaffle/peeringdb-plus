@@ -76,24 +76,19 @@ import (
 //     fac or org is a substring match, not a geocoded search; nan,
 //     inf, non-ASCII digits and the coordinate values are handled by
 //     the mirror's own rules.
-//   - DIVERGENCE: the hide_ix_no_fac mixin is silent-ignored, also on
-//     a single-object GET (`ix/<id>?hide_ix_no_fac=1`). name_search
-//     filters as upstream: see TestParity_NameSearch.
+//   - hide_ix_no_fac applies after the API cache gate and on details.
+//     name_search filters as upstream: see TestParity_NameSearch.
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
-//   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
-//     two forms (`ix?net=1&net__in=2`,
-//     `ixpfx?whereis=A&whereis__contains=B`,
-//     `ix?capacity__gte=A&capacity__lte=B`) applies both forms, where
-//     upstream uses one.
+//   - Competing prepare_query forms use the last form in first-key
+//     order. Only the winning form's first value is parsed.
 //   - A relation key of a prepare_query whose field the related model
 //     does not have (`fac?net__bogus=`, `net?netfac__name=`) returns
 //     400 Invalid query. `pk`, the Django lookup names on a relation
 //     through a FK (`fac?net__exact=`) and the prefix aliases
 //     (`ix?ixlan__ixlan_id=`) filter as upstream.
-//   - DIVERGENCE: a 3-segment relation key with contains or
-//     startswith ignores case, and campus?facility__<field>= returns
-//     each campus once.
+//   - Three-segment relation contains and startswith preserve case.
+//   - DIVERGENCE: campus?facility__<field>= returns each campus once.
 //   - netixlan ix_side__<field> filters on the IX-side facility through
 //     the declared column edge (schema.ColumnEdges), as upstream.
 //   - Keys that upstream never filters are ignored on both sides: the
@@ -1776,17 +1771,10 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_relation_filter_forms_all_apply", func(t *testing.T) {
+	t.Run("relation_filter_forms_last_wins", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: get_relation_filters stores every form of one key
-		// under one entry (2.83.0 serializers.py:614-656):
-		// queryable_field_xl maps net and net__in to network
-		// (:403-441). A later key replaces the entry of an earlier one,
-		// so upstream uses only the form whose first occurrence is last
-		// in the query string, and parses only its value. The mirror
-		// applies every form (AND), and every value must parse.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// PeeringDB 2.84.0 serializers.py:708-758 keeps the last form
+		// in first-key order and parses only that form's first value.
 		// Seed: ix 20 and 21 have an ok netixlan of net 100, ix 22 has
 		// one of net 101.
 		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
@@ -1795,15 +1783,13 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?net=100", want: []int{20, 21}},
 			{path: "/api/ix?net__in=101", want: []int{22}},
 			// Upstream: [22] (net__in).
-			{path: "/api/ix?net=100&net__in=101", want: []int{}},
+			{path: "/api/ix?net=100&net__in=101", want: []int{22}},
 			// Upstream: [20 21] (net).
-			{path: "/api/ix?net__in=101&net=100", want: []int{}},
+			{path: "/api/ix?net__in=101&net=100", want: []int{20, 21}},
 		})
 		// Upstream: 200 [22]. It parses only the net__in value.
 		path := "/api/ix?net=abc&net__in=101"
-		if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
-			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
-		}
+		assertKeysResolve(t, srv, []silentIgnoreCase{{path: path, want: []int{22}}})
 		// The ixpfx whereis key and its operator forms share one entry
 		// in the same way (2.83.0 serializers.py:4157). See seedWhereis
 		// for the rows.
@@ -1812,23 +1798,21 @@ func TestParity_Traversal(t *testing.T) {
 		srv2 := newTestServer(t, c2)
 		assertKeysResolve(t, srv2, []silentIgnoreCase{
 			// Upstream: [4000 4002] (whereis__contains).
-			{path: "/api/ixpfx?whereis=10.1.0.1&whereis__contains=10.0.0.5", want: []int{}},
+			{path: "/api/ixpfx?whereis=10.1.0.1&whereis__contains=10.0.0.5", want: []int{4000, 4002}},
 		})
 		// Upstream: 200 [4000 4002]. It parses only the whereis value.
 		path = "/api/ixpfx?whereis__in=x&whereis=10.0.0.5"
-		if status, body := httpGet(t, srv2, path); status != http.StatusBadRequest {
-			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
-		}
+		assertKeysResolve(t, srv2, []silentIgnoreCase{{path: path, want: []int{4000, 4002}}})
 		// The ix capacity key and its operator forms share one entry
 		// too (2.83.0 serializers.py:630-641). The capacity rows are on
 		// the same server; see addCapacityRows.
 		assertKeysResolve(t, srv2, []silentIgnoreCase{
 			// Upstream: [22] (capacity__lt).
-			{path: "/api/ix?capacity__gte=600&capacity__lt=1", want: []int{}},
+			{path: "/api/ix?capacity__gte=600&capacity__lt=1", want: []int{22}},
 			// Upstream: [20] (capacity__gte).
-			{path: "/api/ix?capacity=500&capacity__gte=600", want: []int{}},
+			{path: "/api/ix?capacity=500&capacity__gte=600", want: []int{20}},
 			// Upstream: [21 22] (capacity__lte).
-			{path: "/api/ix?capacity__gte=400&capacity__lte=600", want: []int{21}},
+			{path: "/api/ix?capacity__gte=400&capacity__lte=600", want: []int{21, 22}},
 		})
 	})
 
