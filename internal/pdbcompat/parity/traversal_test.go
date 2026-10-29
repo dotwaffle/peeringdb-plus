@@ -1832,23 +1832,16 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_relation_field_contains_ignores_case", func(t *testing.T) {
+	t.Run("relation_field_contains_preserves_case", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: for a 3-segment relation key such as
-		// <seed>__<field>__contains, get_relation_filters keeps the
-		// raw operator (2.83.0 serializers.py:643-654). Only the
-		// 2-segment form becomes icontains or istartswith (:622-626).
-		// On MySQL, Django runs contains and startswith as LIKE BINARY,
-		// which is case-sensitive. The mirror ignores case, as for every
-		// other contains and startswith key.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// PeeringDB 2.84.0 serializers.py:739-750 preserves the raw
+		// operator on three-segment relation keys.
 		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
 		assertKeysResolve(t, srv, []silentIgnoreCase{
 			// Upstream: [].
-			{path: "/api/netixlan?ix__name__contains=relseedix20", want: []int{500, 501}},
+			{path: "/api/netixlan?ix__name__contains=relseedix20", want: []int{}},
 			// Upstream: [].
-			{path: "/api/net?ix__name__startswith=relseed", want: []int{100, 101}},
+			{path: "/api/net?ix__name__startswith=relseed", want: []int{}},
 		})
 	})
 

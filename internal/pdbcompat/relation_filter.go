@@ -454,7 +454,7 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	if col != "status" || op != "" || sd.pinAt != n {
 		var p func(*sql.Selector)
 		var err error
-		if sd.lookup {
+		if sd.lookup || ft == FieldString && len(tail) == 2 && (op == "contains" || op == "startswith") {
 			p, err = charFieldLookup(col, op, value)
 		} else {
 			p, err = buildPredicate(col, op, value, ft, folded)
