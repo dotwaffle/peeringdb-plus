@@ -149,3 +149,17 @@ func buildReverseSetPredicate(rs reverseSet, field, op, value string, tier privc
 		s.Where(sql.In(s.C(parentPKColumn), sel))
 	}, true, false, nil
 }
+
+// reverseRelationEdge resolves a related name inside a prepare_query key.
+// Unlike the top-level filter loop, Django compares the related ID directly.
+func reverseRelationEdge(typ, name string) (EdgeMetadata, bool) {
+	for _, rs := range reverseSets[typ] {
+		if rs.name == name {
+			return EdgeMetadata{
+				Name: name, TargetType: rs.target, TargetTable: rs.table,
+				ParentFKColumn: rs.column, TargetIDColumn: parentPKColumn,
+			}, true
+		}
+	}
+	return EdgeMetadata{}, false
+}

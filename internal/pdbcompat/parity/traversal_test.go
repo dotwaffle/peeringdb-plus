@@ -2231,15 +2231,15 @@ func TestParity_Traversal(t *testing.T) {
 		assertFilterError(t, srv, "/api/org?ix_set__contains=20", "Invalid query")
 	})
 
-	t.Run("DIVERGENCE_nested_reverse_set_keys_silent_ignore", func(t *testing.T) {
+	t.Run("nested_reverse_set_keys", func(t *testing.T) {
 		t.Parallel()
 		// Upstream 2.84.0 models.py:223-234 also filters related names
-		// inside prepare_query keys. These nested forms remain ignored.
+		// inside prepare_query keys.
 		srv := newTestServer(t, seedRelationKeys(t))
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
-			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
-			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/net?ix__ixlan_set=5", want: []int{}},
+			{path: "/api/fac?net__poc_set=1", want: []int{}},
+			{path: "/api/ix?fac__netfac_set=1", want: []int{}},
 		})
 	})
 

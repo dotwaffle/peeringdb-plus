@@ -416,7 +416,6 @@ func TestParseFilters_RelationKeyUnknownField(t *testing.T) {
 	for _, tt := range []struct{ typ, key string }{
 		{peeringdb.TypeFac, "net__notes_private"},
 		{peeringdb.TypeIX, "ixlan__ixf_ixp_member_list_url"},
-		{peeringdb.TypeNet, "ix__ixlan_set"},
 	} {
 		ctx := WithUnknownFields(t.Context())
 		preds, empty, err := ParseFiltersCtx(ctx, url.Values{tt.key: {"1"}}, Registry[tt.typ])

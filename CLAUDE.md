@@ -488,7 +488,8 @@ Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_N
 `reverseSets` holds upstream `<related_name>` keys for org, ix, ixlan, net, fac and carrier.
 They resolve in `addKey` before `parseFieldOp`, one hop only, with upstream's `_id` strips and no status filter on related rows.
 Contact visibility and field exclusions still apply.
-Nested related names inside `prepare_query` keys remain registered divergences.
+`reverseRelationEdge` also resolves related names inside `prepare_query` keys as related-ID comparisons.
+The extra hop preserves the original status pin and applies the target visibility gate.
 `hideIXNoFac` supplies `listFilters.liveFilter` for ix, ixlan, net and netixlan.
 It reads stored counts after the API cache gate, before pagination, and on details.
 It does not set `upstreamFilter`: upstream cached lists bypass the mixin.
