@@ -34,8 +34,8 @@ var (
 // unservedModelNames lists, per leaf type of a shapeRelation seed, the
 // upstream model names that Django resolves and that the mirror does
 // not filter: model columns that the API does not serialize or that the
-// mirror does not keep, the stored meta document (no plain filter key),
-// and reverse related names. Upstream filters on them. The mirror does
+// mirror does not keep, JSON fields without a plain relation filter,
+// and relations to models absent from the mirror. Upstream filters on them. The mirror does
 // not. PeeringDB 2.84.0 excludes some names before this lookup.
 // The remaining names are divergences (see docs/API.md
 // § Known Divergences). Every other field that the related model does
@@ -50,10 +50,7 @@ var unservedModelNames = map[string]map[string]bool{
 	// Network (models.py:5310).
 	peeringdb.TypeNet: {
 		"version":                          true,
-		"social_media":                     true,
-		"meta":                             true, // abstract.py:417
 		"notes_private":                    true, // abstract.py:436
-		"ixp_update_exclude":               true, // models.py:5332
 		"rir_status_notified":              true, // :5345
 		"irr_as_set_auto_prefix_candidate": true, // :5350
 		"irr_as_set_auto_prefix_checked":   true, // :5353
@@ -63,18 +60,12 @@ var unservedModelNames = map[string]map[string]bool{
 		"irr_as_set_verified":              true, // :5383
 		"irr_as_set_missing_since":         true, // :5389
 		"irr_as_set_verify_notified":       true, // :5396
-		"poc_set":                          true, // :5883
-		"netfac_set":                       true, // :5988
-		"netixlan_set":                     true, // :6083
 		"network_email_set":                true, // :7296
 	},
 	// InternetExchange (models.py:2580).
 	peeringdb.TypeIX: {
 		"version":                 true,
-		"social_media":            true,
 		"ixf_import_request_user": true, // models.py:2612
-		"ixfac_set":               true, // :3230
-		"ixlan_set":               true, // :3308
 		"ix_email_set":            true, // :7303
 	},
 	// IXLan (models.py:3297).
@@ -88,8 +79,6 @@ var unservedModelNames = map[string]map[string]bool{
 		"ixf_import_attempt":               true, // :3723
 		"ixf_import_log_set":               true, // :3736
 		"ixf_set":                          true, // :3903
-		"ixpfx_set":                        true, // :5149
-		"netixlan_set":                     true, // :6086
 	},
 	// InternetExchangeFacility (models.py:3222).
 	peeringdb.TypeIXFac: {
@@ -100,22 +89,16 @@ var unservedModelNames = map[string]map[string]bool{
 	// relation.
 	peeringdb.TypeFac: {
 		"version":                true,
-		"social_media":           true,
 		"location_method":        true, // models.py:2207
 		"location_place_id":      true, // :2214
 		"notified_for_geocoords": true, // :2257
 		"geocode_status":         true, // :591
 		"geocode_date":           true, // :597
-		"ixfac_set":              true, // :3233
-		"netfac_set":             true, // :5991
-		"carrierfac_set":         true, // :6598
-		"ix_side_set":            true, // :6100
 		"ixf_member_data_set":    true, // :3888
 	},
 	// NetworkIXLan (models.py:6075).
 	peeringdb.TypeNetIXLan: {
 		"version":                true,
-		"meta":                   true, // abstract.py:953
 		"ixf_import_log_entries": true, // models.py:3786
 	},
 	// NetworkFacility (models.py:5980).
@@ -434,6 +417,18 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 		col, ft, ok = resolveLocalField(leafTC, field)
 		ok = ok && !leafTC.NonModelFields[col]
 	}
+	if !ok && sd.shape == shapeRelation {
+		if edge, found := reverseRelationEdge(rowType, field); found {
+			// A reverse relation supports related-ID lookups, not text lookups.
+			switch op {
+			case "", "in", "lt", "lte", "gt", "gte":
+			default:
+				return nil, false, false, errInvalidQuery
+			}
+			edges = append(edges, edge)
+			col, ft, ok = parentPKColumn, FieldInt, true
+		}
+	}
 	if !ok {
 		if sd.shape == shapeRelation && !unservedModelNames[rowType][field] {
 			return nil, false, false, errInvalidQuery
@@ -453,7 +448,7 @@ func buildRelationSeedPredicate(tc TypeConfig, sd relationSeed, tail []string, v
 	if col != "status" || op != "" || sd.pinAt != n {
 		var p func(*sql.Selector)
 		var err error
-		if sd.lookup {
+		if sd.lookup || ft == FieldString && len(tail) == 2 && (op == "contains" || op == "startswith") {
 			p, err = charFieldLookup(col, op, value)
 		} else {
 			p, err = buildPredicate(col, op, value, ft, folded)

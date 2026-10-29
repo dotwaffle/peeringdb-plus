@@ -49,7 +49,7 @@ A row that changed after the build appears in its old state, with its old `updat
 `meta.generated` is not a safe start for the window fetch that follows the snapshot: the file is written after the query ran, and one build took more than 24 minutes between the `net` and `netixlan` files.
 The worker starts the window at the earlier of the pre-cycle cursor and the newest `updated` value in the snapshot (`snapshotWindowStart`, `internal/sync/worker.go`).
 That value is at or before the query cutoff, so the window's `?since=` filter matches every row that changed after the build.
-The window is paged like any `?since=` fetch, so rows that share one `updated` value can still be skipped at a page edge (see [ARCHITECTURE.md § Daily full reconcile](ARCHITECTURE.md#daily-full-reconcile)).
+The window streams in one response, as every sync `?since=` fetch does, so rows cannot be skipped at offset page edges.
 Full-mode upserts also keep a stored row whose `updated` value is newer than the snapshot's version and not older than the snapshot's newest row (`skipUnchangedPredicate`, `internal/sync/upsert.go`).
 
 The fetch span carries `pdbplus.sync.snapshot.generated`, `pdbplus.sync.snapshot.max_updated` and `pdbplus.sync.window.since`.

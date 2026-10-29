@@ -6,6 +6,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"slices"
 	"strings"
 	"testing"
@@ -341,18 +342,11 @@ func TestParity_NameSearch(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_name_search_substring_approximation", func(t *testing.T) {
+	t.Run("text_operators_and_phrases", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream searches an Elasticsearch index. The
-		// mirror keeps the rows where each word is a case-insensitive
-		// substring of one indexed field.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: search_v2.py:525-596 (name query), :359-424 (ASN
-		// query), :618 (clean_term removes AND inside a word),
-		// documents.py:52-65 (analyzers). The 1000-hit cap
-		// (settings/__init__.py:1516, search_v2.py:962-967) is in the
-		// row only: a test would need 1001 hits.
+		// Upstream 2.84.0 search_v2.py:359-424 and :525-596 combines
+		// wildcard clauses with phrase and phrase-prefix matches.
+		// documents.py:52-57 lowercases names without accent folding.
 		c := seedNameSearch(t, t0)
 		ctx := t.Context()
 		mustNet(ctx, t, c, 104, "Rocket Net", 64520, 2, t0)
@@ -361,21 +355,83 @@ func TestParity_NameSearch(t *testing.T) {
 			SetID(106).SetName("Gamma Networks").SetNameFold(unifold.Fold("Gamma Networks")).
 			SetAka("Gamma Net").SetAsn(64522).SetOrgID(2).
 			SetStatus("ok").SetCreated(t0).SetUpdated(t0).SaveX(ctx)
+		mustNet(ctx, t, c, 107, "5Star", 64523, 2, t0)
+		mustNet(ctx, t, c, 108, "Numeric Name", 64524, 2, t0)
+		c.Network.UpdateOneID(108).SetAka("Frankfurt 51").ExecX(ctx)
 		srv := newTestServer(t, c)
 		assertNameSearchIDs(t, srv, []silentIgnoreCase{
+			{path: "/api/net?name_search=5", want: []int{107, 108}},
+			{path: "/api/net?name_search=51", want: []int{108}},
+			{path: "/api/net?name_search=net-gamma", want: []int{}},
+			{path: "/api/net?name_search=gamma-network", want: []int{}},
 			// Upstream: the ASN query matches a name that starts with
 			// 5; Equinix FR5 does not.
-			{path: "/api/fac?name_search=5", want: []int{200}},
+			{path: "/api/fac?name_search=5", want: []int{}},
 			// Upstream: OR makes either word enough ([100, 101]).
-			{path: "/api/net?name_search=alpha%20OR%20beta", want: []int{}},
+			{path: "/api/net?name_search=alpha%20OR%20beta", want: []int{100, 101}},
 			// Upstream: clean_term R prefix-matches Rocket Net.
-			{path: "/api/net?name_search=RAND", want: []int{}},
+			{path: "/api/net?name_search=RAND", want: []int{104}},
 			// Upstream: the ES lowercase filter matches MÜNCHEN IX.
-			{path: "/api/net?name_search=m%C3%BCnchen", want: []int{}},
+			{path: "/api/net?name_search=m%C3%BCnchen", want: []int{105}},
 			// Upstream: the phrase clause matches the aka tokens gamma
 			// and net of net 106.
-			{path: "/api/net?name_search=gamma-net", want: []int{}},
+			{path: "/api/net?name_search=gamma-net", want: []int{106}},
+			{path: "/api/net?name_search=munchen", want: []int{}},
+			{path: "/api/net?name_search=alpha%20OR%20beta%20AND%20net", want: []int{101}},
+			{path: "/api/net?name_search=alpha%20AND%20net%20OR%20beta", want: []int{100}},
+			{path: "/api/net/105?name_search=m%C3%BCnchen&depth=0", want: []int{105}},
 		})
+		for _, tc := range []struct {
+			query string
+			want  []int
+		}{
+			{"alpha%20OR%20beta", []int{100, 101}},
+			{"m%C3%BCnchen", []int{105}},
+			{"gamma-net", []int{106}},
+		} {
+			code, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q="+tc.query, http.Header{"Authorization": {"x y"}})
+			got := searchIDs(t, body)["net"]
+			slices.Sort(got)
+			if code != 200 || !slices.Equal(got, tc.want) {
+				t.Errorf("api/search %s: status %d, ids %v, want %v", tc.query, code, got, tc.want)
+			}
+		}
+
+	})
+
+	t.Run("word_boundary_corpus", func(t *testing.T) {
+		t.Parallel()
+		// Lucene StandardTokenizerImpl.jflex keeps internal apostrophes,
+		// dots and underscores, and separates Han and hiragana characters.
+		c := seedNameSearch(t, t0)
+		for i, aka := range []string{"Gamma.Net", "O'Reilly", "Alpha_Net", "東京Net", "あいNet", "カタカナNet"} {
+			id := 110 + i
+			mustNet(t.Context(), t, c, id, fmt.Sprintf("Fixture %d", id), 6451000+i, 2, t0)
+			c.Network.UpdateOneID(id).SetAka(aka).ExecX(t.Context())
+		}
+		srv := newTestServer(t, c)
+		for _, tc := range []struct {
+			query string
+			want  []int
+		}{
+			{"gamma-net", []int{}},
+			{"o-reilly", []int{}},
+			{"alpha-net", []int{}},
+			{"京-net", []int{113}},
+			{"い-net", []int{114}},
+			{"カタカナ-net", []int{115}},
+		} {
+			t.Run(tc.query, func(t *testing.T) {
+				q := url.QueryEscape(tc.query)
+				assertNameSearchIDs(t, srv, []silentIgnoreCase{{path: "/api/net?name_search=" + q, want: tc.want}})
+				code, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q="+q, http.Header{"Authorization": {"x y"}})
+				got := searchIDs(t, body)["net"]
+				slices.Sort(got)
+				if code != 200 || !slices.Equal(got, tc.want) {
+					t.Errorf("search: status %d, ids %v, want %v", code, got, tc.want)
+				}
+			})
+		}
 	})
 
 	t.Run("DIVERGENCE_name_search_error_status", func(t *testing.T) {
@@ -596,6 +652,34 @@ func TestParity_NameSearch(t *testing.T) {
 		c.Organization.CreateBulk(builders...).SaveX(ctx)
 		mustCampus(ctx, t, c, 1, "Cap 0500 Campus", 1, t0)
 		srv := newTestServer(t, c)
+		// The list filter still has no upstream 1000-hit search cap.
+		code, list := httpGet(t, srv, "/api/org?name_search=cap")
+		if got := len(extractIDs(t, list)); code != 200 || got != 1001 {
+			t.Errorf("name_search cap: status %d, rows %d, want 1001", code, got)
+		}
+
+		var aggregated []int
+		for skip := 0; ; skip += 73 {
+			code, body := httpGet(t, srv, fmt.Sprintf("/api/org?name_search=cap&limit=73&skip=%d", skip))
+			if code != 200 {
+				t.Fatalf("page status = %d", code)
+			}
+			ids := extractIDs(t, body)
+			aggregated = append(aggregated, ids...)
+			if len(ids) < 73 {
+				break
+			}
+		}
+		slices.Sort(aggregated)
+		if len(aggregated) != 1001 {
+			t.Fatalf("aggregated rows = %d, want 1001", len(aggregated))
+		}
+		for i, id := range aggregated {
+			if id != i+1 {
+				t.Fatalf("aggregated ID[%d] = %d, want %d", i, id, i+1)
+			}
+		}
+
 		_, _, body := httpDo(t, srv, http.MethodGet, "/api/search?q=cap", http.Header{"Authorization": {"Api-Key k"}})
 		ids := searchIDs(t, body)
 		if len(ids["org"]) != 999 || ids["org"][0] != 1001 || ids["org"][998] != 3 {

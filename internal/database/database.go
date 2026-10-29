@@ -14,14 +14,14 @@ import (
 	"github.com/XSAM/otelsql"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/noop"
-	"modernc.org/sqlite"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	pdbotel "github.com/dotwaffle/peeringdb-plus/internal/otel"
+	"github.com/dotwaffle/peeringdb-plus/internal/sqlitesearch"
 )
 
 func init() {
-	sql.Register("sqlite3", &sqlite.Driver{})
+	sql.Register("sqlite3", sqlitesearch.NewDriver())
 }
 
 // Open creates an ent client connected to the SQLite database at dbPath.

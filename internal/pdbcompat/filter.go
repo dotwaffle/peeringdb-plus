@@ -337,11 +337,17 @@ func ParseFiltersCtx(ctx context.Context, params url.Values, tc TypeConfig) ([]f
 	if err != nil {
 		return nil, false, err
 	}
+	if lf.liveFilter != nil {
+		lf.preds = append(lf.preds, lf.liveFilter)
+	}
 	return lf.preds, lf.emptyResult, nil
 }
 
 // listFilters is the parsed filter set of a list or detail request.
 type listFilters struct {
+	// liveFilter runs after the API cache gate and before pagination.
+	// It does not contribute to upstreamFilter.
+	liveFilter func(*sql.Selector)
 	// preds are the filter predicates. nil when emptyResult is set.
 	preds []func(*sql.Selector)
 	// emptyResult is set when a filter matches no row without a query
@@ -435,6 +441,10 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 	if params.Has(ctfParam) {
 		st.ctf = map[string]func(*sql.Selector){}
 	}
+	liveFilter, hideKnown := hideIXNoFac(tc.Name, params)
+	if hideKnown {
+		st.consumed["hide_ix_no_fac"] = true
+	}
 	var orderBy func(*sql.Selector)
 	ds, err := parseDistanceSearch(tc.Name, params)
 	if err != nil {
@@ -491,6 +501,7 @@ func parseListFilters(ctx context.Context, params url.Values, tc TypeConfig, aft
 	}
 	return listFilters{
 		preds:          st.preds,
+		liveFilter:     liveFilter,
 		orderBy:        orderBy,
 		searchHit:      ns.hit,
 		upstreamFilter: st.adjusted || len(st.preds) > 0,
@@ -635,10 +646,9 @@ func (st *filterState) addKey(key string, vals []string) error {
 		st.preds = append(st.preds, ipaddr6Predicate(value))
 		return nil
 	}
-	// A reverse relation key in upstream spelling (fac?ix_side_set__asn=)
-	// where no traversal key reaches the related rows.
+	// A reverse relation key in upstream spelling (org?ix_set__name=).
 	if rs, relField, relOp, isSet := lookupReverseSetKey(tc.Name, key); isSet {
-		p, ok, empty, err := buildReverseSetPredicate(rs, relField, relOp, value)
+		p, ok, empty, err := buildReverseSetPredicate(rs, relField, relOp, value, tier)
 		if err != nil {
 			return fmt.Errorf("filter %s: %w", key, err)
 		}
@@ -1170,7 +1180,7 @@ func numericText(ft FieldType) string {
 		return "CAST(%s AS TEXT)"
 	case FieldFloat:
 		return "CASE WHEN %[1]s IS NULL THEN NULL ELSE printf('%%.6f', %[1]s) END"
-	case FieldString, FieldTime, FieldMultiChoice:
+	case FieldString, FieldTime, FieldMultiChoice, FieldJSON:
 		return ""
 	default:
 		return ""
@@ -1331,6 +1341,9 @@ func intTextMatch(col, value string) func(*sql.Selector) {
 // unifold.Fold(value) RHS for diacritic-insensitive matching. A
 // multi-value field has its own operators (buildMultiChoicePredicate).
 func buildPredicate(field, op, value string, ft FieldType, folded bool) (func(*sql.Selector), error) {
+	if ft == FieldJSON {
+		return buildJSONPredicate(field, op, value)
+	}
 	if ft == FieldMultiChoice {
 		return buildMultiChoicePredicate(field, op, value)
 	}
@@ -1411,6 +1424,8 @@ func buildExact(field, value string, ft FieldType, folded bool) (func(*sql.Selec
 			return nil, fmt.Errorf("convert %q to float: %w", value, err)
 		}
 		return sql.FieldEQ(field, v), nil
+	case FieldJSON:
+		return buildJSONPredicate(field, "", value)
 	case FieldMultiChoice:
 		return buildMultiChoicePredicate(field, "", value)
 	default:
@@ -1531,6 +1546,8 @@ func buildIn(field, value string, ft FieldType, folded bool) (func(*sql.Selector
 			times = append(times, v)
 		}
 		return sql.FieldIn(field, times...), nil
+	case FieldJSON:
+		return buildJSONPredicate(field, "in", value)
 	case FieldMultiChoice:
 		return buildMultiChoicePredicate(field, "in", value)
 	default:
@@ -1625,9 +1642,8 @@ func convertValue(s string, ft FieldType) (any, error) {
 		return t, err
 	case FieldFloat:
 		return strconv.ParseFloat(s, 64)
-	case FieldMultiChoice:
-		// A comparison converts the value to the stored form, which
-		// needs the choice list (buildMultiChoicePredicate).
+	case FieldMultiChoice, FieldJSON:
+		// Structured fields use their specialized predicate builders.
 		return nil, fmt.Errorf("unsupported field type %s", ft)
 	default:
 		return nil, fmt.Errorf("unsupported field type %s", ft)

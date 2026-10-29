@@ -99,8 +99,8 @@ func redirectAPIRoot(w http.ResponseWriter, r *http.Request) {
 }
 
 // methodNotAllowed answers a method other than GET and HEAD. The mirror
-// is read-only, so every such method on a path that an upstream route
-// matches gets 405 with the DRF text (views.py:167-172,
+// is read-only. OPTIONS returns metadata on ordinary read routes.
+// Other methods on a path that an upstream route matches get 405 with the DRF text (views.py:167-172,
 // exceptions.py:194-196). Upstream lists its write methods in Allow and
 // runs the write handlers (docs/API.md § Known Divergences). The mux
 // sets no Allow header for this pattern, so the handler sets it. The
@@ -128,19 +128,26 @@ func (h *Handler) methodNotAllowed(w http.ResponseWriter, r *http.Request) {
 		h.serveSearch(w, r)
 		return
 	}
-	typeName, _, format, routed := parseAPIPath(r.PathValue("rest"))
+	typeName, idStr, format, routed := parseAPIPath(r.PathValue("rest"))
 	_, known := Registry[typeName]
-	switch {
-	case !routed:
+	if !routed {
 		writeDetailNotFound(w, r, detailSliceNotFound)
-	case !known && typeName != "" && typeName != asSetPath:
-		writeUnknownType(w, r, typeName)
-	case !negotiate(w, r, format):
-	case getOnly(typeName):
-		writeMethodNotAllowed(w, r, "GET")
-	default:
-		writeMethodNotAllowed(w, r, "GET, HEAD")
+		return
 	}
+	if !known && typeName != "" && typeName != asSetPath {
+		writeUnknownType(w, r, typeName)
+		return
+	}
+	allow := readAllow(typeName)
+	w.Header().Set("Allow", allow)
+	if !negotiate(w, r, format) {
+		return
+	}
+	if r.Method == http.MethodOptions && !getOnly(typeName) {
+		writeDRFMetadata(w, readMetadata(typeName, idStr != ""))
+		return
+	}
+	writeMethodNotAllowed(w, r, allow)
 }
 
 // writeUnknownType writes the 404 of a path that names no type. Upstream
@@ -208,6 +215,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if typeName == "" {
+		w.Header().Set("Allow", readAllow(typeName))
 		// /api/ or /api/.json -- serve the index. /api has its own route
 		// (redirectAPIRoot).
 		if !negotiate(w, r, format) {
@@ -222,6 +230,7 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 	// below turns an id that is not an integer into a 404. The as_set
 	// lookup parses its own ASN and takes its own heap-delta sample.
 	if typeName == asSetPath {
+		w.Header().Set("Allow", readAllow(typeName))
 		if !negotiate(w, r, format) {
 			return
 		}
@@ -235,6 +244,8 @@ func (h *Handler) dispatch(w http.ResponseWriter, r *http.Request) {
 		writeUnknownType(w, r, typeName)
 		return
 	}
+
+	w.Header().Set("Allow", readAllow(typeName))
 
 	// Per-request heap-delta sampler — covers BOTH the list and detail
 	// paths (it used to live in serveList only, leaving detail requests
@@ -512,6 +523,9 @@ func (h *Handler) serveList(tc TypeConfig, w http.ResponseWriter, r *http.Reques
 	// A list that upstream serves from its API cache carries
 	// meta.generated (servedFromCache).
 	cached := servedFromCache(lf, params, q, suffixed, depth, limit)
+	if !cached && lf.liveFilter != nil {
+		opts.Filters = append(opts.Filters, lf.liveFilter)
+	}
 	baseMeta := h.listMeta(cached)
 	// ?page= narrows opts to the rows of the page and applies the depth
 	// cut first, so the paths below serve the page as a list that is
@@ -1007,6 +1021,7 @@ func (h *Handler) serveListDepth(tc TypeConfig, w http.ResponseWriter, r *http.R
 // of the result, not its sort key.
 func parseRequestFilters(r *http.Request, params url.Values, tc TypeConfig, afterPrepare func() error) (listFilters, error) {
 	ctx := WithUnknownFields(r.Context())
+	params = selectPrepareForms(r.URL.RawQuery, params, tc)
 	lf, err := parseListFilters(ctx, params, tc, afterPrepare)
 	if err != nil {
 		return listFilters{}, err
@@ -1208,6 +1223,9 @@ func (h *Handler) serveDetail(tc TypeConfig, rawID string, w http.ResponseWriter
 	}
 
 	filters := lf.preds
+	if lf.liveFilter != nil {
+		filters = append(filters, lf.liveFilter)
+	}
 	// A name_search that matches no row is upstream qset.none(), which
 	// get_queryset returns before it slices the query (2.83.0
 	// rest.py:550-553, :755-760). So it is the miss 404, also with a

@@ -109,7 +109,13 @@ A table with rows and no watermark row uses that newest `updated` value.
 This occurs once, in the first cycle after the upgrade, and the worker logs INFO `sync watermark missing, using MAX(updated)`.
 An empty table has no cursor, whatever its watermark row holds.
 
-In incremental mode, a type with rows fetches `?since=<cursor>` in pages of 250.
+In incremental mode, a type with rows fetches `?since=<cursor>&depth=0` in one response.
+The decoder streams each row into scratch storage, so a larger delta does not require a full in-memory row slice.
+Upstream orders a delta by `updated` alone (2.84.0 `rest.py:750-758`).
+Offset pages can omit tied rows or rows that move between requests; one response removes that page-boundary gap.
+`TestFetchAllDeltaCompleteness` checks 250, 350 and 550 tied rows against a server that reverses the order between requests.
+The existing request limiter, retry handling and fetch spans still apply.
+A large delta can reach upstream's repeated-URL throttle if the same cursor is retried within an hour; rate-limit failures follow the existing fallback and retry rules.
 An empty table fetches the bare list, which holds only live rows.
 When that list is not empty, the worker then fetches a `?since=` window from the newest `updated` value in the list.
 If an incremental fetch fails, the worker deletes the rows of that type from the scratch staging database and fetches the bare list.
@@ -206,7 +212,7 @@ Each request is one id window:
   By then the parent windows are committed, and the normal fetch of that cycle gets the parent rows that the cursor rule (below) dropped.
   So a swept row finds each parent that upstream returns in a `?since=` list, with no FK backfill request, unless the parent table is empty (see the limits below).
   It does the ids of each type in fixed-width windows (`historySpecs`).
-- The widths keep each window of tombstones below about 0.9 MB.
+- The widths keep ordinary tombstone windows below about 0.9 MB.
   Upstream limits a repeated URL only after that URL returned 1 MB or more, and each window is a new URL.
 - The last window of a type has no `id__lt`.
   It starts where a window would reach the largest stored id, so it also gets the ids above that id.
@@ -228,7 +234,7 @@ It never deletes a row:
 - The windows stage into the scratch database after the normal fetch.
   Phase B upserts them in the same transaction as the rest of the cycle, with the incremental gate: a stored row changes only when the window row has a later `updated`.
 - In scratch, a window row does not replace a row of the normal fetch that has a later `updated`.
-- The sweep drops a window row whose `updated` is later than the newest `updated` value of its table before the cycle.
+- For a populated type, the sweep drops a window row whose `updated` is later than the newest `updated` value of its table before the cycle.
   Such a row can have changed after the normal fetch of the cycle, and its commit would move the next watermark past the other rows that changed in that gap.
   The next `?since=` fetch gets the row.
 - A stored live row becomes a tombstone when upstream has a tombstone for it with a later `updated`.
@@ -243,16 +249,22 @@ Limits:
 - `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` (default 15, `0` turns the sweep off) caps the windows of one cycle.
 - The sweep runs only in incremental cycles.
   A full cycle skips it.
-- The sweep skips a type whose table is empty, as in the first cycle of a new install, and does not mark it done.
-  The later types go on.
-  A later cycle sweeps the type after its table has rows.
-  A required FK to an empty type means an empty child table.
-  So only the nullable fac `campus_id` can point into an empty type, when upstream has no live campus.
-  FK backfill fetches the campus of a swept fac, as for any fac, and the stored campus lets a later cycle sweep `campus`.
-  With FK backfill off, the fac keeps a null `campus_id`, as on the normal fetch path.
-- The worker does not send a window again within 65 minutes (`historyMemoTTL`).
-  So the retries of a failed cycle (30 s, 2 m and 8 m) and a restart send no repeated URL.
-  A window that is in the memo stops the sweep for that cycle.
+- When a type has an empty local table but the normal fetch already staged rows, the sweep waits for that normal commit to establish a cursor.
+- An empty type with no staged rows gets one complete `?since=1&id__gte=1&depth=0` response without a status filter.
+  This includes live rows, tombstones and, for campus, pending rows.
+  A deleted-only snapshot could advance the watermark past older live or pending rows.
+  A complete feed establishes coverage for the next `MAX(updated)` cursor.
+  The request counts against the cycle budget and the cycle stops after that type.
+  It can exceed the ordinary window size, but rows stream into scratch storage without a full Go row slice.
+- A type that stays empty is eligible again no sooner than 65 minutes after the last successful check.
+  The committed `updated_at` stores the request start time, so a worker restart preserves this protection.
+  This also catches rows that appear after an empty response.
+  Unfinished types run first in parent order.
+  Completed empty checks run oldest first.
+  Small request budgets cannot starve later types.
+- The in-memory memo prevents a repeated window within 65 minutes, including after a failed request or rolled-back cycle.
+  It survives a history restart request, but not a process restart after an uncommitted attempt.
+  In that case upstream throttling and the existing retry rules still apply.
 - The first failed window stops the sweep.
   The windows before it keep their rows and their progress.
   A 429 or a WAF block logs WARN `history sweep stopped by upstream rate limit`.
@@ -266,20 +278,20 @@ Progress:
   `InitStatusTable` creates it.
 - The sync transaction writes the progress, so a cycle that rolls back also rolls back its progress.
   A cycle that changes no progress writes nothing.
-- When every type is done, the sweep sends no request.
+- When every populated type is done, the sweep only rechecks still-empty types after their repeat window.
   `POST /sync?mode=history` deletes the progress and runs an incremental cycle (never a full one) that starts again at the first window.
   Within 65 minutes of the first window, the memo holds the restart until the window expires.
 
 Observability:
 
-- Span `sync-history-sweep` with the attributes `pdbplus.sync.history.{restart,requests,rows,dropped,stop}`.
-  `stop` is `budget`, `type_done`, `complete`, `memo`, `zero_cursor` (only types with an empty table are left), `rate_limited` or `error`.
+- Span `sync-history-sweep` with the attributes `pdbplus.sync.history.{restart,requests,bootstraps,rows,dropped,stop}`.
+  `stop` is `budget`, `type_done`, `complete`, `memo`, `zero_cursor` (waiting for a normal snapshot commit to establish a cursor), `rate_limited` or `error`.
 - Counter `pdbplus.sync.history.requests{type,result}`, where `result` is `ok`, `rate_limited` or `error`.
-- After the commit: INFO `history sweep progress` (`requests`, `rows`, `dropped`, `stop`, `next_type`, `next_id`) when the cycle sent a window, INFO `history sweep complete` when the last type is done, and INFO `history sweep restarted` (`stop`).
+- After the commit: INFO `history sweep progress` (`requests`, `bootstraps`, `rows`, `dropped`, `stop`, `next_type`, `next_id`) when the cycle sent a window, INFO `history sweep complete` when the last type is done, and INFO `history sweep restarted` (`stop`).
 
 ### Daily full reconcile
 
-An incremental cycle fetches `?since=<cursor>` in pages of 250 rows, and its upserts skip a row whose `updated` value did not advance.
+An incremental cycle streams `?since=<cursor>` in one response, and its upserts skip a row whose `updated` value did not advance.
 It cannot see a change that upstream makes without a new `updated` value.
 Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`), the cycle runs in full mode instead.
 It fetches each bare list in one request and also rewrites rows whose `updated` value did not advance: the `withReconcileAll` marker relaxes the `updated` skip gate of the upserts from `>` to `>=` (`internal/sync/upsert.go`).
@@ -292,10 +304,6 @@ Only a full-mode cycle repairs this data:
   Upstream saves them without a change to `updated` (2.83.0 `signals.py:92-177`).
 - `name`, `city` and `country` on `netfac` and `ixfac`, and `name` on `carrierfac`.
   Upstream copies these values from the facility (2.83.0 `docs/api/obj_netfac.md:8-9`, `obj_ixfac.md:8-9`, `obj_carrierfac.md:12`), so a facility edit changes them without a change to the row's `updated`.
-- Live rows that a paged `?since=` fetch skipped.
-  Upstream orders the window by `updated` only and pages it with an offset (2.83.0 `rest.py:738-745`, `:757-760`).
-  Rows that share one `updated` value can move across a page edge between two requests, and the cursor then moves past the rows that were skipped.
-  Upstream migration `0160_netixlan_not_operational_status` gives about 600 netixlans one `updated` value.
 - Values that upstream set before the mirror stored the field, for example `meta` on `net` and `netixlan`.
 - FK columns that the sync set to `NULL` because the parent was missing, and a newly added `_fold` column.
 
@@ -310,8 +318,7 @@ Two rules keep a stale snapshot from rolling rows back:
   An IX-F import-log rollback gets a new `updated` value, because it runs in a revision and handleref saves the row again (2.83.0 `models.py:3745-3747`, django-handleref `models.py:9-16`).
 - The window fetch that follows the snapshot starts at the earlier of the cursor and the newest `updated` value in the snapshot (see [Soft-delete tombstones](#soft-delete-tombstones)).
   Its `?since=` filter matches every row that changed after upstream built the cache.
-  The window is paged like any `?since=` fetch, so rows that share one `updated` value can be skipped at a page edge, as described above.
-  The next full cycle fetches them again.
+  The window streams in one response, so it has no offset page edges.
 
 These rules protect data that the mirror holds when the cycle starts.
 A full cycle before v1.28.1 could turn an upstream delete back into a live row.
@@ -923,7 +930,8 @@ A revival with a newer `updated` value, a tombstone that replaces a tombstone, a
 #### Run points
 
 - In each sync transaction, after the upsert pass and the poc scrub.
-  Class B runs first, then class A. Both statements check the guard and the network status again against the state after the upsert pass.
+  Class B runs first, then class A.
+  Both statements check the guard and the network status again against the state after the upsert pass.
   A failed statement fails the cycle, and the retries use the `gone` memo.
 - When the scheduler starts on the primary, after `scrubPocContactsAtStartup` (`cascadeNetIxLansAtStartup`).
   The run holds the sync `running` latch.

@@ -10,7 +10,7 @@ The production topology is an [asymmetric fleet](#asymmetric-fleet): two LiteFS 
 | Fly.io (production) | `fly.toml`, `Dockerfile.litefs`, `litefs.yml` | App name `peeringdb-plus`, primary region `lhr`. |
 | Generic Docker host | `Dockerfile` | Standalone image. Runs the binary directly without LiteFS. CI publishes it to GHCR (see [Published image](#published-image)). |
 
-- `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases, two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]` blocks (`shared-cpu-2x` / 512 MB for `primary`, `shared-cpu-1x` / 256 MB for `replica`), a 1 GB auto-extending `litefs_data` volume mounted at `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have no volume), and an HTTP health check on `GET /readyz` every 15s (the readiness probe, so Fly Proxy routes around hydrating or stale machines; `GET /healthz` remains the always-200 liveness probe).
+- `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases, two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]` blocks (`shared-cpu-2x` / 512 MB for both), a 1 GB auto-extending `litefs_data` volume mounted at `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have no volume), and an HTTP health check on `GET /readyz` every 15s (the readiness probe, so Fly Proxy routes around hydrating or stale machines; `GET /healthz` remains the always-200 liveness probe).
 - `Dockerfile.litefs`: LiteFS-aware production image.
   Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident response — see [Incident-response debug shell](#incident-response-debug-shell)) installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and sets `ENTRYPOINT ["litefs", "mount"]`.
   The application binary is built with `CGO_ENABLED=0` (pure Go via `modernc.org/sqlite`) and `-trimpath -ldflags="-s -w …"`.
@@ -262,13 +262,14 @@ Blue-green deploys are not usable here because two parallel fleets would conflic
 
 ## Asymmetric fleet
 
-The fleet is split into two Fly process groups, with different VM sizing and mount policies (declared in `fly.toml`'s `[processes]` and per-group `[[vm]]` blocks):
+The fleet uses two Fly process groups with the same VM size and different mount policies.
+`fly.toml` declares the groups in `[processes]` and their sizes in separate `[[vm]]` blocks:
 
 - **`primary` group**: 2 machines, one in `lhr` and a standby in `fra`, each `shared-cpu-2x` / 512 MB with its own persistent `litefs_data` volume mounted at `/var/lib/litefs`.
   Both are LiteFS lease candidates.
   The machine that holds the Consul lease runs the sync worker and is the source of LiteFS HTTP replication.
   The other is a LiteFS replica with a volume that serves reads; it takes the lease within seconds when the holder is lost (see [Lease standby](#lease-standby)).
-- **`replica` group** — read-only edge machines, `shared-cpu-1x` / 256 MB, **no persistent volume** (ephemeral rootfs).
+- **`replica` group**: read-only edge machines, `shared-cpu-2x` / 512 MB, **no persistent volume** (ephemeral rootfs).
   On boot, LiteFS cold-syncs the database from the primary via HTTP.
   LiteFS starts the application only after this cold sync, so the `/readyz` check fails and Fly Proxy routes around the machine until it is ready.
 
@@ -326,8 +327,9 @@ The stale check reads the `sync_status` rows that LiteFS replicates from the pri
 To clear them, correct the cause of the failed syncs on the primary, then send `POST /sync` with the `PDBPLUS_SYNC_TOKEN`.
 The new cycle on the primary writes a new `sync_status` row, and LTX replication copies it to the replicas within seconds.
 
-**Sizing rationale:** Observed replica RSS is 58-59 MB steady-state; `shared-cpu-1x` / 256 MB gives ~4× memory headroom and budget for LiteFS LTX replay spikes.
-Both `primary` group machines keep `shared-cpu-2x` / 512 MB: either can run the sync worker, whose memory profile was characterized during production load testing.
+**Sizing rationale:** All machines use `shared-cpu-2x` / 512 MB.
+Replicas need memory for both the application and LiteFS, including short allocation spikes and replication work.
+Either `primary` group machine can run the sync worker, whose memory profile was characterized during production load testing.
 
 ### Lease standby
 
@@ -383,8 +385,8 @@ fly scale count <n> --process-group replica --region <region>   # machines in on
 To resize a process group:
 
 ```bash
-fly scale vm shared-cpu-1x --memory 256 --process-group replica   # resize replica group
-fly scale vm shared-cpu-2x --memory 512 --process-group primary   # resize primary group (matches fly.toml defaults)
+fly scale vm shared-cpu-2x --vm-memory 512 --process-group replica   # resize replica group
+fly scale vm shared-cpu-2x --vm-memory 512 --process-group primary   # resize primary group
 ```
 
 `litefs.yml` makes every machine of the `primary` process group a lease candidate, whatever its region.

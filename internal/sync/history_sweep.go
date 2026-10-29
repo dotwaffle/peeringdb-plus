@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"slices"
 	"strconv"
 	"time"
 
@@ -41,16 +42,13 @@ import (
 // each parent that upstream still returns in a ?since= list, with no FK
 // backfill request, unless the parent table is empty. A row that Phase B
 // still drops has a parent that upstream does not return (hard-deleted, or
-// pending), which a later retry cannot fix. A type whose table is empty
-// waits, and the later types go on. A required FK to an empty type means
-// an empty child table, so only the nullable fac campus_id can point into
-// an empty type (no live campus upstream). prefetchStagedFacCampuses
-// backfills that campus for a swept fac, as for any fac, and the stored
-// campus lets a later cycle sweep campus. Campus takes one request with no
-// status filter, so it also returns the pending campuses. poc is skipped:
-// upstream removes poc tombstones after 30 days, and the ?since= windows
-// of the normal cycles already hold those. When every type is done, the
-// sweep sends no more requests until POST /sync?mode=history restarts it.
+// pending), which a later retry cannot fix. An empty type with no staged
+// normal rows fetches the complete feed once, without a status filter.
+// This snapshot includes every row that could be skipped by MAX(updated).
+// A still-empty type is checked again after historyMemoTTL. Its committed
+// check timestamp protects the URL across worker restarts. Campus also
+// uses the complete feed when populated, to include pending rows. POC is
+// skipped because upstream purges tombstones after 30 days.
 //
 // The windows stage into the scratch DB after the normal fetch, and Phase
 // B upserts them in the same transaction as the rest of the cycle, with
@@ -61,10 +59,11 @@ import (
 // back its sweep progress.
 //
 // Upstream limits: every window is a new URL, and the widths in
-// historySpecs keep a window of tombstones below about 0.9 MB, under the
+// historySpecs keep ordinary tombstone windows below about 0.9 MB, under the
 // 1 MB size above which upstream throttles identical repeats. The sweep
-// never sends a URL again within historyMemoTTL (a failed cycle is retried
-// after 30s, 2m and 8m), and it stops at the first 429 or WAF block.
+// memo prevents another request for a URL within historyMemoTTL. Failed
+// cycles retry after 30s, 2m and 8m. The sweep stops at the first 429 or
+// WAF block.
 
 // historySweepTableSQL creates the table that holds the progress of the
 // history sweep: one row for each type that the sweep has started.
@@ -132,6 +131,8 @@ var historySweepTypes = func() []string {
 type historyProgress struct {
 	nextID int
 	done   bool
+	// checkedAt is the last committed check, including an empty result.
+	checkedAt time.Time
 }
 
 // historyWindow is one request of the sweep. It is comparable, so it is
@@ -142,6 +143,8 @@ type historyWindow struct {
 	// toID is the exclusive upper id bound. 0 means no bound: the last
 	// window of the type.
 	toID int
+	// bootstrap fetches the complete feed instead of tombstones only.
+	bootstrap bool
 }
 
 // params returns the query of the window.
@@ -154,7 +157,7 @@ func (hw historyWindow) params() url.Values {
 	if hw.toID > 0 {
 		q.Set("id__lt", strconv.Itoa(hw.toID))
 	}
-	if !spec.allStatuses {
+	if !spec.allStatuses && !hw.bootstrap {
 		q.Set("status", "deleted")
 	}
 	if spec.hideIXNoFac {
@@ -210,6 +213,7 @@ type historySweep struct {
 	// dropped counts the rows not staged because their updated is later
 	// than the cursor of their type, or does not parse.
 	requests, rows, dropped int
+	bootstraps              int
 	// stop says why the sweep stopped: budget, type_done, complete,
 	// memo, zero_cursor, rate_limited or error.
 	stop string
@@ -242,16 +246,14 @@ func (s *historySweep) next() (string, int) {
 // The sweep stops at the request budget, after the last window of a type
 // (type_done: the next type starts in a later cycle, see the comment at
 // the top of this file), at a window sent less than historyMemoTTL ago,
-// and at the first failed window. It skips a type whose table is empty:
-// its cursor is zero, so the cursor gate would drop every row. The type
-// is not done, and the sweep goes on with the next type. In the first
-// cycle of a new install every table is empty, so the sweep sends
-// nothing (zero_cursor). A failed window keeps none of its rows, and
-// the windows before it keep their rows and progress. A 429 or WAF block
-// logs a WARN. No window error fails the cycle, except a fault of the
-// scratch DB (errScratchDB).
+// and at the first failed window. An empty type waits if the normal fetch
+// already staged rows, so the normal commit establishes its cursor first.
+// Otherwise it fetches the complete all-status feed in one streamed
+// request. Partial responses roll back the whole window. Bootstrap rows
+// and progress commit together. A 429 or WAF block logs a WARN. Only a
+// scratch DB fault fails the cycle.
 //
-// A window stages only the rows whose updated is not later than
+// A populated-table window stages only rows whose updated is not later than
 // MAX(updated) of their type before the cycle. A later row may have
 // changed after the normal ?since= fetch of this cycle. Committing it
 // would move the next watermark past the other rows that changed in that
@@ -260,7 +262,10 @@ func (s *historySweep) next() (string, int) {
 // a held cursor is below MAX(updated), and the normal fetch of the cycle
 // already covers the rows between the two.
 //
-// now stamps the memo entries (see Worker.historyMemo).
+// Empty-type bootstrap windows bypass that gate because they cover the
+// complete feed, rather than deleted rows alone.
+//
+// now checks memo expiry. Each request records its actual start time.
 func (w *Worker) sweepHistory(ctx context.Context, scratch *scratchDB, mode config.SyncMode, now time.Time) (*historySweep, error) {
 	restart := historyRestart(ctx)
 	if w.config.HistoryMaxRequestsPerCycle <= 0 || mode != config.SyncModeIncremental {
@@ -297,22 +302,36 @@ func (w *Worker) sweepHistory(ctx context.Context, scratch *scratchDB, mode conf
 		attribute.Bool("pdbplus.sync.history.restart", s.restart),
 		attribute.Int("pdbplus.sync.history.requests", s.requests),
 		attribute.Int("pdbplus.sync.history.rows", s.rows),
+		attribute.Int("pdbplus.sync.history.bootstraps", s.bootstraps),
 		attribute.Int("pdbplus.sync.history.dropped", s.dropped),
 		attribute.String("pdbplus.sync.history.stop", s.stop),
 	)
 	return s, nil
 }
 
+// windowOrder finishes the initial sweep before refreshing completed
+// empty types. Oldest completed checks go first to prevent starvation
+// when the cycle budget is smaller than the number of empty types.
+func (s *historySweep) windowOrder() []string {
+	var pending, done []string
+	for _, name := range historySweepTypes {
+		if s.progress[name].done {
+			done = append(done, name)
+		} else {
+			pending = append(pending, name)
+		}
+	}
+	slices.SortStableFunc(done, func(a, b string) int { return s.progress[a].checkedAt.Compare(s.progress[b].checkedAt) })
+	return append(pending, done...)
+}
+
 // stageHistoryWindows runs the window loop of sweepHistory and records in
 // s why it stopped. It returns an error only for a scratch DB fault.
 func (w *Worker) stageHistoryWindows(ctx context.Context, scratch *scratchDB, s *historySweep, now time.Time) error {
 	budget := w.config.HistoryMaxRequestsPerCycle
-	skipped := false
-	for _, name := range historySweepTypes {
+types:
+	for _, name := range s.windowOrder() {
 		p := s.progress[name]
-		if p.done {
-			continue
-		}
 		table := entityTables[name]
 		cursor, err := GetMaxUpdated(ctx, w.db, table)
 		if err != nil {
@@ -321,9 +340,28 @@ func (w *Worker) stageHistoryWindows(ctx context.Context, scratch *scratchDB, s 
 			s.stop = "error"
 			return nil
 		}
-		if cursor.IsZero() {
-			skipped = true
+		if p.done && !cursor.IsZero() {
 			continue
+		}
+		if cursor.IsZero() {
+			staged, err := scratch.hasHistoryRows(ctx, name)
+			if err != nil {
+				return err
+			}
+			if staged {
+				// Let the normal snapshot establish the cursor first. If an
+				// empty type was marked done, reopen its historical coverage.
+				if p.done {
+					s.progress[name] = historyProgress{}
+					s.markChanged(name)
+				}
+				s.stop = "zero_cursor"
+				return nil
+			}
+			// Persisted completion stamps protect empty checks across restarts.
+			if p.done && now.Sub(p.checkedAt) < historyMemoTTL {
+				continue
+			}
 		}
 		maxID, err := maxStoredID(ctx, w.db, table)
 		if err != nil {
@@ -332,18 +370,31 @@ func (w *Worker) stageHistoryWindows(ctx context.Context, scratch *scratchDB, s 
 			s.stop = "error"
 			return nil
 		}
-		for !p.done {
+		for !p.done || cursor.IsZero() {
 			if s.requests >= budget {
 				s.stop = "budget"
 				return nil
 			}
 			win, next := nextHistoryWindow(name, p, maxID)
+			if cursor.IsZero() {
+				// A complete feed establishes safe coverage for MAX(updated).
+				// A deleted-only request could skip older live or pending rows.
+				win = historyWindow{objectType: name, fromID: 1, bootstrap: !historySpecs[name].allStatuses}
+				next = historyProgress{nextID: 1, done: true}
+			}
 			if sent, ok := w.historyMemo[win]; ok && now.Sub(sent) < historyMemoTTL {
+				if cursor.IsZero() && p.done {
+					continue types
+				}
 				s.stop = "memo"
 				return nil
 			}
-			w.historyMemo[win] = now
+			sentAt := time.Now().UTC()
+			w.historyMemo[win] = sentAt
 			s.requests++
+			if cursor.IsZero() {
+				s.bootstraps++
+			}
 			stats, err := scratch.stageHistoryWindow(ctx, w.pdbClient, win, cursor)
 			if err != nil {
 				if errors.Is(err, errScratchDB) {
@@ -357,8 +408,12 @@ func (w *Worker) stageHistoryWindows(ctx context.Context, scratch *scratchDB, s 
 			s.rows += stats.rows
 			s.dropped += stats.dropped
 			p = next
+			p.checkedAt = sentAt
 			s.progress[name] = p
 			s.markChanged(name)
+			if cursor.IsZero() {
+				break
+			}
 		}
 		s.stop = "type_done"
 		if nextType, _ := s.next(); nextType == "" {
@@ -367,9 +422,6 @@ func (w *Worker) stageHistoryWindows(ctx context.Context, scratch *scratchDB, s 
 		return nil
 	}
 	s.stop = "complete"
-	if skipped {
-		s.stop = "zero_cursor"
-	}
 	return nil
 }
 
@@ -435,7 +487,7 @@ WHERE json_extract(CAST(excluded.data AS TEXT), '$.updated') > json_extract(CAST
 			return fmt.Errorf("decode id from %s element: %w", win.objectType, err)
 		}
 		updated, err := time.Parse(time.RFC3339, row.Updated)
-		if err != nil || updated.After(cursor) {
+		if err != nil || !cursor.IsZero() && updated.After(cursor) {
 			stats.dropped++
 			return nil
 		}
@@ -468,7 +520,7 @@ func maxStoredID(ctx context.Context, db *sql.DB, table string) (int, error) {
 // readHistoryProgress returns the stored progress of each type that the
 // sweep has started.
 func readHistoryProgress(ctx context.Context, db *sql.DB) (map[string]historyProgress, error) {
-	rows, err := db.QueryContext(ctx, `SELECT type, next_id, done FROM sync_history_sweep`)
+	rows, err := db.QueryContext(ctx, `SELECT type, next_id, done, updated_at FROM sync_history_sweep`)
 	if err != nil {
 		return nil, fmt.Errorf("read history sweep progress: %w", err)
 	}
@@ -476,12 +528,14 @@ func readHistoryProgress(ctx context.Context, db *sql.DB) (map[string]historyPro
 	out := make(map[string]historyProgress, len(historySweepTypes))
 	for rows.Next() {
 		var (
-			name string
-			p    historyProgress
+			name  string
+			stamp string
+			p     historyProgress
 		)
-		if err := rows.Scan(&name, &p.nextID, &p.done); err != nil {
+		if err := rows.Scan(&name, &p.nextID, &p.done, &stamp); err != nil {
 			return nil, fmt.Errorf("scan history sweep progress: %w", err)
 		}
+		p.checkedAt, _ = time.Parse(time.RFC3339, stamp)
 		out[name] = p
 	}
 	if err := rows.Err(); err != nil {
@@ -505,10 +559,14 @@ func writeHistoryProgress(ctx context.Context, tx *ent.Tx, s *historySweep, now 
 	}
 	for _, name := range s.changed {
 		p := s.progress[name]
+		checkedAt := p.checkedAt
+		if checkedAt.IsZero() {
+			checkedAt = now
+		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO sync_history_sweep (type, next_id, done, updated_at)
 VALUES (?, ?, ?, ?)
 ON CONFLICT(type) DO UPDATE SET next_id = excluded.next_id, done = excluded.done, updated_at = excluded.updated_at`,
-			name, p.nextID, p.done, now.UTC().Format(time.RFC3339)); err != nil {
+			name, p.nextID, p.done, checkedAt.UTC().Format(time.RFC3339)); err != nil {
 			return fmt.Errorf("write history sweep progress of %s: %w", name, err)
 		}
 	}
@@ -535,6 +593,7 @@ func logHistoryCommitted(ctx context.Context, logger *slog.Logger, s *historySwe
 	nextType, nextID := s.next()
 	logger.LogAttrs(ctx, slog.LevelInfo, "history sweep progress",
 		slog.Int("requests", s.requests),
+		slog.Int("bootstraps", s.bootstraps),
 		slog.Int("rows", s.rows),
 		slog.Int("dropped", s.dropped),
 		slog.String("stop", s.stop),
@@ -544,4 +603,16 @@ func logHistoryCommitted(ctx context.Context, logger *slog.Logger, s *historySwe
 	if nextType == "" {
 		logger.LogAttrs(ctx, slog.LevelInfo, "history sweep complete")
 	}
+}
+
+// hasHistoryRows reports whether the normal fetch staged any rows. A type
+// from historySweepTypes is a closed set of scratch table names.
+func (s *scratchDB) hasHistoryRows(ctx context.Context, objectType string) (bool, error) {
+	var has bool
+	// #nosec G201 -- objectType comes from historySweepTypes.
+	q := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %q)`, objectType)
+	if err := s.db.QueryRowContext(ctx, q).Scan(&has); err != nil {
+		return false, fmt.Errorf("read staged history type %s: %w: %w", objectType, errScratchDB, err)
+	}
+	return has, nil
 }

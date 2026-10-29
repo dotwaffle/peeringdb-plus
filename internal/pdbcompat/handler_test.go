@@ -583,7 +583,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	_, mux := setupTestHandler(t)
 
 	for _, path := range []string{"/api/", "/api/net", "/api/net/1"} {
-		for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions} {
+		for _, method := range []string{http.MethodPost, http.MethodPut, http.MethodDelete} {
 			req := httptest.NewRequest(method, path, nil)
 			rec := httptest.NewRecorder()
 			mux.ServeHTTP(rec, req)
@@ -592,8 +592,8 @@ func TestMethodNotAllowed(t *testing.T) {
 				t.Errorf("%s %s: status %d, want 405; body=%s", method, path, rec.Code, rec.Body.String())
 				continue
 			}
-			if got := rec.Header().Get("Allow"); got != "GET, HEAD" {
-				t.Errorf("%s %s: Allow = %q, want %q", method, path, got, "GET, HEAD")
+			if got := rec.Header().Get("Allow"); got != "GET, HEAD, OPTIONS" {
+				t.Errorf("%s %s: Allow = %q, want %q", method, path, got, "GET, HEAD, OPTIONS")
 			}
 			if ct := rec.Header().Get("Content-Type"); ct != "application/json; charset=utf-8" {
 				t.Errorf("%s %s: Content-Type = %q, want application/json; charset=utf-8", method, path, ct)

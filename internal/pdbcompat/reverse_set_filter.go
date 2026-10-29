@@ -6,15 +6,22 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 
+	"github.com/dotwaffle/peeringdb-plus/ent/campus"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrier"
+	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
+	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
+	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/internal/peeringdb"
+	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
 )
 
-// reverseSet is a reverse relation that the mirror filters by its
-// upstream related_name. The mirror names its other reverse relations
-// by their traversal keys (org?ix__name=) and ignores the related names
-// (see docs/API.md § Known Divergences). A related name is used here
-// only where no traversal key reaches the related rows.
+// reverseSet maps an upstream related_name to the child table and its
+// foreign key. Related rows have no implicit status filter.
 type reverseSet struct {
 	// name is the upstream related_name.
 	name string
@@ -29,15 +36,33 @@ type reverseSet struct {
 
 // reverseSets maps a PeeringDB type to its reverse relation keys.
 var reverseSets = map[string][]reverseSet{
-	// NetworkIXLan.ix_side (2.83.0 models.py:6095-6101): the netixlans
-	// whose IX side is at the facility. The mirror has no fac edge
-	// through ix_side.
-	peeringdb.TypeFac: {{
-		name:   "ix_side_set",
-		target: peeringdb.TypeNetIXLan,
-		table:  networkixlan.Table,
-		column: networkixlan.FieldIxSideID,
-	}},
+	peeringdb.TypeOrg: {
+		{"ix_set", peeringdb.TypeIX, internetexchange.Table, internetexchange.FieldOrgID},
+		{"carrier_set", peeringdb.TypeCarrier, carrier.Table, carrier.FieldOrgID},
+		{"campus_set", peeringdb.TypeCampus, campus.Table, campus.FieldOrgID},
+	},
+	peeringdb.TypeIX: {
+		{"ixlan_set", peeringdb.TypeIXLan, ixlan.Table, ixlan.FieldIxID},
+		{"ixfac_set", peeringdb.TypeIXFac, ixfacility.Table, ixfacility.FieldIxID},
+	},
+	peeringdb.TypeIXLan: {
+		{"netixlan_set", peeringdb.TypeNetIXLan, networkixlan.Table, networkixlan.FieldIxlanID},
+		{"ixpfx_set", peeringdb.TypeIXPfx, ixprefix.Table, ixprefix.FieldIxlanID},
+	},
+	peeringdb.TypeNet: {
+		{"netfac_set", peeringdb.TypeNetFac, networkfacility.Table, networkfacility.FieldNetID},
+		{"netixlan_set", peeringdb.TypeNetIXLan, networkixlan.Table, networkixlan.FieldNetID},
+		{"poc_set", peeringdb.TypePoc, poc.Table, poc.FieldNetID},
+	},
+	peeringdb.TypeFac: {
+		{"netfac_set", peeringdb.TypeNetFac, networkfacility.Table, networkfacility.FieldFacID},
+		{"ixfac_set", peeringdb.TypeIXFac, ixfacility.Table, ixfacility.FieldFacID},
+		{"carrierfac_set", peeringdb.TypeCarrierFac, carrierfacility.Table, carrierfacility.FieldFacID},
+		{"ix_side_set", peeringdb.TypeNetIXLan, networkixlan.Table, networkixlan.FieldIxSideID},
+	},
+	peeringdb.TypeCarrier: {
+		{"carrierfac_set", peeringdb.TypeCarrierFac, carrierfacility.Table, carrierfacility.FieldCarrierID},
+	},
 }
 
 // lookupReverseSetKey returns the reverse relation of typ that key
@@ -83,8 +108,8 @@ func lookupReverseSetKey(typ, key string) (rs reverseSet, field, op string, ok b
 
 // buildReverseSetPredicate builds the filter of a reverse relation key:
 // the listed rows that have at least one related row that matches. The
-// related rows get no status or visibility filter, as upstream applies
-// none (rest.py:683-704). With no field, the relation takes the
+// related rows get no status filter (rest.py:683-704). Contact row
+// visibility still applies, as on other mirror traversals. With no field, the relation takes the
 // operators of a Django relation only (ForeignObject lookups,
 // django/db/models/fields/related.py:949-955), which compare the id of
 // the related row. The key without an operator becomes an exact lookup
@@ -95,7 +120,7 @@ func lookupReverseSetKey(typ, key string) (rs reverseSet, field, op string, ok b
 // field as a model field of the related type. ok is false for a field
 // that the mirror does not filter; empty is true for an __in filter
 // that can match no row.
-func buildReverseSetPredicate(rs reverseSet, field, op, value string) (p func(*sql.Selector), ok, empty bool, err error) {
+func buildReverseSetPredicate(rs reverseSet, field, op, value string, tier privctx.Tier) (p func(*sql.Selector), ok, empty bool, err error) {
 	var inner func(*sql.Selector)
 	if field == "" {
 		switch op {
@@ -120,6 +145,21 @@ func buildReverseSetPredicate(rs reverseSet, field, op, value string) (p func(*s
 		t := sql.Table(rs.table)
 		sel := sql.Select(t.C(rs.column)).From(t)
 		inner(sel)
+		applyVisibilityGate(sel, rs.table, tier)
 		s.Where(sql.In(s.C(parentPKColumn), sel))
 	}, true, false, nil
+}
+
+// reverseRelationEdge resolves a related name inside a prepare_query key.
+// Unlike the top-level filter loop, Django compares the related ID directly.
+func reverseRelationEdge(typ, name string) (EdgeMetadata, bool) {
+	for _, rs := range reverseSets[typ] {
+		if rs.name == name {
+			return EdgeMetadata{
+				Name: name, TargetType: rs.target, TargetTable: rs.table,
+				ParentFKColumn: rs.column, TargetIDColumn: parentPKColumn,
+			}, true
+		}
+	}
+	return EdgeMetadata{}, false
 }

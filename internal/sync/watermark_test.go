@@ -685,7 +685,7 @@ func TestSync_WatermarkEqualsMaxWithoutBackfill(t *testing.T) {
 		var want []string
 		for _, name := range canonicalStepOrder {
 			if m := before[name]; !m.IsZero() {
-				want = append(want, fmt.Sprintf("%s?limit=250&skip=0&depth=0&since=%d", name, m.Unix()))
+				want = append(want, fmt.Sprintf("%s?depth=0&since=%d", name, m.Unix()))
 				continue
 			}
 			want = append(want, name+"?depth=0")
@@ -725,7 +725,7 @@ func TestSync_WatermarkEqualsMaxWithoutBackfill(t *testing.T) {
 			since = newest
 		}
 		if !since.IsZero() {
-			want = append(want, fmt.Sprintf("%s?limit=250&skip=0&depth=0&since=%d", name, since.Unix()))
+			want = append(want, fmt.Sprintf("%s?depth=0&since=%d", name, since.Unix()))
 		}
 	}
 	mark := u.mark()
@@ -799,7 +799,7 @@ func TestSync_WatermarkMissingTable(t *testing.T) {
 	var want []string
 	for _, name := range canonicalStepOrder {
 		if name == "org" || name == "net" {
-			want = append(want, name+"?limit=250&skip=0&depth=0&since="+unixOf(t, wmT1))
+			want = append(want, name+"?depth=0&since="+unixOf(t, wmT1))
 			continue
 		}
 		want = append(want, name+"?depth=0")

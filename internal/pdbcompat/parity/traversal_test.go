@@ -76,24 +76,19 @@ import (
 //     fac or org is a substring match, not a geocoded search; nan,
 //     inf, non-ASCII digits and the coordinate values are handled by
 //     the mirror's own rules.
-//   - DIVERGENCE: the hide_ix_no_fac mixin is silent-ignored, also on
-//     a single-object GET (`ix/<id>?hide_ix_no_fac=1`). name_search
-//     filters as upstream: see TestParity_NameSearch.
+//   - hide_ix_no_fac applies after the API cache gate and on details.
+//     name_search filters as upstream: see TestParity_NameSearch.
 //   - A single-object GET applies the relation, presence, traversal
 //     and meta keys; a key that excludes the object is a 404.
-//   - DIVERGENCE: a relation key, ixpfx whereis or ix capacity given in
-//     two forms (`ix?net=1&net__in=2`,
-//     `ixpfx?whereis=A&whereis__contains=B`,
-//     `ix?capacity__gte=A&capacity__lte=B`) applies both forms, where
-//     upstream uses one.
+//   - Competing prepare_query forms use the last form in first-key
+//     order. Only the winning form's first value is parsed.
 //   - A relation key of a prepare_query whose field the related model
 //     does not have (`fac?net__bogus=`, `net?netfac__name=`) returns
 //     400 Invalid query. `pk`, the Django lookup names on a relation
 //     through a FK (`fac?net__exact=`) and the prefix aliases
 //     (`ix?ixlan__ixlan_id=`) filter as upstream.
-//   - DIVERGENCE: a 3-segment relation key with contains or
-//     startswith ignores case, and campus?facility__<field>= returns
-//     each campus once.
+//   - Three-segment relation contains and startswith preserve case.
+//   - DIVERGENCE: campus?facility__<field>= returns each campus once.
 //   - netixlan ix_side__<field> filters on the IX-side facility through
 //     the declared column edge (schema.ColumnEdges), as upstream.
 //   - Keys that upstream never filters are ignored on both sides: the
@@ -473,38 +468,12 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/netixlan?ix_side__location_method=google", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__version=-1", want: []int{5000, 5001, 5002}},
 			{path: "/api/netixlan?ix_side__notified_for_geocoords=true", want: []int{5000, 5001, 5002}},
-			// The unserialized version and the unfiltered meta column of
-			// the netixlans through the ix_side_set reverse relation.
+			// The unserialized version of the netixlans through the
+			// ix_side_set reverse relation.
 			{path: "/api/fac?ix_side_set__version=-1", want: []int{200, 202}},
-			{path: "/api/fac?ix_side_set__meta=x", want: []int{200, 202}},
 		})
-	})
-
-	t.Run("DIVERGENCE_social_media_filter_ignored", func(t *testing.T) {
-		t.Parallel()
-		// DIVERGENCE: social_media is a model JSONField of org, fac,
-		// net, ix, carrier and campus (django-peeringdb abstract.py:146,
-		// :186, :411, :668, :986, :1047), so the upstream filter loop
-		// filters its JSON text: a key without an operator is __iexact,
-		// __contains is __icontains (2.83.0 rest.py:525-528, :633-683),
-		// and queryable_relations adds <fk>__social_media
-		// (serializers.py:970-996). The mirror stores and serves the
-		// column, but pdbcompat has no filter key for it, so every form
-		// is ignored. See docs/API.md § Known Divergences.
-		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "SocialOrg", t0)
-		mustNet(ctx, t, c, 100, "SocialNetA", 64500, 1, t0)
-		mustNet(ctx, t, c, 101, "SocialNetB", 64501, 1, t0)
-		mustFac(ctx, t, c, 200, "SocialFac", 1, t0)
-		srv := newTestServer(t, c)
-		// Upstream: []. No seeded row has a social media entry.
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/net?social_media=x", want: []int{100, 101}},
-			{path: "/api/net?social_media__contains=website", want: []int{100, 101}},
-			{path: "/api/org?social_media__startswith=[", want: []int{1}},
-			{path: "/api/fac?social_media=x", want: []int{200}},
-			{path: "/api/net?org__social_media__contains=x", want: []int{100, 101}},
+		assertKeysResolve(t, srv2, []silentIgnoreCase{
+			{path: "/api/fac?ix_side_set__meta=x", want: []int{}},
 		})
 	})
 
@@ -544,36 +513,6 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ixlan?ixf_ixp_member_list_url=https://public.example/ixf.json", want: []int{200, 201}},
 			{path: "/api/ixlan?ixf_ixp_member_list_url__contains=public", want: []int{200, 201}},
 			{path: "/api/ixlan?ixf_ixp_member_list_url__startswith=https://private", want: []int{200, 201}},
-		})
-	})
-
-	t.Run("DIVERGENCE_hide_ix_no_fac_silent_ignore", func(t *testing.T) {
-		t.Parallel()
-		// DIVERGENCE: upstream handles hide_ix_no_fac in Python after the
-		// status filter: the IXFilterMixin of the ix, ixlan, net and
-		// netixlan views. It is not a model field, and the mirror does
-		// not implement it, so it is silent-ignored and the list is
-		// unfiltered.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
-		// upstream: 2.83.0 rest.py:1267-1297 (hide_ix_no_fac)
-		c := testutil.SetupClient(t)
-		ctx := t.Context()
-		mustOrg(ctx, t, c, 1, "QueryOrgA", t0)
-		mustOrg(ctx, t, c, 2, "QueryOrgB", t0)
-		mustIX(ctx, t, c, 300, "QueryIXA", 1, t0)
-		mustIX(ctx, t, c, 301, "QueryIXB", 2, t0)
-
-		srv := newTestServer(t, c)
-		// Both IXs have fac_count 0 (the mustIX default), and
-		// IXFilterMixin reads the stored fac_count (rest.py:1288-1289),
-		// so upstream returns [] for the list.
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			{path: "/api/ix?hide_ix_no_fac=1", want: []int{300, 301}},
-			// A single-object GET ignores it too. Upstream: 404, the
-			// mixin filters the detail query (rest.py:752-753,
-			// :1288-1289).
-			{path: "/api/ix/300?hide_ix_no_fac=1", want: []int{300}},
 		})
 	})
 
@@ -1806,17 +1745,10 @@ func TestParity_Traversal(t *testing.T) {
 		}
 	})
 
-	t.Run("DIVERGENCE_relation_filter_forms_all_apply", func(t *testing.T) {
+	t.Run("relation_filter_forms_last_wins", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: get_relation_filters stores every form of one key
-		// under one entry (2.83.0 serializers.py:614-656):
-		// queryable_field_xl maps net and net__in to network
-		// (:403-441). A later key replaces the entry of an earlier one,
-		// so upstream uses only the form whose first occurrence is last
-		// in the query string, and parses only its value. The mirror
-		// applies every form (AND), and every value must parse.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// PeeringDB 2.84.0 serializers.py:708-758 keeps the last form
+		// in first-key order and parses only that form's first value.
 		// Seed: ix 20 and 21 have an ok netixlan of net 100, ix 22 has
 		// one of net 101.
 		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
@@ -1825,15 +1757,13 @@ func TestParity_Traversal(t *testing.T) {
 			{path: "/api/ix?net=100", want: []int{20, 21}},
 			{path: "/api/ix?net__in=101", want: []int{22}},
 			// Upstream: [22] (net__in).
-			{path: "/api/ix?net=100&net__in=101", want: []int{}},
+			{path: "/api/ix?net=100&net__in=101", want: []int{22}},
 			// Upstream: [20 21] (net).
-			{path: "/api/ix?net__in=101&net=100", want: []int{}},
+			{path: "/api/ix?net__in=101&net=100", want: []int{20, 21}},
 		})
 		// Upstream: 200 [22]. It parses only the net__in value.
 		path := "/api/ix?net=abc&net__in=101"
-		if status, body := httpGet(t, srv, path); status != http.StatusBadRequest {
-			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
-		}
+		assertKeysResolve(t, srv, []silentIgnoreCase{{path: path, want: []int{22}}})
 		// The ixpfx whereis key and its operator forms share one entry
 		// in the same way (2.83.0 serializers.py:4157). See seedWhereis
 		// for the rows.
@@ -1842,43 +1772,34 @@ func TestParity_Traversal(t *testing.T) {
 		srv2 := newTestServer(t, c2)
 		assertKeysResolve(t, srv2, []silentIgnoreCase{
 			// Upstream: [4000 4002] (whereis__contains).
-			{path: "/api/ixpfx?whereis=10.1.0.1&whereis__contains=10.0.0.5", want: []int{}},
+			{path: "/api/ixpfx?whereis=10.1.0.1&whereis__contains=10.0.0.5", want: []int{4000, 4002}},
 		})
 		// Upstream: 200 [4000 4002]. It parses only the whereis value.
 		path = "/api/ixpfx?whereis__in=x&whereis=10.0.0.5"
-		if status, body := httpGet(t, srv2, path); status != http.StatusBadRequest {
-			t.Errorf("%s: status = %d, want 400; body=%s", path, status, string(body))
-		}
+		assertKeysResolve(t, srv2, []silentIgnoreCase{{path: path, want: []int{4000, 4002}}})
 		// The ix capacity key and its operator forms share one entry
 		// too (2.83.0 serializers.py:630-641). The capacity rows are on
 		// the same server; see addCapacityRows.
 		assertKeysResolve(t, srv2, []silentIgnoreCase{
 			// Upstream: [22] (capacity__lt).
-			{path: "/api/ix?capacity__gte=600&capacity__lt=1", want: []int{}},
+			{path: "/api/ix?capacity__gte=600&capacity__lt=1", want: []int{22}},
 			// Upstream: [20] (capacity__gte).
-			{path: "/api/ix?capacity=500&capacity__gte=600", want: []int{}},
+			{path: "/api/ix?capacity=500&capacity__gte=600", want: []int{20}},
 			// Upstream: [21 22] (capacity__lte).
-			{path: "/api/ix?capacity__gte=400&capacity__lte=600", want: []int{21}},
+			{path: "/api/ix?capacity__gte=400&capacity__lte=600", want: []int{21, 22}},
 		})
 	})
 
-	t.Run("DIVERGENCE_relation_field_contains_ignores_case", func(t *testing.T) {
+	t.Run("relation_field_contains_preserves_case", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: for a 3-segment relation key such as
-		// <seed>__<field>__contains, get_relation_filters keeps the
-		// raw operator (2.83.0 serializers.py:643-654). Only the
-		// 2-segment form becomes icontains or istartswith (:622-626).
-		// On MySQL, Django runs contains and startswith as LIKE BINARY,
-		// which is case-sensitive. The mirror ignores case, as for every
-		// other contains and startswith key.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// PeeringDB 2.84.0 serializers.py:739-750 preserves the raw
+		// operator on three-segment relation keys.
 		srv := newTestServer(t, seedRelationSeedKeys(t, t0))
 		assertKeysResolve(t, srv, []silentIgnoreCase{
 			// Upstream: [].
-			{path: "/api/netixlan?ix__name__contains=relseedix20", want: []int{500, 501}},
+			{path: "/api/netixlan?ix__name__contains=relseedix20", want: []int{}},
 			// Upstream: [].
-			{path: "/api/net?ix__name__startswith=relseed", want: []int{100, 101}},
+			{path: "/api/net?ix__name__startswith=relseed", want: []int{}},
 		})
 	})
 
@@ -2245,43 +2166,31 @@ func TestParity_Traversal(t *testing.T) {
 		})
 	})
 
-	t.Run("DIVERGENCE_reverse_set_keys_silent_ignore", func(t *testing.T) {
+	t.Run("reverse_set_keys", func(t *testing.T) {
 		t.Parallel()
-		// DIVERGENCE: upstream names a reverse relation by its
-		// related_name, for example ixlan_set on ix and ix_set on org
-		// (2.83.0 models.py:3308, :2621-2622). The reverse relation
-		// reports the ForeignKey type (Django reverse_related.py:127-128),
-		// so field_names holds the bare related_name and
-		// queryable_relations adds <related_name>__<field>
-		// (serializers.py:970-996). Upstream then:
-		//   - filters <related_name>__<field> on the related rows with an
-		//     exact match (rest.py:670-683);
-		//   - filters <related_name>__in, __lt, __lte, __gt and __gte on
-		//     the related row ids (rest.py:633-669), with distinct()
-		//     (:715-716);
-		//   - returns 400 for a bare <related_name>: rest.py:676-677
-		//     builds <related_name>_id, which Django cannot resolve
-		//     (FieldError, :702-703).
-		// The mirror knows no _set names and ignores these keys.
-		// See docs/API.md § Known Divergences.
-		// This test ASSERTS the divergence (it is NOT a parity match).
+		// Upstream 2.84.0 rest.py:608-709 and serializers.py:970-996
+		// accept reverse related names and scalar fields of their rows.
 		srv := newTestServer(t, seedRelationKeys(t))
-		assertKeysSilentlyIgnored(t, srv, []silentIgnoreCase{
-			// Upstream: [20].
-			{path: "/api/ix?ixlan_set__status=pending", want: []int{20, 21}},
-			// Upstream: [1]. Org 1 owns IX 20 (RelIXA).
-			{path: "/api/org?ix_set__name=RelIXA", want: []int{1, 3}},
-			// Upstream: [1].
-			{path: "/api/org?ix_set__in=20", want: []int{1, 3}},
-			// Upstream: 400.
-			{path: "/api/org?ix_set=20", want: []int{1, 3}},
-			// A related name as the field of a prepare_query relation
-			// key filters the related rows upstream (models.py:223-234;
-			// related names at :3308, :5883, :5988). Upstream: [] for
-			// each request.
-			{path: "/api/net?ix__ixlan_set=5", want: []int{100, 200, 301}},
-			{path: "/api/fac?net__poc_set=1", want: []int{400, 401}},
-			{path: "/api/ix?fac__netfac_set=1", want: []int{20, 21}},
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/ix?ixlan_set__status=pending", want: []int{20}},
+			{path: "/api/org?ix_set__name=RelIXA", want: []int{1}},
+			{path: "/api/org?ix_set__in=20", want: []int{1}},
+			{path: "/api/org/1?ix_set__name=RelIXB", want: []int{1}},
+		})
+		assertFilterError(t, srv, "/api/org?ix_set__in=", "filter ix_set__in:")
+		assertFilterError(t, srv, "/api/org?ix_set=20", "Invalid query")
+		assertFilterError(t, srv, "/api/org?ix_set__contains=20", "Invalid query")
+	})
+
+	t.Run("nested_reverse_set_keys", func(t *testing.T) {
+		t.Parallel()
+		// Upstream 2.84.0 models.py:223-234 also filters related names
+		// inside prepare_query keys.
+		srv := newTestServer(t, seedRelationKeys(t))
+		assertKeysResolve(t, srv, []silentIgnoreCase{
+			{path: "/api/net?ix__ixlan_set=5", want: []int{}},
+			{path: "/api/fac?net__poc_set=1", want: []int{}},
+			{path: "/api/ix?fac__netfac_set=1", want: []int{}},
 		})
 	})
 

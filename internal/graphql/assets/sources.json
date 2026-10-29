@@ -36,12 +36,6 @@
     "integrity": "sha384-qOwUGIuho3Xc8XiLMdtCTNI2L5QJKPkTWI/D3O4K1R5CTk393DfyRGbeLW1lB5rI"
   },
   {
-    "file": "f1ffcb013dc52c99.mjs",
-    "url": "https://esm.sh/monaco-graphql@1.9.0/X-ZGdyYXBocWxAMTYuMTQuMixtb25hY28tZWRpdG9yQDAuNTIuMixwcmV0dGllckAzLjkuMTA/es2022/esm/graphql.worker.bundle.mjs",
-    "upstreamIntegrity": "sha384-LEPqaQ89h8cLHboECj0W6NhE7cYEm/tzXHPzr7INm6XAIEwji488Mx1GCEEdfoYU",
-    "integrity": "sha384-nfweE2nEw3ywNdujiHH/y/hdLnO3NTeCyPn1vI5e040x1I6WbRHvQzza6sqD6rxk"
-  },
-  {
     "file": "912dec9229588774.mjs",
     "url": "https://esm.sh/graphql@16.14.2/es2022/graphql.mjs",
     "upstreamIntegrity": "sha384-K3ARQkEcUXaFMLUFyzrze/Kt3W1CtpUjq0TOk1Ean+4xkCOb27HURRmwMfvqDeB/",
@@ -70,5 +64,11 @@
     "url": "https://esm.sh/prettier@3.9.10/es2022/parser-graphql.mjs",
     "upstreamIntegrity": "sha384-W/x+BXZYykEX2QNSeER8J1PbRJ4ovuPyne/IMlsMC+GreSYNdLG2G8kjxZRPs3f3",
     "integrity": "sha384-8BFUuVpT/bY6IPNNYat6QCUckjQSBF2Pvl/YsiGhqsLsXt7Ye8HC4dz/q458EN2K"
+  },
+  {
+    "file": "06969fae109476d4.mjs",
+    "url": "https://esm.sh/monaco-graphql@1.9.0/X-ZGdyYXBocWxAMTYuMTQuMixtb25hY28tZWRpdG9yQDAuNTIuMixwcmV0dGllckAzLjkuMTAsdnNjb2RlLWxhbmd1YWdlc2VydmVyLXR5cGVzQDMuMTguNQ/es2022/esm/graphql.worker.bundle.mjs",
+    "upstreamIntegrity": "sha384-r+o5ZlhuGjOV7PwK+ZTHsRI6qUesW97yCBhVA6fKTRexA4VXggZzjE0novcrbl6w",
+    "integrity": "sha384-ORZvqrmS4EhOL4Ds2XcKQlWMovMHZ4jIJNwrjA7cUORsix7Fdv4qDCGJ/Lqbyiaj"
   }
 ]

@@ -123,9 +123,8 @@ kill_timeout = 30
   memory = "512mb"
   processes = ["primary"]
 
-# Replica group VM: downsized to shared-cpu-1x / 256 MB.
-# Observed replica RSS 58-59 MB → 256 MB gives ~4× headroom + hydration spike budget.
+# Replica group VM: shared-cpu-2x / 512 MB for more memory headroom.
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = "shared-cpu-2x"
+  memory = "512mb"
   processes = ["replica"]

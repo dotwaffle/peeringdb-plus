@@ -155,8 +155,17 @@ A cycle stops the sweep after the last window of a type (`type_done`), so a type
 The last window of a type is open-ended (`from+width > local MAX(id)`).
 Rows with `updated` later than the type's pre-cycle `MAX(updated)` are dropped (committing them would move the next watermark past rows changed after the normal fetch; the gate is NOT the watermark: a held cursor is below MAX and the normal fetch covers the rows between); scratch `ON CONFLICT` keeps the newer `updated` (`json_extract(CAST(data AS TEXT), ...)`: a BLOB argument is read as JSONB, so always CAST).
 Phase B merges with the incremental gate; no deletes.
-A type with an empty table is skipped, not marked done, and later types go on (`zero_cursor` when only such types are left).
-Only fac `campus_id` (nullable) can point into an empty type (upstream has no live campus): `prefetchStagedFacCampuses` backfills a swept fac's campus, which then lets campus be swept; backfill off nulls it as on the normal path (Codex re-check 2026-09-24: kept as a known limit, no zero-cursor window).
+An empty type waits if normal scratch rows will establish its cursor (`zero_cursor`).
+Otherwise a complete feed bootstraps it within the request budget.
+Each cycle still stops after one type.
+A deleted-only window is unsafe for an empty cursor.
+The complete feed covers all rows before MAX(updated) advances.
+Still-empty types recheck after 65 minutes.
+Committed check times protect empty types across process restarts.
+Failed attempts remain protected by the in-memory memo.
+No new schema column.
+Bootstrap rows stream to scratch, even for large responses.
+Locked by `TestHistoryBootstrap*`.
 Stops: budget, `type_done`, `complete`, memo hit, first failed window (429/WAF: WARN, `rate_limited`; other: WARN, `error`; never fails the cycle, except `errScratchDB`).
 `Worker.historyMemo` (key = window, TTL 65m > 30s+2m+8m retry ladder and upstream's 1h repeat window) blocks resending a URL.
 Progress = raw table `sync_history_sweep` (type, next_id, done, updated_at; `InitStatusTable`), written in the sync tx (`writeHistoryProgress`, nothing when unchanged), logged after commit (`logHistoryCommitted`).
@@ -181,7 +190,7 @@ The incremental attempt and the snapshot roll back (`discardRows`).
 Locked by `TestSync_CursorReadErrorFailsType`, `TestSync_CursorReadErrorSendsNoRequest`, `TestWindowFailureTolerated`, `TestStageOneTypeToScratch_ScratchFaultSkipsFallback`, `TestScratchDB_FailedStage`, `TestSync_FallbackWindowKeepsStagedTombstones`.
 
 **Stale upstream snapshot (v1.28.1):** upstream serves the bare list from its `pdb_api_cache` files, which can be hours/days stale; `meta.generated` is the cache FILE mtime, later than the cache query cutoff (`updated__lte=<build start>`).
-So (1) the window starts at `min(cursor, newest updated in the snapshot)` (`snapshotWindowStart`), never at `meta.generated`; the window is paged, so `updated` ties can still be skipped (next full cycle retries); (2) full mode's upsert gate is `(excluded.updated >= updated OR updated < <snapshot cutoff>) AND <a column differs>` (not `1=1`): equal rows still reconcile, a stored row newer than the snapshot's newest row is never rolled back, and an older stored row takes the snapshot's version even with an older `updated` (kept for raw saves outside a revision; an IX-F import-log rollback gets a new `updated`: it runs under `create_revision` and handleref `handle_version` re-saves the row, 2.83.0 `models.py:3745-3747`, handleref `models.py:9-16`).
+So (1) the window starts at `min(cursor, newest updated in the snapshot)` (`snapshotWindowStart`), never at `meta.generated`; the window streams in one response, with no offset page edges; (2) full mode's upsert gate is `(excluded.updated >= updated OR updated < <snapshot cutoff>) AND <a column differs>` (not `1=1`): equal rows still reconcile, a stored row newer than the snapshot's newest row is never rolled back, and an older stored row takes the snapshot's version even with an older `updated` (kept for raw saves outside a revision; an IX-F import-log rollback gets a new `updated`: it runs under `create_revision` and handleref `handle_version` re-saves the row, 2.83.0 `models.py:3745-3747`, handleref `models.py:9-16`).
 Cutoffs flow `syncFetchPass` → `withReconcileAll(ctx, cutoffs)` keyed by table.
 Pre-v1.28.1 full cycles also turned upstream deletes back into live rows; no sync repairs those (bare lists are live-only), prod had 352 such netixlans on 2026-09-23 (one-off repair, user decision: no reconcile code; unreturned ids stay live unless their net is deleted (netixlan cascade)).
 Before v1.28.1 a full cycle over a stale cache rewrote rows (incl.
@@ -452,7 +461,7 @@ Locked by `TestParity_Traversal/prepare_query_whereis` + `TestWhereisCandidates`
 **ix `capacity` (`internal/pdbcompat/capacity_filter.go`).**
 `ix?capacity[__lt|lte|gt|gte|in|contains|startswith]=` resolves in `ParseFiltersCtx` after the ixpfx whereis key, first value: `id IN (SELECT ixlan_id FROM network_ix_lans WHERE status <> 'deleted' GROUP BY ixlan_id HAVING SUM(speed) <op> ?)` (upstream `filter_capacity`, `models.py:2895-2942`, takes `ixlan_id` as the ix id; do not join `ixlan` or use `netixlan.ix_id`).
 Values parse with `pyInt` (saturated, bound as integers; `__in` as ONE JSON array); `capacity__in=` is a 400 (upstream int-converts every item), not `errEmptyIn`; contains/startswith match `CAST(SUM AS TEXT)` and never 400.
-Two different capacity keys AND (upstream applies only the form whose first occurrence is last): `DIVERGENCE_relation_filter_forms_all_apply`.
+`selectPrepareForms` resolves competing capacity forms from raw query order, as for relation, count and whereis keys.
 Locked by `TestParity_Traversal/prepare_query_capacity` + `TestCapacityPlan` (uncorrelated `LIST SUBQUERY` on `networkixlan_ixlan_id`).
 
 **Distance filter (`internal/pdbcompat/distance_filter.go`).**
@@ -468,7 +477,14 @@ Locked by `TestParity_Traversal/prepare_query_distance_*` + `TestDistanceSearch_
 
 **Name search (`internal/pdbcompat/name_search.go`).**
 `resolveNameSearch` resolves `name_search` in a pre-pass of `parseListFilters` after the distance pre-pass (upstream: `prepare_query`, then `name_search`, 2.83.0 `rest.py:488-553`), exact key, last value; its keys go in the `consumed` set.
-On the 6 indexed types it matches words (substring of the index fields per type, `nameSearchFields`), digits (net ASN prefix + text) or a partial IP (live netixlan address range), `ok` rows only; words bind as ONE JSON array and every column goes through `coalesce` (else a NULL column passes `NOT EXISTS`).
+On the 6 indexed types it matches words (wildcard and phrase clauses over `nameSearchFields`), digits (net ASN prefix + text phrase prefix) or a partial IP (live netixlan address range), `ok` rows only; words bind as ONE JSON array and every column goes through `coalesce` (else a NULL column passes `NOT EXISTS`).
+`nameSearchQuery` keeps the required wildcard words, or all alternatives with `anyWord`, plus the cleaned phrase term.
+Terms next to explicit or implicit AND are required, as in Lucene's classic parser.
+`name_search_text.go` adds whole-name and auxiliary word phrase prefixes.
+`internal/sqlitesearch.NewDriver` registers deterministic Unicode lowercase and word-token functions on each application driver.
+Both database.Open and testutil use this driver.
+No global SQLite function registry is used.
+Lucene word-break details, expansion limits and the 1000-hit cap remain registered divergences.
 It owns `id__in` when both are present: upstream unions the search ids into `id__in` (`rest.py:685-690`); an `EXISTS (... LIMIT 1)` gate keeps the empty result when nothing matches (without `LIMIT 1` SQLite sorts the page in a temp B-tree).
 `none` (7 types without an index, or a value such as `AND` that can match nothing) sets `emptyResult` before the loop, and the loop then reads only `isPrepareQueryKey` keys (`rest.py:550-553` returns before the filter loop, after `prepare_query`); they are not unknown keys either.
 A `name_search` value error does the same and is returned after the loop, so a `prepare_query` error wins (`TestParity_NameSearch/prepare_query_errors_win`).
@@ -477,9 +493,26 @@ Detail and negative skip: upstream's `qset.none()` comes before the slice, so `n
 The digit test follows Python `isdigit` + `int` (`pyDigitNotDecimal`, `ndValue`, `pyIntMaxStrDigits`): a value that `int()` rejects is `400`, as upstream.
 Locked by `TestParity_NameSearch`, `TestNameSearchPlan`, `TestParseListFilters_NameSearchNone`.
 
+**Competing prepare_query forms (`internal/pdbcompat/relation_precedence.go`).**
+`parseRequestFilters` selects one form per translated relation and field before parsing values.
+The raw URL provides first-key order.
+Repeated keys keep their first position and their full value list.
+The last form in that order wins, and prepare_query reads its first value.
+Excluded keys never replace valid filters.
+Ordinary model filters and different relation fields remain independent.
+The request parameter map is copied only when a form is superseded.
+
 **Reverse relation keys (`internal/pdbcompat/reverse_set_filter.go`).**
-`reverseSets` holds the upstream `<related_name>` keys that no traversal key reaches: today only fac `ix_side_set` (netixlan `ix_side`).
-They resolve in `addKey` before `parseFieldOp`, one hop only, with upstream's `_id` strips and no status filter on the related rows; the other `_set` names stay ignored (registered row).
+`reverseSets` holds upstream `<related_name>` keys for org, ix, ixlan, net, fac and carrier.
+They resolve in `addKey` before `parseFieldOp`, one hop only, with upstream's `_id` strips and no status filter on related rows.
+Contact visibility and field exclusions still apply.
+`reverseRelationEdge` also resolves related names inside `prepare_query` keys as related-ID comparisons.
+The extra hop preserves the original status pin and applies the target visibility gate.
+Three-segment relation `contains` and `startswith` on string fields use `charFieldLookup` against the original column.
+Two-segment forms retain the upstream case-insensitive rewrite.
+`hideIXNoFac` supplies `listFilters.liveFilter` for ix, ixlan, net and netixlan.
+It reads stored counts after the API cache gate, before pagination, and on details.
+It does not set `upstreamFilter`: upstream cached lists bypass the mixin.
 
 **netixlan `meta__*` filters (`internal/pdbcompat/meta_filter.go`).**
 `ParseFiltersCtx` resolves them via `lookupMetaFilter` BEFORE `parseFieldOp`, mirroring upstream `finalize_query_params` (2.83.0 `serializers.py:3129-3149`), so the 3-/4-segment keys never reach traversal or the 2-hop cap.
@@ -591,7 +624,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
 
 - `PDBPLUS_SYNC_MODE=incremental` (default flipped 2026-04-26 after the incremental-sync evaluation; `full` is operator escape-hatch for first-sync / recovery)
 - `PDBPLUS_SYNC_INTERVAL` defaults `1h` unauthenticated / `15m` when `PDBPLUS_PEERINGDB_API_KEY` is set (auth-conditional)
-- `PDBPLUS_FULL_SYNC_INTERVAL=24h`: the forced full cycle is the ONLY automatic repair for what incremental sync cannot see: count fields, netfac/ixfac name/city/country + carrierfac name (upstream copies them from the fac without bumping `updated`), live rows skipped by `updated` ties under offset paging (0160 gives ~600 netixlans one `updated`), values set upstream before our column existed (`meta`), orphan-nulled FKs.
+- `PDBPLUS_FULL_SYNC_INTERVAL=24h`: the forced full cycle is the ONLY automatic repair for what incremental sync cannot see: count fields, netfac/ixfac name/city/country + carrierfac name (upstream copies them from the fac without bumping `updated`), values set upstream before our column existed (`meta`), orphan-nulled FKs.
   `0` leaves them stale until `POST /sync?mode=full`.
   Upstream `?since` is strict `updated > N`; it only looks inclusive because the wire `updated` is truncated to the second.
   See `docs/ARCHITECTURE.md § Daily full reconcile`.
@@ -689,7 +722,7 @@ Operationally-critical defaults worth retaining in-context (the surprising or lo
   Primary region: lhr.
 - LiteFS FUSE mount takes a moment — "not listening" warnings during rolling deploy are normal.
 - **Asymmetric fleet (v1.15+).**
-  Fly app `peeringdb-plus` runs two process groups: `primary` (2 lease candidates, `lhr` + standby `fra`, `shared-cpu-2x`/512 MB, each its own `litefs_data` volume; `promote: false`, so the lease can stay in `fra`; non-primary role check every 1m; `POST /sync` replays to `instance=<.primary host>`) and `replica` (7 machines in other regions, `shared-cpu-1x`/256 MB, ephemeral rootfs).
+  Fly app `peeringdb-plus` runs two process groups: `primary` (2 lease candidates, `lhr` + standby `fra`, `shared-cpu-2x`/512 MB, each its own `litefs_data` volume; `promote: false`, so the lease can stay in `fra`; non-primary role check every 1m; `POST /sync` replays to `instance=<.primary host>`) and `replica` (7 machines in other regions, `shared-cpu-2x`/512 MB, ephemeral rootfs).
   Added after 2026-10-16 (Fly host restarts stopped the lone lhr primary for 22 min); see `docs/DEPLOYMENT.md` § Lease standby.
   Replicas cold-sync the DB (126 MB on 2026-09-24) from primary over LiteFS HTTP on boot (5-45s per region).
   LiteFS starts the app only after it applies the snapshot, and later LTX files stream in the background.

@@ -32,6 +32,8 @@ const (
 	// JSON array of strings. The filters compare the string that
 	// upstream stores (see multichoice_filter.go).
 	FieldMultiChoice
+	// FieldJSON compares normalized JSON text.
+	FieldJSON
 )
 
 // String returns the human-readable name of the field type. It is used in
@@ -51,6 +53,8 @@ func (ft FieldType) String() string {
 		return "time"
 	case FieldFloat:
 		return "float"
+	case FieldJSON:
+		return "json"
 	case FieldMultiChoice:
 		return "multichoice"
 	default:
@@ -218,26 +222,27 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeOrg: {
 		Name: peeringdb.TypeOrg,
 		Fields: map[string]FieldType{
-			"id":        FieldInt,
-			"name":      FieldString,
-			"aka":       FieldString,
-			"name_long": FieldString,
-			"website":   FieldString,
-			"notes":     FieldString,
-			"logo":      FieldString,
-			"address1":  FieldString,
-			"address2":  FieldString,
-			"city":      FieldString,
-			"state":     FieldString,
-			"country":   FieldString,
-			"zipcode":   FieldString,
-			"suite":     FieldString,
-			"floor":     FieldString,
-			"latitude":  FieldFloat,
-			"longitude": FieldFloat,
-			"created":   FieldTime,
-			"updated":   FieldTime,
-			"status":    FieldString,
+			"social_media": FieldJSON,
+			"id":           FieldInt,
+			"name":         FieldString,
+			"aka":          FieldString,
+			"name_long":    FieldString,
+			"website":      FieldString,
+			"notes":        FieldString,
+			"logo":         FieldString,
+			"address1":     FieldString,
+			"address2":     FieldString,
+			"city":         FieldString,
+			"state":        FieldString,
+			"country":      FieldString,
+			"zipcode":      FieldString,
+			"suite":        FieldString,
+			"floor":        FieldString,
+			"latitude":     FieldFloat,
+			"longitude":    FieldFloat,
+			"created":      FieldTime,
+			"updated":      FieldTime,
+			"status":       FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true, "city": true},
@@ -245,6 +250,9 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeNet: {
 		Name: peeringdb.TypeNet,
 		Fields: map[string]FieldType{
+			"social_media":                 FieldJSON,
+			"meta":                         FieldJSON,
+			"ixp_update_exclude":           FieldJSON,
 			"id":                           FieldInt,
 			"org_id":                       FieldInt,
 			"name":                         FieldString,
@@ -294,6 +302,7 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeFac: {
 		Name: peeringdb.TypeFac,
 		Fields: map[string]FieldType{
+			"social_media":                FieldJSON,
 			"id":                          FieldInt,
 			"org_id":                      FieldInt,
 			"org_name":                    FieldString,
@@ -344,6 +353,7 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeIX: {
 		Name: peeringdb.TypeIX,
 		Fields: map[string]FieldType{
+			"social_media":              FieldJSON,
 			"id":                        FieldInt,
 			"org_id":                    FieldInt,
 			"name":                      FieldString,
@@ -442,6 +452,7 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeNetIXLan: {
 		Name: peeringdb.TypeNetIXLan,
 		Fields: map[string]FieldType{
+			"meta":        FieldJSON,
 			"id":          FieldInt,
 			"net_id":      FieldInt,
 			"ix_id":       FieldInt,
@@ -523,19 +534,20 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeCarrier: {
 		Name: peeringdb.TypeCarrier,
 		Fields: map[string]FieldType{
-			"id":        FieldInt,
-			"org_id":    FieldInt,
-			"org_name":  FieldString,
-			"name":      FieldString,
-			"aka":       FieldString,
-			"name_long": FieldString,
-			"website":   FieldString,
-			"notes":     FieldString,
-			"fac_count": FieldInt,
-			"logo":      FieldString,
-			"created":   FieldTime,
-			"updated":   FieldTime,
-			"status":    FieldString,
+			"social_media": FieldJSON,
+			"id":           FieldInt,
+			"org_id":       FieldInt,
+			"org_name":     FieldString,
+			"name":         FieldString,
+			"aka":          FieldString,
+			"name_long":    FieldString,
+			"website":      FieldString,
+			"notes":        FieldString,
+			"fac_count":    FieldInt,
+			"logo":         FieldString,
+			"created":      FieldTime,
+			"updated":      FieldTime,
+			"status":       FieldString,
 		},
 		SearchFields: []string{"name", "aka", "name_long"},
 		FoldedFields: map[string]bool{"name": true, "aka": true},
@@ -566,22 +578,23 @@ var Registry = map[string]TypeConfig{
 	peeringdb.TypeCampus: {
 		Name: peeringdb.TypeCampus,
 		Fields: map[string]FieldType{
-			"id":        FieldInt,
-			"org_id":    FieldInt,
-			"org_name":  FieldString,
-			"name":      FieldString,
-			"name_long": FieldString,
-			"aka":       FieldString,
-			"website":   FieldString,
-			"notes":     FieldString,
-			"country":   FieldString,
-			"city":      FieldString,
-			"zipcode":   FieldString,
-			"state":     FieldString,
-			"logo":      FieldString,
-			"created":   FieldTime,
-			"updated":   FieldTime,
-			"status":    FieldString,
+			"social_media": FieldJSON,
+			"id":           FieldInt,
+			"org_id":       FieldInt,
+			"org_name":     FieldString,
+			"name":         FieldString,
+			"name_long":    FieldString,
+			"aka":          FieldString,
+			"website":      FieldString,
+			"notes":        FieldString,
+			"country":      FieldString,
+			"city":         FieldString,
+			"zipcode":      FieldString,
+			"state":        FieldString,
+			"logo":         FieldString,
+			"created":      FieldTime,
+			"updated":      FieldTime,
+			"status":       FieldString,
 		},
 		SearchFields: []string{"name"},
 		FoldedFields: map[string]bool{"name": true},

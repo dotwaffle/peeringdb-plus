@@ -23,7 +23,8 @@ import (
 // search_v2, search_v2.py:861-978). Upstream sends the value to its
 // Elasticsearch index and filters the list by the ids of the hits. The
 // mirror runs the same kinds of match in SQL: words as substrings of the
-// indexed text fields, digits as an ASN prefix, and a partial IP address
+// indexed text fields with Boolean and phrase clauses, digits as an ASN
+// or text prefix, and a partial IP address
 // as a prefix of the netixlan addresses.
 
 // nameSearchMode is the kind of match that a name_search value selects.
@@ -31,7 +32,7 @@ type nameSearchMode int
 
 const (
 	nsNone  nameSearchMode = iota // matches no row
-	nsWords                       // every word is a substring of a field
+	nsWords                       // Boolean wildcard and phrase clauses
 	nsASN                         // a digit value
 	nsIPv4                        // a netixlan ipaddr4 prefix
 	nsIPv6                        // a netixlan ipaddr6 prefix
@@ -40,9 +41,13 @@ const (
 // nameSearchQuery is a parsed name_search value.
 type nameSearchQuery struct {
 	mode nameSearchMode
-	// words are the lower-case words of nsWords, without the operators
-	// AND and OR.
+	// words are the required lowercase wildcard terms, or every term
+	// when anyWord is true. Operators are omitted.
 	words []string
+	// anyWord selects OR when no wildcard clause is required.
+	anyWord bool
+	// clean is the upstream clean_term for phrase and phrase-prefix clauses.
+	clean string
 	// digits is clean_term of nsASN as upstream builds it (the digits of
 	// any script).
 	digits string
@@ -196,16 +201,29 @@ func parseNameSearch(v string) (nameSearchQuery, error) {
 	if err != nil || isDigit {
 		return q, err
 	}
-	var words []string
-	for _, f := range fields {
-		if !isSearchOperator(f) {
-			words = append(words, strings.ToLower(f))
+	var words, required []string
+	for i, f := range fields {
+		if isSearchOperator(f) {
+			continue
+		}
+		word := strings.ToLower(f)
+		words = append(words, word)
+		// Lucene's classic parser marks both neighbors of AND as required.
+		// Upstream inserts AND between adjacent non-operator words.
+		before := i > 0 && fields[i-1] != "OR"
+		after := i+1 < len(fields) && fields[i+1] != "OR"
+		if before || after {
+			required = append(required, word)
 		}
 	}
 	if len(words) == 0 {
 		return nameSearchQuery{mode: nsNone}, nil
 	}
-	return nameSearchQuery{mode: nsWords, words: words}, nil
+	anyWord := len(required) == 0
+	if !anyWord {
+		words = required
+	}
+	return nameSearchQuery{mode: nsWords, words: words, anyWord: anyWord, clean: strings.ToLower(clean)}, nil
 }
 
 // nameSearchDigits runs the digit test of construct_query_body on
@@ -258,12 +276,11 @@ func (q nameSearchQuery) match(typ string) func(c nameSearchColumn) *sql.Predica
 	case nsWords:
 		cols := nameSearchFields[typ]
 		return func(c nameSearchColumn) *sql.Predicate {
-			return nameSearchWords(c, cols, q.words)
+			return sql.Or(nameSearchWords(c, cols, q.words, q.anyWord), nameSearchPhrase(c, cols, q.clean))
 		}
 	case nsASN:
-		words := []string{strings.ToLower(q.digits)}
 		return func(c nameSearchColumn) *sql.Predicate {
-			p := nameSearchWords(c, nameSearchASNFields, words)
+			p := nameSearchPhrase(c, nameSearchASNFields, strings.ToLower(q.digits))
 			if typ != peeringdb.TypeNet || !q.hasASN {
 				return p
 			}
@@ -289,23 +306,22 @@ func (q nameSearchQuery) match(typ string) func(c nameSearchColumn) *sql.Predica
 	return nil
 }
 
-// nameSearchWords keeps the rows where every word is a case-insensitive
-// substring of at least one of cols. Different words can match
-// different columns. This approximates the query_string clause
-// `*w1* AND *w2*` over the index fields (search_v2.py:574-585). The
-// words bind as ONE JSON array, so a long value adds no SQL term per
-// word. coalesce is load-bearing: a NULL column would make the inner
-// NOT NULL, and NOT EXISTS would then keep the row. SQLite lower()
-// folds ASCII letters only; the words are folded in Go.
-func nameSearchWords(c nameSearchColumn, cols, words []string) *sql.Predicate {
+// nameSearchWords applies wildcard clauses over the indexed text fields.
+// AND clauses require every word. Otherwise any word is enough. The
+// words bind as one JSON array, so SQL size does not grow per word.
+// COALESCE prevents NULL from making NOT EXISTS admit a missing field.
+func nameSearchWords(c nameSearchColumn, cols, words []string, anyWord bool) *sql.Predicate {
 	terms := make([]string, len(cols))
 	for i, col := range cols {
-		terms[i] = "instr(lower(coalesce(" + c(col) + ", '')), w.value) > 0"
+		terms[i] = "instr(pdbplus_search_lower(coalesce(" + c(col) + ", '')), w.value) > 0"
 	}
 	list, err := json.Marshal(words)
 	if err != nil {
 		// A []string always marshals.
 		panic(fmt.Sprintf("marshal name_search words: %v", err))
+	}
+	if anyWord {
+		return sql.ExprP("EXISTS (SELECT 1 FROM json_each(?) AS w WHERE ("+strings.Join(terms, " OR ")+"))", string(list))
 	}
 	return sql.ExprP("NOT EXISTS (SELECT 1 FROM json_each(?) AS w WHERE NOT ("+strings.Join(terms, " OR ")+"))", string(list))
 }

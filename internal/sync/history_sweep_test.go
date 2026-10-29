@@ -186,8 +186,9 @@ type historyServer struct {
 	live    map[string][]map[string]any
 	deleted map[string][]map[string]any
 	// fail maps "<type>:<id__gte>" to the HTTP status of that window.
-	fail    map[string]int
-	windows []string
+	fail     map[string]int
+	windows  []string
+	truncate string
 }
 
 func newHistoryServer(t *testing.T) *historyServer {
@@ -223,10 +224,23 @@ func (hs *historyServer) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		if v := q.Get("id__lt"); v != "" {
 			to, _ = strconv.Atoi(v)
 		}
-		for _, row := range hs.deleted[objType] {
+		rows := slices.Clone(hs.deleted[objType])
+		if q.Get("status") == "" {
+			rows = append(rows, hs.live[objType]...)
+		}
+		for _, row := range rows {
+			if q.Get("status") != "" && row["status"] != q.Get("status") {
+				continue
+			}
 			if id := row["id"].(int); id >= from && id < to {
 				data = append(data, row)
 			}
+		}
+		if hs.truncate == objType && len(data) > 0 {
+			_, _ = w.Write([]byte(`{"data":[`))
+			_ = json.NewEncoder(w).Encode(data[0])
+			_, _ = w.Write([]byte(","))
+			return
 		}
 	case q.Get("skip") == "" || q.Get("skip") == "0":
 		data = append(data, hs.live[objType]...)
@@ -442,10 +456,16 @@ func TestSync_HistorySweepTypeOrder(t *testing.T) {
 	}
 	assertOrg(t, w, 2, "deleted", "2023-06-01T00:00:00Z")
 
-	// campus is empty and waits. fac goes on, and fac 3 finds org 2.
+	// The empty campus type gets a separate bootstrap cycle before fac.
+	mustSync(t, w, config.SyncModeIncremental)
+	campusWindow := "campus?depth=0&id__gte=1&since=1"
+	if got := hs.sentWindows(); !slices.Equal(got, []string{orgWindow, campusWindow}) {
+		t.Fatalf("campus windows %v", got)
+	}
+	// The following cycle commits fac 3 with its already stored parent.
 	mustSync(t, w, config.SyncModeIncremental)
 	facWindow := "fac?depth=0&id__gte=1&since=1&status=deleted"
-	if got, want := hs.sentWindows(), []string{orgWindow, facWindow}; !slices.Equal(got, want) {
+	if got, want := hs.sentWindows(), []string{orgWindow, campusWindow, facWindow}; !slices.Equal(got, want) {
 		t.Fatalf("third cycle windows = %v, want %v", got, want)
 	}
 	fac, err := w.entClient.Facility.Get(t.Context(), 3)
@@ -455,21 +475,21 @@ func TestSync_HistorySweepTypeOrder(t *testing.T) {
 	if fac.Status != "deleted" {
 		t.Errorf("fac 3 status = %q, want deleted", fac.Status)
 	}
-	if got, want := historyRows(t, db), []string{"fac:1:1", "org:1:1"}; !slices.Equal(got, want) {
+	if got, want := historyRows(t, db), []string{"campus:1:1", "fac:1:1", "org:1:1"}; !slices.Equal(got, want) {
 		t.Errorf("progress = %v, want %v", got, want)
 	}
 	recs := logs.records(t, "history sweep progress")
-	if r := recs[len(recs)-1]; r["stop"] != "type_done" || r["next_type"] != "campus" {
+	if r := recs[len(recs)-1]; r["stop"] != "type_done" || r["next_type"] != "carrier" {
 		t.Errorf("progress log = %v", r)
 	}
 
-	// Every type that is not done has an empty table.
+	// Recent empty checks do not block the remaining types or repeat URLs.
 	mustSync(t, w, config.SyncModeIncremental)
-	if got := hs.sentWindows(); len(got) != 2 {
-		t.Errorf("fourth cycle sent windows: %v", got)
+	if got := hs.sentWindows(); len(got) != 4 {
+		t.Fatalf("next cycle windows %v", got)
 	}
 	if n := len(logs.records(t, "history sweep complete")); n != 0 {
-		t.Errorf("got %d complete logs, want 0 (campus is not done)", n)
+		t.Errorf("premature complete logs %d", n)
 	}
 }
 

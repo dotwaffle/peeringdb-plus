@@ -42,71 +42,35 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 	ctx, span := tracer.Start(ctx, "peeringdb.stream/"+objectType)
 	defer span.End()
 
-	// Full sync path: single unpaginated request.
-	if cfg.since.IsZero() {
-		url := fmt.Sprintf("%s/api/%s?depth=0", c.baseURL, objectType)
-		resp, err := c.doWithRetry(ctx, url)
-		if err != nil {
-			span.RecordError(err)
-			return FetchMeta{}, fmt.Errorf("fetch %s: %w", objectType, err)
-		}
-		meta, count, _, decErr := streamDecodeResponse(resp.Body, objectType, handler)
-		closeErr := resp.Body.Close()
-		if decErr != nil {
-			span.RecordError(decErr)
-			return FetchMeta{}, decErr
-		}
-		if closeErr != nil {
-			c.logger.LogAttrs(ctx, slog.LevelWarn, "stream body close",
-				slog.String("type", objectType),
-				slog.Any("error", closeErr),
-			)
-		}
-		span.AddEvent("streamed", trace.WithAttributes(attribute.Int("count", count)))
-		c.logger.LogAttrs(ctx, slog.LevelDebug, "streamed all",
-			slog.String("type", objectType),
-			slog.Int("count", count),
-		)
-		return meta, nil
+	// Fetch the whole delta in one response. Upstream orders by updated
+	// alone, so offset pages can omit tied rows or rows that move between
+	// requests. Decode each row directly into the caller's scratch store.
+	u := fmt.Sprintf("%s/api/%s?depth=0", c.baseURL, objectType)
+	if !cfg.since.IsZero() {
+		u += fmt.Sprintf("&since=%d", cfg.since.Unix())
 	}
-
-	// Incremental path: paginate through delta results.
-	var combined FetchMeta
-	totalCount := 0
-	for skip := 0; ; skip += pageSize {
-		page := skip / pageSize
-		url := fmt.Sprintf("%s/api/%s?limit=%d&skip=%d&depth=0&since=%d",
-			c.baseURL, objectType, pageSize, skip, cfg.since.Unix())
-		resp, err := c.doWithRetry(ctx, url)
-		if err != nil {
-			span.RecordError(err)
-			return FetchMeta{}, fmt.Errorf("fetch %s page %d: %w", objectType, page, err)
-		}
-
-		pageMeta, pageCount, _, decErr := streamDecodeResponse(resp.Body, objectType, handler)
-		_ = resp.Body.Close()
-		if decErr != nil {
-			span.RecordError(decErr)
-			return FetchMeta{}, decErr
-		}
-		totalCount += pageCount
-		// Track earliest generated timestamp across pages, matching the
-		// legacy FetchAll aggregation rule.
-		if !pageMeta.Generated.IsZero() {
-			if combined.Generated.IsZero() || pageMeta.Generated.Before(combined.Generated) {
-				combined.Generated = pageMeta.Generated
-			}
-		}
-		// A short page means the result set is exhausted — upstream applies
-		// its status filters before limit/skip, so every non-final page is
-		// exactly pageSize rows. Breaking here (rather than only on an
-		// empty page) saves the trailing empty-page request per type.
-		if pageCount < pageSize {
-			break
-		}
+	resp, err := c.doWithRetry(ctx, u)
+	if err != nil {
+		span.RecordError(err)
+		return FetchMeta{}, fmt.Errorf("fetch %s: %w", objectType, err)
 	}
-	span.AddEvent("streamed", trace.WithAttributes(attribute.Int("count", totalCount)))
-	return combined, nil
+	meta, count, sawData, decErr := streamDecodeResponse(resp.Body, objectType, handler)
+	closeErr := resp.Body.Close()
+	if decErr == nil && !sawData {
+		decErr = fmt.Errorf("stream %s: %w", objectType, errNoDataArray)
+	}
+	if decErr != nil {
+		span.RecordError(decErr)
+		return FetchMeta{}, decErr
+	}
+	if closeErr != nil {
+		c.logger.LogAttrs(ctx, slog.LevelWarn, "stream body close",
+			slog.String("type", objectType), slog.Any("error", closeErr))
+	}
+	span.AddEvent("streamed", trace.WithAttributes(attribute.Int("count", count)))
+	c.logger.LogAttrs(ctx, slog.LevelDebug, "streamed all",
+		slog.String("type", objectType), slog.Int("count", count))
+	return meta, nil
 }
 
 // streamDecodeResponse walks a PeeringDB response body with json.Decoder,

@@ -8,6 +8,39 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-10-29
+
+### Added
+
+- PeeringDB-compatible reverse-set and nested relation filters, including `hide_ix_no_fac`.
+- Text filters on stored `social_media`, `meta` and `ixp_update_exclude` values, including relation forms.
+  Matching normalizes JSON whitespace and object-key order.
+  Native JSON containment and ordering remain documented differences.
+- Read-only `OPTIONS` metadata on ordinary compatibility API routes.
+  `Allow` headers list the supported read methods on successful and error responses.
+
+### Fixed
+
+- Name search handles Boolean operators, Unicode lowercase, phrase prefixes, internal punctuation and Japanese script boundaries more closely to upstream.
+  Paginated `name_search` keeps every matching record without the upstream search-hit cutoff.
+- Relation comparisons preserve case and accents where upstream does.
+  Competing relation filter forms follow their order in the query string.
+- Sync streams each delta in one response, so offset page changes cannot omit rows with equal timestamps.
+  A response without a `data` array fails the fetch.
+- History recovery bootstraps empty types from a complete feed, including pending-only campuses.
+  Imported rows and sweep progress commit together.
+  Still-empty types are checked again after the repeat window, with persisted successful check times and fair request scheduling.
+
+### Changed
+
+- Refresh Go modules, generator tools and GraphQL editor worker dependencies.
+- Upgrade `mise.lock` to format 3 and track independent tools as `latest` in `mise.toml`.
+  Generator versions remain matched to their Go modules.
+- Replace actionlint with jactionlint using `--profile correctness`.
+- Apply `GOFLAGS=-trimpath` to all Go commands so worktrees can share compiled build-cache entries.
+- Configure the Fly fleet for two shared CPUs and 512 MiB per machine.
+  This records the resize already applied after the October 25 memory incident.
+
 ## [1.43.2] - 2026-10-24
 
 ### Security
