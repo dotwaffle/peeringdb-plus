@@ -193,10 +193,8 @@ Locked by `TestSync_CursorReadErrorFailsType`, `TestSync_CursorReadErrorSendsNoR
 So (1) the window starts at `min(cursor, newest updated in the snapshot)` (`snapshotWindowStart`), never at `meta.generated`; the window streams in one response, with no offset page edges; (2) full mode's upsert gate is `(excluded.updated >= updated OR updated < <snapshot cutoff>) AND <a column differs>` (not `1=1`): equal rows still reconcile, a stored row newer than the snapshot's newest row is never rolled back, and an older stored row takes the snapshot's version even with an older `updated` (kept for raw saves outside a revision; an IX-F import-log rollback gets a new `updated`: it runs under `create_revision` and handleref `handle_version` re-saves the row, 2.83.0 `models.py:3745-3747`, handleref `models.py:9-16`).
 Cutoffs flow `syncFetchPass` → `withReconcileAll(ctx, cutoffs)` keyed by table.
 Pre-v1.28.1 full cycles also turned upstream deletes back into live rows; no sync repairs those (bare lists are live-only), prod had 352 such netixlans on 2026-09-23 (one-off repair, user decision: no reconcile code; unreturned ids stay live unless their net is deleted (netixlan cascade)).
-Before v1.28.1 a full cycle over a stale cache rewrote rows (incl.
-`updated`) back to their cached versions and the cursor never re-fetched them.
-Locked by `stale_snapshot_test.go` (incl.
-`TestSync_FullModeRepairsRevertedRow`) + `TestSync_FullModeReconcilesLocallyDivergedRows/full_keeps_newer_stored_row`.
+Before v1.28.1 a full cycle over a stale cache rewrote rows (incl. `updated`) back to their cached versions and the cursor never re-fetched them.
+Locked by `stale_snapshot_test.go` (incl. `TestSync_FullModeRepairsRevertedRow`) + `TestSync_FullModeReconcilesLocallyDivergedRows/full_keeps_newer_stored_row`.
 
 **Deleted poc contact fields (PII):** upstream blanks `name`/`phone`/`email`/`url` of a `status='deleted'` poc whenever `status` is among the rendered fields (2.83.0 `serializers.py:2941-2954`, #569; pdbcompat blanks before `?fields=` projection, so it is stricter: `DIVERGENCE_deleted_poc_blanked_without_status_field`).
 `peeringdb.Poc.BlankDeletedContact` is the single rule. pdbcompat `pocFromEnt` applies it at render, so a stored tombstone that still holds contact data (the removed inference-by-absence code, v1.16.0-v1.18.1, kept it) never reaches `/api/`.
@@ -744,8 +742,7 @@ Zero-valued observations are suppressed.
 **Log signal:** when a threshold is breached, worker emits `slog.Warn("heap threshold crossed", peak_heap_bytes, heap_warn_bytes, peak_rss_bytes, rss_warn_bytes, heap_over, rss_over)`.
 Thresholds gated by `PDBPLUS_HEAP_WARN_MIB` / `PDBPLUS_RSS_WARN_MIB` (defaults sit under the Fly 512 MB VM cap so order under pressure is: log → app crash → Fly OOM-kill).
 
-**Lock-error retry (`internal/sync/lockretry.go`):** `retryOnLock` reruns the short primary writes when the error holds a `*sqlite.Error` with `code & 0xff` = 5 (`SQLITE_BUSY`, incl.
-`BUSY_SNAPSHOT` 517) or 15 (`SQLITE_PROTOCOL`, the prod LiteFS commit failure): `sync_status` INSERT/UPDATE (`Worker.recordSyncStart` / `recordSyncComplete`), `ReapStaleRunningRows`, the startup poc scrub tx, the startup netixlan cascade tx.
+**Lock-error retry (`internal/sync/lockretry.go`):** `retryOnLock` reruns the short primary writes when the error holds a `*sqlite.Error` with `code & 0xff` = 5 (`SQLITE_BUSY`, incl. `BUSY_SNAPSHOT` 517) or 15 (`SQLITE_PROTOCOL`, the prod LiteFS commit failure): `sync_status` INSERT/UPDATE (`Worker.recordSyncStart` / `recordSyncComplete`), `ReapStaleRunningRows`, the startup poc scrub tx, the startup netixlan cascade tx.
 Never the main sync tx or the sync_status prune.
 `SQLITE_LOCKED` (6) is excluded: same-connection or shared-cache conflicts only, and prod has no shared cache.
 Policy `LockRetry` (default 4 attempts, 250ms doubling) is passed as a value (`Worker.lockRetry`, `ReapStaleRunningRows(ctx, db, logger, retry)`).
@@ -754,8 +751,7 @@ Per retry: WARN `retrying write after sqlite lock error` {op, attempt, max_attem
 The caller's final-failure log is unchanged.
 A retry is safe because a failed attempt leaves no open tx on its pooled connection: callers roll back after a statement error, and on a failed COMMIT modernc `tx.Commit` checks `sqlite3_get_autocommit` and issues ROLLBACK. database/sql marks the Tx done before the driver Commit, so `tx.Rollback()` after a failed `Commit()` is a no-op (`sql.ErrTxDone`).
 Do not add one.
-Locked by `lockretry_test.go` (incl.
-`TestScrubPocContactsAtStartup_RetriesRealLock`: real BUSY at the UPDATE (WAL) and at the COMMIT (rollback journal) on a 1-connection pool).
+Locked by `lockretry_test.go` (incl. `TestScrubPocContactsAtStartup_RetriesRealLock`: real BUSY at the UPDATE (WAL) and at the COMMIT (rollback journal) on a 1-connection pool).
 
 **sync_status retention (`internal/sync/status.go`):** `pruneSyncStatus` deletes rows older than the newest 3000 (`syncStatusKeepRows`, about 31 days at 15m), oldest first, at most 1000 per call (`syncStatusPruneBatch`).
 The batch keeps the LTX files of the first drain small.
