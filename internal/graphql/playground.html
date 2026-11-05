@@ -26,7 +26,7 @@
     "@graphiql/react": "https://esm.sh/@graphiql/react@0.39.1/X-ZUBlbW90aW9uL2lzLXByb3AtdmFsaWQsQGdyYXBoaXFsL3Rvb2xraXQsZ3JhcGhxbCxyZWFjdCxyZWFjdC1kb20/es2022/react.bundle.mjs",
     "@graphiql/toolkit": "https://esm.sh/@graphiql/toolkit@0.12.1/X-ZWdyYXBocWwsZ3JhcGhxbC13cw/es2022/toolkit.bundle.mjs",
     "graphql-ws": "https://esm.sh/graphql-ws@6.4.1/X-ZWdyYXBocWw/es2022/graphql-ws.bundle.mjs",
-    "graphql": "https://esm.sh/graphql@16.14.2/es2022/graphql.mjs",
+    "graphql": "https://esm.sh/graphql@16.15.0/es2022/graphql.mjs",
     "@emotion/is-prop-valid": "https://esm.sh/@emotion/is-prop-valid@1.4.0/es2022/is-prop-valid.bundle.mjs"
   },
   "integrity": {
@@ -39,7 +39,7 @@
     "https://esm.sh/@graphiql/toolkit@0.12.1/X-ZWdyYXBocWwsZ3JhcGhxbC13cw/es2022/toolkit.bundle.mjs": "sha384-JYGshbmrZZimLuRSEb/QiVgOEDiZSkkPba2AgzOReudpsklBr9xKkPFziQgzLc8n",
     "https://esm.sh/graphql-ws@6.4.1/X-ZWdyYXBocWw/es2022/graphql-ws.bundle.mjs": "sha384-B12+HLHQUzr6iO9HiRCLZSabbZCJf4ly/m3EM/yZ+hivCRdbBeDfKyrZpReEkE6N",
     "https://esm.sh/@emotion/is-prop-valid@1.4.0/es2022/is-prop-valid.bundle.mjs": "sha384-YLYQft639KxCLP+3v0OvHk0cB57D6qLyqItJYUcmx8yI6hWfujNuRiX9wJ0doKrU",
-    "https://esm.sh/graphql@16.14.2/es2022/graphql.mjs": "sha384-K3ARQkEcUXaFMLUFyzrze/Kt3W1CtpUjq0TOk1Ean+4xkCOb27HURRmwMfvqDeB/"
+    "https://esm.sh/graphql@16.15.0/es2022/graphql.mjs": "sha384-ASw6AFrqxM0lujFpwHrqVrPG6Gy3R9gm9+9+IPpwM4BPmrqCH8Tx6342BeqGFWmo"
   }
 }
     </script>
@@ -55,7 +55,7 @@
       // Workers and their dependencies are embedded in the Go binary.
       globalThis.MonacoEnvironment = {
         getWorker(_workerId, label) {
-          const workers = {"editor": "e8425f059c96b044.mjs", "json": "07aa32f158d0c602.mjs", "graphql": "06969fae109476d4.mjs"};
+          const workers = {"editor": "e8425f059c96b044.mjs", "json": "07aa32f158d0c602.mjs", "graphql": "0bbb7719f3e9049e.mjs"};
           const name = workers[label] || workers.editor;
           return new Worker('/graphql/assets/' + name, { type: 'module', name: label });
         },

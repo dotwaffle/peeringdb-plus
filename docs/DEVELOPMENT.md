@@ -70,6 +70,13 @@ Code-change-relevant directories:
 | `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) |
 | `testdata/fixtures/` | JSON fixtures for 13 PeeringDB entity types, used by sync tests |
 
+## Browser dependency holds
+
+Keep htmx at 4.0.0 until its response parser works in Chromium 143.
+The 4.0.1 build calls `Document.parseHTMLUnsafe(html, {})`, which throws an overload error in that browser.
+The local search and pagination checks pass with 4.0.0 and fail with 4.0.1.
+Retest both operations before the next htmx update.
+
 ## GraphQL playground assets
 
 The Go handler serves the GraphiQL 5 editor at `/graphql`.
@@ -78,7 +85,7 @@ The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for import-map inte
 Older browsers can ignore the module integrity map and are unsupported for this editor.
 
 `internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 5.4.0.
-It uses GraphQL.js 16.14.2 to keep the editor on GraphQL 16 semantics.
+It uses GraphQL.js 16.15.0 to keep the editor on GraphQL 16 semantics.
 Each CDN module has a SHA-384 digest, including modules imported by other modules.
 The stylesheet has its own integrity attribute.
 The explicit `es2022` URLs prevent the CDN from selecting different bytes for different browser user agents.
