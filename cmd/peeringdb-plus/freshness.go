@@ -18,19 +18,14 @@ const initialObjectCountsTimeout = 5 * time.Second
 // gauge so a slow or locked SQLite read cannot stall metric collection.
 const freshnessReadTimeout = 2 * time.Second
 
-// freshnessFromDB returns the last successful sync's completion time for the
-// pdbplus.sync.freshness gauge, read live from sync_status on every call. The
-// query is a single-row, primary-key-ordered lookup against the local SQLite
-// file (no network on a LiteFS replica), so polling per metric read is cheap
-// and lets the gauge reflect real replication lag rather than a cached value.
-// A read error or the absence of a successful sync yields (zero, false) so
-// the observable gauge makes no observation, matching the upstream behaviour
-// and the status != "success" short-circuit.
+// freshnessFromDB reads the last successful sync's completion time from the
+// local database. Newer running or failed attempts do not reset data age.
+// A read error or no successful sync produces no gauge observation.
 func freshnessFromDB(ctx context.Context, db *sql.DB) (time.Time, bool) {
 	ctx, cancel := context.WithTimeout(ctx, freshnessReadTimeout)
 	defer cancel()
-	status, err := pdbsync.GetLastStatus(ctx, db)
-	if err != nil || status == nil || status.Status != "success" {
+	status, err := pdbsync.GetLastSuccessfulStatus(ctx, db)
+	if err != nil || status == nil {
 		return time.Time{}, false
 	}
 	return status.LastSyncAt, true
