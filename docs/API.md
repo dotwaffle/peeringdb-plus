@@ -21,7 +21,7 @@ Most endpoints are **unauthenticated and read-only** — they expose the same pu
 |----------|----------------|
 | Read endpoints (Web UI, GraphQL, REST, `/api/`, ConnectRPC, MCP) | None |
 | `POST /sync` | `X-Sync-Token` header must match `PDBPLUS_SYNC_TOKEN` (constant-time compare) |
-| Upstream fetch from `api.peeringdb.com` | Optional — set `PDBPLUS_PEERINGDB_API_KEY` to use an authenticated client with higher rate limits |
+| Upstream fetch from `www.peeringdb.com` | Optional — set `PDBPLUS_PEERINGDB_API_KEY` to use an authenticated client with higher rate limits |
 
 If `PDBPLUS_SYNC_TOKEN` is empty at startup the sync endpoint logs a warning and rejects every request as `401 unauthorized` — there is no "accept anything" mode.
 Replica instances reject the request with a `fly-replay` header that routes the request to the primary machine on Fly.io (`503 no primary` while no machine holds the lease), or return `503 not primary` when running outside Fly.io.

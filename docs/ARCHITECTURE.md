@@ -21,7 +21,7 @@ Hand-written schema methods live in sibling files that the generator does not to
 
 ```mermaid
 graph TD
-    PDB["PeeringDB API<br/>(api.peeringdb.com)"]
+    PDB["PeeringDB API<br/>(www.peeringdb.com)"]
     W["Sync Worker<br/>internal/sync/"]
     DB[("SQLite + LiteFS<br/>(FUSE mount)")]
     REP[("LiteFS Replicas<br/>(read-only)")]
@@ -77,7 +77,7 @@ The sync data flow (one cycle per `PDBPLUS_SYNC_INTERVAL`, default `1h` unauthen
    Then it deletes up to 1000 rows that are older than the newest 3000 rows.
    It keeps the newest success row and the newest full success row.
    If the delete fails, the worker logs a WARN and the cycle continues.
-2. Phase A — fetch: the worker calls `api.peeringdb.com` for every object type using `internal/peeringdb/client.go`, staging all responses in an on-disk SQLite scratch database (`internal/sync/scratch.go`) — deliberately spilled to disk to keep heap under the sync memory gate.
+2. Phase A — fetch: the worker calls `www.peeringdb.com` for every object type using `internal/peeringdb/client.go`, staging all responses in an on-disk SQLite scratch database (`internal/sync/scratch.go`) — deliberately spilled to disk to keep heap under the sync memory gate.
    The database is in `PDBPLUS_SCRATCH_DIR`, or in `os.TempDir()` when that is empty.
    On Fly.io it is on the primary volume, which is faster than the root file system.
    At scheduler start, the primary removes the scratch files that a crashed process left in a set `PDBPLUS_SCRATCH_DIR`.
@@ -374,7 +374,7 @@ When the last attempt fails, the caller logs its usual failure line.
 - **ent schemas** (`ent/schema/`): `{type}.go` files that `cmd/pdb-schema-generate` writes from `schema/peeringdb.json`.
   Do not edit them.
   Hand-written methods live in sibling files (`poc_policy.go`, `{type}_fold.go`, `fold_mixin.go`, `campus_annotations.go`, `pdb_allowlists.go`, `hooks.go`).
-- **`peeringdb.Client`** (`internal/peeringdb/client.go`) -- Rate-limit-aware HTTP client for `api.peeringdb.com`; returns a typed `RateLimitError` on HTTP 429 so the retry loop honors `Retry-After`.
+- **`peeringdb.Client`** (`internal/peeringdb/client.go`) -- Rate-limit-aware HTTP client for `www.peeringdb.com`; returns a typed `RateLimitError` on HTTP 429 so the retry loop honors `Retry-After`.
 - **`sync.Worker`** (`internal/sync/worker.go`) -- Two-phase sync orchestrator with scheduler, retry backoff, primary gating, and memory guardrail.
 - **`litefs.IsPrimaryWithFallback`** (`internal/litefs/primary.go`) -- Primary detection with inverted-lease-file semantics, a lease-candidate check (`litefs.IsCandidate`), and env var fallback for local dev.
 - **`grpcserver.ListEntities[E, P]`** (`internal/grpcserver/generic.go`): Generic paginated list helper parameterized over ent entity and proto message types; used by all 13 ConnectRPC services to avoid per-type duplication.

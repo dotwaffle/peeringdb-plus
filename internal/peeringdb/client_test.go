@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +17,8 @@ import (
 	"testing"
 	"testing/synctest"
 	"time"
+
+	"github.com/dotwaffle/peeringdb-plus/internal/config"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -1646,6 +1649,41 @@ func TestStreamWithParams(t *testing.T) {
 			}
 			if rows != 2 {
 				t.Errorf("rows = %d, want 2", rows)
+			}
+		})
+	}
+}
+
+func TestConfiguredEndpoint(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		base string
+		want string
+	}{
+		{"default", "", "https://www.peeringdb.com/api/org?depth=0"},
+		{"override", "https://mirror.example", "https://mirror.example/api/org?depth=0"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("PDBPLUS_PEERINGDB_URL", tc.base)
+			cfg, err := config.Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := NewClient(cfg.PeeringDBBaseURL, slog.Default())
+			var got string
+			client.http.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+				got = r.URL.String()
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader(`{"meta":{},"data":[]}`)),
+				}, nil
+			})
+			if _, err := client.FetchRaw(t.Context(), TypeOrg, url.Values{"depth": {"0"}}); err != nil {
+				t.Fatal(err)
+			}
+			if got != tc.want {
+				t.Errorf("request URL = %q, want %q", got, tc.want)
 			}
 		})
 	}

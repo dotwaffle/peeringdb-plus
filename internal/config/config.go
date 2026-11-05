@@ -301,7 +301,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		DBPath:           envOrDefault("PDBPLUS_DB_PATH", "./peeringdb-plus.db"),
-		PeeringDBBaseURL: envOrDefault("PDBPLUS_PEERINGDB_URL", "https://api.peeringdb.com"),
+		PeeringDBBaseURL: envOrDefault("PDBPLUS_PEERINGDB_URL", "https://www.peeringdb.com"),
 		SyncToken:        envOrDefault("PDBPLUS_SYNC_TOKEN", ""),
 		ListenAddr:       listenAddr,
 		CORSOrigins:      envOrDefault("PDBPLUS_CORS_ORIGINS", "*"),

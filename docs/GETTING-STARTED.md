@@ -65,7 +65,7 @@ With no configuration, the binary uses the defaults from `internal/config/config
 - Listens on `:8080`.
   The listener accepts HTTP/1.1 and h2c (HTTP/2 without TLS). gRPC clients need h2c.
 - Stores data in `./peeringdb-plus.db` in the current working directory.
-- Syncs from `https://api.peeringdb.com` with a 1-hour interval (15 minutes if `PDBPLUS_PEERINGDB_API_KEY` is set -- the authenticated rate-limit budget comfortably absorbs the 4× frequency).
+- Syncs from `https://www.peeringdb.com` with a 1-hour interval (15 minutes if `PDBPLUS_PEERINGDB_API_KEY` is set -- the authenticated rate-limit budget comfortably absorbs the 4× frequency).
 - Uses sync mode `incremental`.
   On an empty database, the first sync is always a full fetch.
   A full fetch also runs every `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`).
@@ -87,7 +87,7 @@ The HTTP listener accepts connections right away, but **`/readyz` will return 50
 3. On the primary, the process finds `sync_status` rows that a stopped process left in the `running` state, and changes them to `failed`.
    This stops `/ui/about` and `/readyz` from showing a sync in progress when no sync runs.
 4. The sync scheduler starts in the background.
-   On an empty database, it immediately runs a full sync of all 13 PeeringDB object types from `api.peeringdb.com`.
+   On an empty database, it immediately runs a full sync of all 13 PeeringDB object types from `www.peeringdb.com`.
 5. The HTTP listener starts while the first sync runs.
    Until the first sync completes, `/readyz` and the data routes return 503.
 6. When the first sync completes, `/readyz` returns 200.
@@ -121,7 +121,7 @@ curl -sI http://localhost:8080/readyz
 ```
 
 `/readyz` probes the SQLite connection and checks sync freshness against `PDBPLUS_SYNC_STALE_THRESHOLD` (default `24h`).
-If it stays 503 for more than a minute or two, check the server logs for sync errors (the most common cause is network failure talking to `api.peeringdb.com`).
+If it stays 503 for more than a minute or two, check the server logs for sync errors (the most common cause is network failure talking to `www.peeringdb.com`).
 
 ### PeeringDB-compatible API
 
@@ -135,7 +135,7 @@ curl -s http://localhost:8080/api/net/1 | head -c 500
 curl -s 'http://localhost:8080/api/fac?limit=3'
 ```
 
-The response envelope and field names match [api.peeringdb.com](https://api.peeringdb.com).
+The response envelope and field names match [www.peeringdb.com/api](https://www.peeringdb.com/api).
 See [API.md](API.md) for documented divergences.
 
 ### REST (entrest)
@@ -256,7 +256,7 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
   A rate limit (HTTP 429) or a WAF block stops these retries.
   When the retries end, the next attempt waits one `PDBPLUS_SYNC_INTERVAL` (default `1h`, or `15m` with an API key).
   To try again at once, correct the cause and restart the process.
-  Common causes are no outbound access to `api.peeringdb.com`, a proxy that intercepts TLS, and upstream rate limits.
+  Common causes are no outbound access to `www.peeringdb.com`, a proxy that intercepts TLS, and upstream rate limits.
   With `PDBPLUS_PEERINGDB_API_KEY`, the upstream rate limit is higher.
 - **`PDBPLUS_PEERINGDB_URL uses http:// against a non-local host` on startup** — The URL validator only accepts `https://`, or `http://` against `localhost`/loopback IPs and RFC 1918 private ranges.
   Any other `http://` host is rejected.
