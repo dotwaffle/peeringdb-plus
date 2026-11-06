@@ -1,28 +1,57 @@
-# The build context is every tracked file plus .git. `go build` stamps
-# the main module version from git (Go 1.24 and later): the tag on a
-# tagged commit (v1.32.0), a pseudo-version between tags
-# (v1.32.1-0.20260925001332-10674814d276), and a +dirty suffix when the
-# context differs from the commit. A tracked file that is left out of the
-# context counts as a deleted file, and an untracked file that is not
-# ignored counts as a new one. Either stamps +dirty.
-#
-# So this file excludes only local state that git does not track. The
-# repository .gitignore and .git/info/exclude travel with .git and apply
-# in the build. A global excludes file (core.excludesFile) does not, so a
-# path that only it ignores must also be listed here.
+# Keep every tracked file and .git for Go VCS version stamping.
+# Omitting tracked files makes the build appear dirty.
+# Git ignores do not prevent Docker uploads, and global ignores do not
+# travel into the build. Exclude local state here as well as in .gitignore.
 
-# Local editor, shell and agent state
+# Local agent, editor, and tool state
 **/.claude/
-.serena/
-.idea
-.vscode/
-.mcp.json
+**/.codegraph/
+**/.gemini/
+**/.serena/
+**/.rumdl_cache
+**/.idea
+**/.vscode
+**/.mcp.json
+**/*.swp
+**/*.swo
+**/*~
+**/.DS_Store
+**/Thumbs.db
+
+# Local credentials and tool overrides
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+**/mise.local.toml
+**/mise.local.lock
+
+# Local databases and raw visibility captures
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.db-journal
+testdata/visibility-baseline/**/.raw-auth
+
+# Compiled commands and test output
+/peeringdb-plus
+/loadtest
+/pdb-schema-extract
+/pdb-schema-generate
+/pdb-compat-allowlist
+/pdbcompat-check
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.test
+**/*.out
+
+# Home-directory artifacts
 .gitconfig
-.gitmodules
 .bash_profile
 .bashrc
 .profile
 .zprofile
 .zshrc
 .ripgreprc
-.rumdl_cache/

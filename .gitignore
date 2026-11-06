@@ -1,5 +1,6 @@
 # Binaries (only the compiled binary, not the source directory)
 /peeringdb-plus
+/loadtest
 /pdb-schema-extract
 /pdb-schema-generate
 /pdb-compat-allowlist
@@ -16,8 +17,8 @@
 *.out
 
 # IDE
-.idea/
-.vscode/
+.idea
+.vscode
 *.swp
 *.swo
 *~
@@ -30,14 +31,22 @@ Thumbs.db
 *.db
 *.db-wal
 *.db-shm
+*.db-journal
 
 # Environment
 .env
-.env.local
+.env.*
+!.env.example
+!.env.sample
 mise.local.toml
 mise.local.lock
 
-# MCP config
+# Local agent and tool state
+.claude/
+.codegraph/
+.gemini/
+.serena/
+.rumdl_cache
 .mcp.json
 
 # Shell config (home dir artifacts)
@@ -47,18 +56,8 @@ mise.local.lock
 .zprofile
 .zshrc
 .gitconfig
-.gitmodules
 .ripgreprc
 
-# Visibility baseline capture (phase 57)
-# Raw auth bytes and checkpoint state MUST NEVER be committed — they contain
-# unredacted PII (emails, phones, names, addresses). The Redact function in
-# internal/visbaseline/ produces the safe-to-commit form; raw bytes go to
-# /tmp or an explicit .raw-auth/ staging directory.
-/tmp/pdb-vis-capture-*
-testdata/visibility-baseline/**/.raw-auth/
+# Raw visibility captures contain unredacted personal data.
+# Keep captures outside the checkout. Only sanitized reports belong in Git.
 testdata/visibility-baseline/**/.raw-auth
-
-# Block .idea/.vscode as files too (existing entries with trailing slash only block dirs)
-.idea
-.vscode

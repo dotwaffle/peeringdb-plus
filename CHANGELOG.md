@@ -10,6 +10,9 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ### Changed
 
+- Exclude local agent indexes, credentials, databases, and build output from Docker uploads.
+  Share tool-state ignore rules across checkouts.
+
 - Correct operator recovery, fleet sizing, sync, and API documentation.
   Add a fixture-backed contributor startup procedure and private security reporting instructions.
   Consolidate duplicated procedures and split long API and configuration tables into linked reference sections.

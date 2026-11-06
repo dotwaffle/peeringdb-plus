@@ -7,7 +7,8 @@ Obtain authorization for each push, deployment, resource change, or credential c
 Record the target release and previous image before deployment.
 Build release images from a clean checkout of the intended tag.
 Local global Git ignores do not apply inside the build container.
-An untracked `.codegraph/` directory can therefore produce a `+dirty` version even when local `git status` is clean.
+The repository excludes `.codegraph/` and other local tool state from both Git and Docker.
+Keep these exclusions aligned when adding a local tool.
 Check the version after deployment.
 Run the [local validation gate](TESTING.md) before the authorized rollout.
 
