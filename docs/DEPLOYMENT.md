@@ -133,7 +133,8 @@ Two deliberate trade-offs in `Dockerfile.litefs`, recorded here so they read as 
   Revisit if LiteFS grows a privilege-drop option or the app moves off FUSE.
 - **The runtime base is `glibc-dynamic:latest-dev`.**
   The `-dev` variant has a shell and `apk`, and `Dockerfile.litefs` installs the `sqlite3` CLI with `apk`.
-  This is deliberate incident-response tooling: `fly ssh console` + `sqlite3 /litefs/peeringdb-plus.db` is the documented production debugging path.
+  This supports incident response through `fly ssh console` and queries against a `litefs export` copy.
+  Never open the live database with `sqlite3`.
   The dev `Dockerfile` uses `static`, which has no shell, since nothing execs into it.
   Both base tags float (`:latest`); Chainguard's free tier offers no pinned tags, and digest-pinning without bump automation (deliberately not installed) would only freeze staleness in place.
 
