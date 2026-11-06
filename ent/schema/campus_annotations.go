@@ -22,7 +22,7 @@ import (
 // generated ent/schema/campus.go because cmd/pdb-schema-generate
 // regenerates campus.go on every `go generate ./...` and would strip
 // hand-edits. See ent/schema/poc_policy.go for the original sibling-file
-// precedent and CLAUDE.md § Schema & Visibility for the convention.
+// precedent and docs/DEVELOPMENT.md for the sibling-file convention.
 type campusTableAnnotationMixin struct {
 	mixin.Schema
 }

@@ -192,6 +192,16 @@ This order runs the schema producer before entc, its consumer, so a single pass 
 A clean tree must produce zero drift after `go generate ./...`.
 CI checks this (see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
 
+### GraphQL generation constraints
+
+Keep external test files in `graph/` after its package files in alphabetical order, for example `resolver_*_test.go`.
+gqlgen uses the first Go file to identify the package.
+An earlier `package graph_test` file can make generation fail with conflicting import paths.
+
+`scalar Map` comes from entgql in `graph/schema.graphqls`.
+Do not redeclare it in `graph/custom.graphql`.
+The entgql schema load does not see that custom declaration.
+
 ### Sibling-file convention (load-bearing)
 
 `cmd/pdb-schema-generate` rewrites `ent/schema/{type}.go` and `ent/schema/types.go` from `schema/peeringdb.json` on every `go generate ./...` run.
@@ -277,7 +287,9 @@ internal/pdbcompat/allowlist_gen.go
 - `proto/peeringdb/v1/services.proto` — **hand-written**.
   Defines the `Get*` / `List*` / `Stream*` RPCs and their request/response messages.
 - `proto/peeringdb/v1/common.proto` — **hand-written**.
-  Manual types like `SocialMedia` that don't map cleanly to an ent field.
+  Shared types such as `SocialMedia`.
+  Their presence does not make an ent field part of a response.
+  The project chooses response mappings explicitly.
 
 `buf generate` (invoked by `ent/generate.go`) reads `buf.gen.yaml` and produces:
 
@@ -299,6 +311,11 @@ To expose one, edit `v1.proto` by hand:
 `meta` on `Network` and `NetworkIxLan` (PeeringDB 2.83.0) is such an edit.
 It is a `google.protobuf.Struct`.
 Dropped ent fields whose proto wrappers still exist remain declared in `v1.proto` but serialize as zero-value pointers (absent on the wire).
+
+`TestResponseFieldContract` in `internal/grpcserver/response_contract_test.go` checks stored fields against response messages and actual converters.
+When adding a stored field, add its response field and converter mapping, or document an explicit exclusion in that test.
+Keep the exclusion and legacy-field inventories current.
+Run the focused check with `go test ./internal/grpcserver -run TestResponseFieldContract`.
 
 ## Common dev loop
 
@@ -377,7 +394,12 @@ Add the field at its source instead:
 ## Schema hygiene drop procedure
 
 `migrate.WithDropColumn(true)` and `migrate.WithDropIndex(true)` are permanently on (`cmd/peeringdb-plus/main.go`).
-Dropping a field is therefore a checklist, not a migration script:
+A change that SQLite cannot apply with `ALTER TABLE` can rebuild the table.
+Do not use the database pool before startup `Schema.Create` completes.
+The migration must disable foreign keys on the connection that runs its transaction to preserve child references during the rebuild.
+`internal/database/migrate_rebuild_test.go` checks this behavior.
+
+Dropping a field requires these steps:
 
 1. Edit `schema/peeringdb.json` (remove the field from the upstream-derived schema), OR remove it from its sibling-file Mixin (e.g. `ent/schema/{type}_fold.go`) if it is peeringdb-plus-local -- never from the generated `ent/schema/{type}.go` itself.
 2. Run `go generate ./...`.

@@ -486,15 +486,31 @@ Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB.
 
 ### Incident-response debug shell
 
-The production image contains the `sqlite3` CLI.
-To open a SQLite shell on the primary, run:
+Use the read APIs and Grafana first.
+Do not open the live `/litefs/peeringdb-plus.db` with `sqlite3`, even for a read-only query.
+A read transaction can block replication on a replica or WAL checkpoints on the primary.
+
+If SQL is necessary, open a shell on the primary:
 
 ```bash
-fly ssh console -a peeringdb-plus --process-group primary --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
+fly ssh console -a peeringdb-plus --process-group primary --pty -C sh
 ```
 
-On a replica, the same path is read-only.
-LiteFS rejects writes on machines that do not hold the lease.
+In that remote shell, export a copy and query the copy:
+
+```sh
+mkdir -p /tmp/peeringdb-plus || exit 1
+copy=$(mktemp -d /tmp/peeringdb-plus/inspect.XXXXXX) || exit 1
+trap 'rm -rf "$copy"' EXIT
+litefs export -name peeringdb-plus.db "$copy/pdb.db" || exit 1
+sqlite3 -readonly "$copy/pdb.db" 'SELECT count(*) FROM networks;'
+exit
+```
+
+The production image contains the `sqlite3` CLI.
+The export holds a LiteFS read lock while it copies the database.
+The shell removes the copy when it exits.
+Production database writes require approval of the exact SQL and affected counts.
 
 ## Capacity probing
 

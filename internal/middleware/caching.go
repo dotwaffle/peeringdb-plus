@@ -189,8 +189,8 @@ func (s *CachingState) Middleware() func(http.Handler) http.Handler {
 
 // cacheStripWriter downgrades the caching headers to no-store when the
 // wrapped handler responds with an error status. Implements http.Flusher
-// and Unwrap per the middleware response-writer contract (CLAUDE.md
-// Middleware section).
+// and Unwrap per the middleware response-writer contract in
+// docs/ARCHITECTURE.md.
 type cacheStripWriter struct {
 	http.ResponseWriter
 	wroteHeader bool

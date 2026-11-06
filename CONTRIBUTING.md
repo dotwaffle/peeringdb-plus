@@ -150,7 +150,8 @@ The worked example is `ixlan.ixf_ixp_member_list_url_visible`.
 
 ## Repository Layout Notes
 
-- `CLAUDE.md` captures project conventions for AI-assisted contributions and is a useful reference but not required reading for human contributors.
+- [AGENTS.md](AGENTS.md) contains instructions for coding agents.
+  Human contributors can use the linked development and testing procedures directly.
 - See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for system design and [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for environment variables.
 
 ## Getting Help

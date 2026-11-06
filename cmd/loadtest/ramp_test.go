@@ -21,7 +21,7 @@ import (
 
 // TestParseRampFlags_Defaults confirms the ramp flag-parser produces
 // the documented spec defaults when no flags are passed. Failure here
-// usually means a flag default drifted from the README/CLAUDE.md.
+// usually means a flag default drifted from cmd/loadtest/README.md.
 //
 // Defaults asserted (per the plan must-haves table):
 //

@@ -204,9 +204,8 @@ func surfacesGet(t *testing.T, url string) ([]byte, int) {
 	if err != nil {
 		t.Fatalf("build GET %s: %v", url, err)
 	}
-	// Force HTML content negotiation on /ui/ so the browser path renders
-	// (the default would yield ANSI terminal output per CLAUDE.md §"/ui/
-	// content negotiation").
+	// Request HTML on /ui/ to test the browser response.
+	// The default user agent receives ANSI terminal output.
 	req.Header.Set("User-Agent", "Mozilla/5.0 (privacy_surfaces_test)")
 	req.Header.Set("Accept", "text/html,application/json")
 	resp, err := http.DefaultClient.Do(req)
