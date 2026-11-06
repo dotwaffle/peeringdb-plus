@@ -33,7 +33,14 @@ Each rule has two queries:
   `B` is the condition.
 
 No data is `OK`.
-An evaluation error is `Alerting` in the groups `pdbplus-critical` and `pdbplus-warning`, and `Error` in the group `pdbplus-fly` (see below).
+An evaluation error is `Error` in all three groups.
+Grafana sends a separate `DatasourceError` alert so a query failure does not look like an application failure.
+The SLO app manages its own burn-rate rules and their error behavior.
+
+A matching sample must be positive for the Grafana condition `A > 0`.
+The lease-holder, free-space, and LiteFS-metric absence queries use `* 0 + 1` after filtering.
+This preserves a matching zero as `1` and keeps healthy results empty.
+Do not replace the filter with an unfiltered `bool` comparison: Prometheus alert rules also fire for returned zero samples.
 
 ### Fly.io rules
 
@@ -66,6 +73,10 @@ mimirtool rules check deploy/grafana/alerts/pdbplus-alerts.yaml
 promtool check rules deploy/grafana/alerts/pdbplus-alerts.yaml
 ```
 
+The incident scenarios in `../testdata/alert-scenarios.yaml` check pending periods, firing, recovery, and zero-valued failures.
+They run against both the source queries and the Grafana `A > 0` conversion.
+Install `promtool` to run these scenarios.
+
 Test invocation:
 
 ```bash
@@ -76,6 +87,11 @@ go test -race ./deploy/grafana/...
 
 The `severity` label is the routing key.
 The notification policies of the Grafana stack decide where each tier goes.
+For this folder, route `alertname=DatasourceError` separately and group by `grafana_folder`, `alertname`, and `datasource_uid`.
+Use a three-minute initial wait, a five-minute group interval, and a four-hour repeat interval for that route.
+This suppresses brief datasource failures and groups errors from the same datasource.
+Keep the normal route for real events, including immediate OOM detection.
+Preserve the existing receiver and other routes when applying this policy.
 When both tiers use the default policy, they go to the same contact point.
 
 ## Severity tier policy

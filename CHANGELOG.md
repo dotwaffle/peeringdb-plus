@@ -8,11 +8,26 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.45.1] - 2026-11-06
+
+### Fixed
+
+- Grafana alerts now fire when no machine holds the LiteFS lease or a primary volume has zero free bytes.
+  Missing LiteFS metrics also trigger an alert when the machine reports zero available memory.
+- Report alert query failures as `DatasourceError` instead of application failures.
+  Group these notifications by datasource and wait three minutes before sending them.
+  Real OOM alerts retain immediate detection.
+
+### Added
+
+- Alert incident tests for zero-valued failures, pending periods, recovery, replica-lag suppression, and OOM exits.
+  The tests cover both Prometheus rules and the Grafana threshold conversion.
+
 ### Changed
 
+- Expand all Grafana dashboard rows by default and update stale machine-sizing descriptions.
 - Exclude local agent indexes, credentials, databases, and build output from Docker uploads.
   Share tool-state ignore rules across checkouts.
-
 - Correct operator recovery, fleet sizing, sync, and API documentation.
   Add a fixture-backed contributor startup procedure and private security reporting instructions.
   Consolidate duplicated procedures and split long API and configuration tables into linked reference sections.
@@ -1547,7 +1562,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.1...HEAD
+[1.45.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.0...v1.45.1
 [1.45.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.44.0...v1.45.0
 [1.44.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.2...v1.44.0
 [1.43.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.1...v1.43.2

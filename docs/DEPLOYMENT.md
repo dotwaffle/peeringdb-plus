@@ -461,7 +461,7 @@ Import the OTLP endpoint and headers from a protected file as described in [Envi
 Fly.io's built-in machine metrics (CPU, memory, network, disk) are available through the Fly dashboard without additional configuration.
 Fly.io also scrapes the LiteFS metrics endpoint of each machine (port 20202, `[[metrics]]` in `fly.toml`) every 15 seconds.
 Grafana can read both from the Fly.io managed Prometheus through a Prometheus data source named `fly.io` (setup in `deploy/grafana/alerts/README.md`, "Fly.io rules").
-The dashboard's collapsed `Fly Platform` row (CPU throttling, CPU use against the baseline quota, burst balance, VM memory, edge errors and edge response time), its `LiteFS Replication` row, its `Machine restarts` annotation and the alert rules of the group `pdbplus-fly` (`PdbPlusMachineOOMKilled`, `PdbPlusMachineCPUThrottled`, `PdbPlusReplicaLagHigh`, `PdbPlusLiteFSMetricsAbsent`) use that data source.
+The dashboard's `Fly Platform` row (CPU throttling, CPU use against the baseline quota, burst balance, VM memory, edge errors and edge response time), its `LiteFS Replication` row, its `Machine restarts` annotation and the alert rules of the group `pdbplus-fly` (`PdbPlusMachineOOMKilled`, `PdbPlusMachineCPUThrottled`, `PdbPlusReplicaLagHigh`, `PdbPlusLiteFSMetricsAbsent`) use that data source.
 
 Runtime health:
 
