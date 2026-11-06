@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/utilities/getDefaultValueAST */
+import{invariant as f}from"./65d4738a32b1de64.mjs";import{astFromValue as n}from"./2e554a6d4e5f209a.mjs";import{valueToLiteral as i}from"./84828d8955ae6384.mjs";function s(l){let a=l.type,t=l.default;if(t){let e=t.literal??i(t.value,a);return e==null&&f(!1,"Invalid default value"),e}let u=l.defaultValue;if(u!==void 0){let e=n(u,a);return e==null&&f(!1,"Invalid default value"),e}}export{s as getDefaultValueAST};

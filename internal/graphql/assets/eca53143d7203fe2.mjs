@@ -1,0 +1,4 @@
+/* esm.sh - graphql@17.1.0/language/printLocation */
+import{getLocation as x}from"./a1280f09c79d4594.mjs";function b(n){return $(n.source,x(n.source,n.start))}function $(n,e){let r=n.locationOffset.column-1,o="".padStart(r)+n.body,t=e.line-1,d=n.locationOffset.line-1,s=e.line+d,h=e.line===1?r:0,c=e.column+h,m=`${n.name}:${s}:${c}
+`,f=o.split(/\r\n|[\n\r]/g),a=f[t];if(a.length>120){let l=[];for(let i=0;i<a.length;i+=80)l.push(a.slice(i,i+80));let L=c-1,u=Math.min(Math.floor(L/80),l.length-1),g=c-u*80;return m+p([[`${s} |`,l[0]],...l.slice(1,u+1).map(i=>["|",i]),["|","^".padStart(g)],["|",l[u+1]]])}return m+p([[`${s-1} |`,f[t-1]],[`${s} |`,a],["|","^".padStart(c)],[`${s+1} |`,f[t+1]]])}function p(n){let e=n.filter(([o,t])=>t!==void 0),r=Math.max(...e.map(([o])=>o.length));return e.map(([o,t])=>o.padStart(r)+(t?" "+t:"")).join(`
+`)}export{b as printLocation,$ as printSourceLocation};

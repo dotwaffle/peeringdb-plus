@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/validation/rules/StreamDirectiveOnListFieldRule */
+import{GraphQLError as n}from"./3f07b35bd75fe31a.mjs";import{isListType as p,isWrappingType as o}from"./593b35bd868e4b3b.mjs";import{GraphQLStreamDirective as a}from"./65f7f1c939782880.mjs";function y(r){return{Directive(i){let e=r.getFieldDef(),t=r.getParentType();e&&t&&i.name.value===a.name&&!(p(e.type)||o(e.type)&&p(e.type.ofType))&&r.reportError(new n(`Directive "@stream" cannot be used on non-list field "${t}.${e.name}".`,{nodes:i}))}}}export{y as StreamDirectiveOnListFieldRule};

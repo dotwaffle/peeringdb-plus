@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/validation/rules/VariablesAreInputTypesRule */
+import{GraphQLError as a}from"./3f07b35bd75fe31a.mjs";import{print as n}from"./aed7a41d29b71e60.mjs";import{isInputType as o}from"./593b35bd868e4b3b.mjs";import{typeFromAST as m}from"./aae2457d0debed78.mjs";function s(e){return{VariableDefinition(r){let t=m(e.getSchema(),r.type);if(t!==void 0&&!o(t)){let p=r.variable.name.value,i=n(r.type);e.reportError(new a(`Variable "$${p}" cannot be non-input type "${i}".`,{nodes:r.type}))}}}}export{s as VariablesAreInputTypesRule};

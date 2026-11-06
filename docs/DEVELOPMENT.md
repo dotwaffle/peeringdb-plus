@@ -72,27 +72,27 @@ Code-change-relevant directories:
 
 ## GraphQL playground assets
 
-The Go handler serves the GraphiQL 5 editor at `/graphql`.
+The Go handler serves the GraphiQL 6 editor at `/graphql`.
 The main Web UI uses templ and htmx.
 The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for import-map integrity support.
 Older browsers can ignore the module integrity map and are unsupported for this editor.
 
-`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 5.4.0.
-It uses GraphQL.js 16.15.0 to keep the editor on GraphQL 16 semantics.
+`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 6.0.0.
+It uses GraphQL.js 17.1.0 and the POST-only GraphiQL transport.
 Each CDN module has a SHA-384 digest, including modules imported by other modules.
 The stylesheet has its own integrity attribute.
 The explicit `es2022` URLs prevent the CDN from selecting different bytes for different browser user agents.
 
-Monaco 0.52.2 matches the `@graphiql/react` dependency and the `monaco-graphql` peer range.
+Monaco 0.57.0 matches the `@graphiql/react` dependency and the `monaco-graphql` peer range.
 Browsers do not accept an integrity option for worker scripts.
 The Go binary therefore embeds the worker modules and their dependencies from `internal/graphql/assets/`.
 The handler serves these files at `/graphql/assets/`.
-The vendored modules total about 1.12 MB, or 339 KB with gzip.
+The vendored modules total about 1.43 MB, or 470 KB with gzip.
 The `licenses/` directory contains their license texts and third-party notices and is also embedded.
 
 To update these assets:
 
-1. Check the [GraphiQL migration guide](https://github.com/graphql/graphiql/blob/main/docs/migration/graphiql-5.0.0.md) and [CDN example](https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html).
+1. Check the [GraphiQL migration guide](https://github.com/graphql/graphiql/blob/main/docs/migration/graphiql-6.0.0.md) and [CDN example](https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html).
 2. Select exact package versions and use the `es2022` CDN target.
    Keep React and ReactDOM on the same version.
    Check the Monaco peer constraints before changing its version.

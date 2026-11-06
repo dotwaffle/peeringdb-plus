@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/validation/rules/UniqueArgumentNamesRule */
+import{groupBy as u}from"./87bbe273ef0939fc.mjs";import{GraphQLError as g}from"./3f07b35bd75fe31a.mjs";function f(o){return{Field:r,Directive:r};function r(t){let a=t.arguments??[],m=u(a,e=>e.name.value);for(let[e,n]of m)n.length>1&&o.reportError(new g(`There can be only one argument named "${e}".`,{nodes:n.map(s=>s.name)}))}}export{f as UniqueArgumentNamesRule};

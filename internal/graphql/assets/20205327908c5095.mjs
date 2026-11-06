@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/utilities/sortValueNode */
+import{naturalCompare as n}from"./cbc296d22b720af7.mjs";import{Kind as a}from"./374bb6ac2eb6f198.mjs";function e(r){switch(r.kind){case a.OBJECT:return{...r,fields:c(r.fields)};case a.LIST:return{...r,values:r.values.map(e)};case a.INT:case a.FLOAT:case a.STRING:case a.BOOLEAN:case a.NULL:case a.ENUM:case a.VARIABLE:return r}}function c(r){return r.map(s=>({...s,value:e(s.value)})).sort((s,t)=>n(s.name.value,t.name.value))}export{e as sortValueNode};

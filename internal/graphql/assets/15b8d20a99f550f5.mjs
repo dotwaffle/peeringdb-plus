@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/utilities/introspectionFromSchema */
+import{invariant as n}from"./65d4738a32b1de64.mjs";import{parse as a}from"./f1a46d36494cd1f2.mjs";import{executeSync as c}from"./5f445a7c5d9232a4.mjs";import{getIntrospectionQuery as u}from"./874709548d9d46a4.mjs";function f(t,r){let o={specifiedByUrl:!0,directiveIsRepeatable:!0,schemaDescription:!0,inputValueDeprecation:!0,experimentalDirectiveDeprecation:!0,oneOf:!0,...r},i=a(u(o)),e=c({schema:t,document:i});return e.errors==null&&e.data!=null||n(!1),e.data}export{f as introspectionFromSchema};
