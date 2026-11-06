@@ -35,7 +35,8 @@ import (
 // models.py:109-122):
 // "ok" on every type, plus "not-operational" on netixlan. A list without
 // since admits the live statuses (rest.py:748), a since list admits live
-// + deleted (:723), and a PK lookup admits live + pending (:750). The
+// + deleted (:723). PR #2073 restricts pending PK reads to campuses for
+// callers without UPDATE permission. The
 // netixlan_* subtests lock the second live status. The depth_sets_*
 // subtest locks the nested _set rule: live statuses only, so a pending
 // child is left out (serializers.py:1140-1148).
@@ -161,19 +162,18 @@ func TestParity_Status(t *testing.T) {
 		}
 	})
 
-	t.Run("pk_lookup_admits_pending", func(t *testing.T) {
+	t.Run("pk_lookup_hides_pending_noncampus", func(t *testing.T) {
 		t.Parallel()
-		// upstream: 2.83.0 rest.py:749-750 (pk-lookup branch admits
-		// the live statuses plus pending, so a pending row returns 200
-		// by direct ID even though lists hide it)
-		// synthesised: no upstream test fetches a pending row by ID.
+		// upstream: PR #2073 rest.py get_object and
+		// tests/test_api_pending_visibility.py deny pending non-campus reads
+		// without UPDATE permission. The mirror grants no edit permissions.
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 20, 64520, "pending", t0)
 
 		srv := newTestServer(t, c)
 		status, body := httpGet(t, srv, "/api/net/20")
-		if status != http.StatusOK {
-			t.Errorf("pk lookup on pending: got %d, want 200; body=%s",
+		if status != http.StatusNotFound {
+			t.Errorf("pk lookup on pending: got %d, want 404; body=%s",
 				status, string(body))
 		}
 	})
@@ -382,7 +382,7 @@ func TestParity_Status(t *testing.T) {
 	t.Run("explicit_status_pending_no_since_is_empty", func(t *testing.T) {
 		t.Parallel()
 		// synthesised: 2.83.0 rest.py:683 + :748 (same AND as above;
-		// pending rows are PK-visible but never on a no-since list).
+		// pending rows are never on a no-since list).
 		c := testutil.SetupClient(t)
 		seedNet(t, c, 1, 64501, "ok", t0)
 		seedNet(t, c, 2, 64502, "pending", t0.Add(time.Hour))
@@ -2471,7 +2471,7 @@ func TestParity_Status(t *testing.T) {
 			// netixlan 2 is not-operational, 3 pending, 4 deleted.
 			{path: "/api/netixlan/2?status=ok", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
 			{path: "/api/netixlan/2?status=not-operational", want: http.StatusOK, wantIDs: []int{2}},
-			{path: "/api/netixlan/3?status=pending", want: http.StatusOK, wantIDs: []int{3}},
+			{path: "/api/netixlan/3?status=pending", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
 			{path: "/api/netixlan/4?status=deleted", want: http.StatusNotFound, wantErr: "No NetworkIXLan matches the given query."},
 			// since is checked, then ignored: the detail status set
 			// never admits deleted (rest.py:718).

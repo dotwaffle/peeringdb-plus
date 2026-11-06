@@ -407,18 +407,20 @@ func TestDepth_PendingChildrenExcludedFromSets(t *testing.T) {
 		}
 	}
 
-	// A PK lookup still admits pending (rest.py:750): the children left
-	// out of the sets stay fetchable by ID.
-	for _, path := range []string{
-		fmt.Sprintf("/api/campus/%d", campPend.ID),
-		fmt.Sprintf("/api/net/%d", netPend.ID),
-		fmt.Sprintf("/api/netixlan/%d", nilPend.ID),
+	// Only the pending campus remains readable by ID after PR #2073.
+	for _, tc := range []struct {
+		path string
+		want int
+	}{
+		{fmt.Sprintf("/api/campus/%d", campPend.ID), http.StatusOK},
+		{fmt.Sprintf("/api/net/%d", netPend.ID), http.StatusNotFound},
+		{fmt.Sprintf("/api/netixlan/%d", nilPend.ID), http.StatusNotFound},
 	} {
-		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, tc.path, nil)
 		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
-		if rec.Code != http.StatusOK {
-			t.Errorf("GET %s: got %d, want 200 (PK lookup admits pending)", path, rec.Code)
+		if rec.Code != tc.want {
+			t.Errorf("GET %s: got %d, want %d", tc.path, rec.Code, tc.want)
 		}
 	}
 }

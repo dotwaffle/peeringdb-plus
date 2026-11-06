@@ -585,7 +585,8 @@ All six surfaces are mounted on the same mux in `cmd/peeringdb-plus/main.go` and
 
 - **PeeringDB-compatible — `/api/*`** (`internal/pdbcompat/`) — Drop-in replacement for the PeeringDB API shape, including `depth` expansion, filter parameters, the canonical response envelope, and the response memory envelope (see § Response Memory Envelope below).
   Uses a type registry (`internal/pdbcompat/registry.go`) to dispatch by object type.
-  The pk-lookup path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site (`StatusIn("ok", "not-operational", "pending")` for netixlan) so soft-delete tombstones return 404 on direct-ID GETs.
+  The root PK lookup (`internal/pdbcompat/depth.go`) admits live rows and pending campuses.
+  Other pending rows and tombstones return 404 for both privacy tiers, matching the upstream read-permission gate for callers without UPDATE permission.
 
 - **ConnectRPC / gRPC — `/peeringdb.v1.*`** (`internal/grpcserver/`, `gen/peeringdb/v1/`) — All 13 entity types expose `Get`, `List`, and `Stream` RPCs.
   `cmd/peeringdb-plus/main.go` registers each service with one `registerService` call and the otelconnect interceptor (`connectOTelOpts`: spans only, no `rpc.server.*` metrics).
@@ -809,14 +810,18 @@ With the hint, SQLite reads the rowid table for `id` order and the `updated` ind
 `COUNT` queries still read a covering status index.
 `TestPdbcompatListPlan_NoTempBTree` locks these plans.
 A distance search sorts the kept rows in a temp B-tree, because no index can serve the distance order (`TestPdbcompatListPlan_Distance`).
-The pk-lookup path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site (`StatusIn("ok", "not-operational", "pending")` for netixlan) so direct-ID GETs return 404 for tombstones.
+The root PK lookup (`internal/pdbcompat/depth.go`) uses `StatusEQ("ok")`, with `not-operational` also admitted for netixlan and `pending` also admitted for campus.
+Other pending rows return 404, as do tombstones.
+PeeringDB 2.84.1 requires UPDATE permission for pending non-campus rows ([PR #2073](https://github.com/peeringdb/peeringdb/pull/2073)).
+Neither mirror privacy tier grants organization membership or edit permission.
+This root permission gate does not filter singular FK objects embedded by serializers.
 The nested `_set` collections of the depth expansion admit only the live statuses of the child (`likelyOK`, `StatusIn("ok", "not-operational")` for netixlan), the same as the upstream nested prefetch.
 `likelyOK` is `likely(status IN ('ok'))`.
 Without the hint, SQLite can read every `ok` row of the child table through its status index instead of the parent's rows through the FK index.
 The relation-key status pin (`withStatusPin`) uses the same filter.
 The link-status test of the presence keys `all_net` and `asn_overlap` uses `likely()` too (on `ix`, `asn_overlap` admits `ok` and `not-operational`).
 `TestDetailPlan_KeepsFKIndex`, `TestRelationFilterPlan_KeepsFKIndex` and `TestPresencePlan_KeepsNetIndex` lock these plans.
-A pending child, in practice a campus, is fetchable by ID but is left out of the sets of its parent.
+A pending campus is fetchable by ID but is left out of the sets of its parent.
 The sets `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are ordered by facility id, then by link id.
 The upstream prefetch has no `ORDER BY`, and MySQL reads these sets through the unique `(<parent>, facility)` index.
 

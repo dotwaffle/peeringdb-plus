@@ -223,7 +223,7 @@ func TestStatusMatrix(t *testing.T) {
 		}
 	})
 
-	t.Run("pk_pending_returns_200", func(t *testing.T) {
+	t.Run("pk_pending_returns_404", func(t *testing.T) {
 		t.Parallel()
 		client := testutil.SetupClient(t)
 		seedNet(t, client, 20, 64520, "pending", t0)
@@ -231,8 +231,8 @@ func TestStatusMatrix(t *testing.T) {
 		srv := httptest.NewServer(newMuxForOrdering(client))
 		t.Cleanup(srv.Close)
 
-		if code := fetchStatusCode(t, srv.URL+"/api/net/20"); code != http.StatusOK {
-			t.Errorf("pk lookup on pending row: got %d, want 200", code)
+		if code := fetchStatusCode(t, srv.URL+"/api/net/20"); code != http.StatusNotFound {
+			t.Errorf("pk lookup on pending row: got %d, want 404", code)
 		}
 	})
 
