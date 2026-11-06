@@ -70,13 +70,6 @@ Code-change-relevant directories:
 | `schema/` | Hand-curated `peeringdb.json` (the schema source of truth) |
 | `testdata/fixtures/` | JSON fixtures for 13 PeeringDB entity types, used by sync tests |
 
-## Browser dependency holds
-
-Keep htmx at 4.0.0 until its response parser works in Chromium 143.
-The 4.0.1 build calls `Document.parseHTMLUnsafe(html, {})`, which throws an overload error in that browser.
-The local search and pagination checks pass with 4.0.0 and fail with 4.0.1.
-Retest both operations before the next htmx update.
-
 ## GraphQL playground assets
 
 The Go handler serves the GraphiQL 5 editor at `/graphql`.
