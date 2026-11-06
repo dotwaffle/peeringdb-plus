@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/facility"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // FacilityService implements the peeringdb.v1.FacilityService ConnectRPC
@@ -164,7 +165,7 @@ func (s *FacilityService) GetFacility(ctx context.Context, req *pb.GetFacilityRe
 	f, err := s.Client.Facility.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity facility %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity facility %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get facility %d", req.GetId()), err)
 	}
@@ -212,7 +213,7 @@ func (s *FacilityService) ListFacilities(ctx context.Context, req *pb.ListFacili
 
 // StreamFacilities streams all matching facilities via compound (updated, id)
 // keyset pagination under the (-updated, -created, -id) default order.
-func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFacilitiesRequest, stream *connect.ServerStream[pb.Facility]) error {
+func (s *FacilityService) StreamFacilities(ctx context.Context, req *pb.StreamFacilitiesRequest, stream peeringdbv1connect.FacilityServiceStreamFacilitiesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.Facility, pb.Facility]{
 		EntityName:   "facilities",
 		Timeout:      s.StreamTimeout,

@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 
-	"connectrpc.com/connect"
-	"connectrpc.com/grpchealth"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/grpchealth/v2"
 	"github.com/dotwaffle/peeringdb-plus/internal/middleware"
 )
 
@@ -36,7 +36,7 @@ func newSyncHealthChecker(worker middleware.SyncReadiness, serviceNames []string
 func (c *syncHealthChecker) Check(_ context.Context, req *grpchealth.CheckRequest) (*grpchealth.CheckResponse, error) {
 	if req.Service != "" {
 		if _, ok := c.services[req.Service]; !ok {
-			return nil, connect.NewError(connect.CodeNotFound, nil)
+			return nil, connect.NewError(connect.CodeNotFound, "")
 		}
 	}
 	if c.worker.HasCompletedSync() {

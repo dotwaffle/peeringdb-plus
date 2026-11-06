@@ -1110,7 +1110,7 @@ Three signal providers are configured via the OpenTelemetry autoexport package, 
   Other spans without a URL path use the 1% default.
   The sync rule comes before the route rules, because a sync root span has no URL path.
   Without the rule, the 1% default would drop 99% of the sync cycles.
-  Spans are created automatically by `otelhttp` middleware for HTTP requests, by `otelconnect.NewInterceptor` for ConnectRPC RPCs, and by the sync worker for sync cycles.
+  Spans are created automatically by `otelhttp` middleware for HTTP requests, by `otelconnect.NewServerInterceptor` for ConnectRPC RPCs, and by the sync worker for sync cycles.
   With `PDBPLUS_OTEL_SQL=true` (the default), `otelsql` adds one span for each SQL statement (`internal/database/database.go`).
   It records no metrics (a no-op MeterProvider): its `db.client.operation.duration` histogram had no reader.
   These spans are children of the request span, so the same sampling decision applies.

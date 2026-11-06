@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/network"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // NetworkService implements the peeringdb.v1.NetworkService ConnectRPC handler
@@ -169,7 +170,7 @@ func (s *NetworkService) GetNetwork(ctx context.Context, req *pb.GetNetworkReque
 	n, err := s.Client.Network.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity network %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity network %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get network %d", req.GetId()), err)
 	}
@@ -222,7 +223,7 @@ func (s *NetworkService) ListNetworks(ctx context.Context, req *pb.ListNetworksR
 // batched compound (updated, id) keyset pagination under the
 // (-updated, -created, -id) default order. Supports all pdbcompat-parity
 // filter fields.
-func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetworksRequest, stream *connect.ServerStream[pb.Network]) error {
+func (s *NetworkService) StreamNetworks(ctx context.Context, req *pb.StreamNetworksRequest, stream peeringdbv1connect.NetworkServiceStreamNetworksServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.Network, pb.Network]{
 		EntityName:   "networks",
 		Timeout:      s.StreamTimeout,

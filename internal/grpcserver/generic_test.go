@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -113,7 +113,7 @@ func TestListEntities(t *testing.T) {
 				EntityName: "test",
 				PageSize:   5,
 				ApplyFilters: func() ([]func(*sql.Selector), error) {
-					return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("bad filter"))
+					return nil, connect.Errorf(connect.CodeInvalidArgument, "bad filter")
 				},
 				Query: func(_ context.Context, _ []func(*sql.Selector), _, _ int) ([]*mockEntity, error) {
 					return nil, nil

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // NetworkIxLanService implements the peeringdb.v1.NetworkIxLanService
@@ -113,7 +114,7 @@ func (s *NetworkIxLanService) GetNetworkIxLan(ctx context.Context, req *pb.GetNe
 	nixl, err := s.Client.NetworkIxLan.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity networkixlan %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity networkixlan %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get networkixlan %d", req.GetId()), err)
 	}
@@ -163,7 +164,7 @@ func (s *NetworkIxLanService) ListNetworkIxLans(ctx context.Context, req *pb.Lis
 
 // StreamNetworkIxLans streams all matching network IX LANs via compound
 // (updated, id) keyset pagination under the (-updated, -created, -id) order.
-func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.StreamNetworkIxLansRequest, stream *connect.ServerStream[pb.NetworkIxLan]) error {
+func (s *NetworkIxLanService) StreamNetworkIxLans(ctx context.Context, req *pb.StreamNetworkIxLansRequest, stream peeringdbv1connect.NetworkIxLanServiceStreamNetworkIxLansServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.NetworkIxLan, pb.NetworkIxLan]{
 		EntityName:   "networkixlans",
 		Timeout:      s.StreamTimeout,

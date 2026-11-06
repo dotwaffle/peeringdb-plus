@@ -33,6 +33,8 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"entgo.io/ent/dialect"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
@@ -89,10 +91,9 @@ func buildOrderingFixture(t *testing.T) *orderingFixture {
 	// (NetworkService is sufficient for the cross-surface + override
 	// assertions; nested _set is checked via entrest only —
 	// pdbcompat and grpcserver nested eager-loads are unaffected).
-	netPath, netHandler := peeringdbv1connect.NewNetworkServiceHandler(
-		&grpcserver.NetworkService{Client: client, StreamTimeout: 30 * time.Second},
-	)
-	mux.Handle(netPath, netHandler)
+	rpcServer := connect.NewServer()
+	peeringdbv1connect.RegisterNetworkServiceHandler(rpcServer, &grpcserver.NetworkService{Client: client, StreamTimeout: 30 * time.Second})
+	connecthttp.Mount(mux, rpcServer, connectHandlerOpts())
 
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
@@ -207,7 +208,7 @@ func fetchEnvelopeIDs(t *testing.T, url, envelopeKey string) []int {
 // we pass the bare *ListNetworksRequest and receive the bare response.
 func fetchGrpcNetworkIDs(t *testing.T, baseURL string, pageSize int32) []int {
 	t.Helper()
-	cl := peeringdbv1connect.NewNetworkServiceClient(http.DefaultClient, baseURL)
+	cl := peeringdbv1connect.NewNetworkServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, baseURL, connecthttp.WithReadMaxBytes(0))))
 	resp, err := cl.ListNetworks(t.Context(), &pbv1.ListNetworksRequest{PageSize: pageSize})
 	if err != nil {
 		t.Fatalf("ListNetworks: %v", err)

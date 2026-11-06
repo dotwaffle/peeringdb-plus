@@ -4,10 +4,10 @@ go 1.27.3
 
 require (
 	charm.land/lipgloss/v2 v2.0.6
-	connectrpc.com/connect v1.21.1
+	connectrpc.com/connect/v2 v2.0.2
 	connectrpc.com/cors v0.1.0
-	connectrpc.com/grpchealth v1.5.0
-	connectrpc.com/grpcreflect v1.3.1
+	connectrpc.com/grpchealth/v2 v2.0.0
+	connectrpc.com/grpcreflect/v2 v2.0.0
 	connectrpc.com/otelconnect v0.12.0
 	entgo.io/contrib v0.7.1-0.20260726130719-793ca36770f6
 	entgo.io/ent v0.14.6
@@ -48,7 +48,7 @@ require (
 
 require (
 	ariga.io/atlas v1.3.0 // indirect
-	connectrpc.com/connect/v2 v2.0.2 // indirect
+	connectrpc.com/connect v1.21.1 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/agnivade/levenshtein v1.2.2 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect

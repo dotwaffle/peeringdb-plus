@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -13,7 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"go.opentelemetry.io/otel/codes"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
@@ -377,7 +379,7 @@ func TestQueryError_ContextEnd(t *testing.T) {
 	entClient := testutil.SetupClient(t)
 	svc := &NetworkService{Client: entClient, StreamTimeout: time.Nanosecond}
 	rpcClient := serveNetworkService(t, svc,
-		connect.WithInterceptors(connectErrorCheck{t: t}))
+		connectErrorCheck{t: t}.intercept)
 
 	canceled, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -418,18 +420,11 @@ func TestQueryError_ContextEnd(t *testing.T) {
 // handler returns an error that is not a *connect.Error.
 type connectErrorCheck struct{ t *testing.T }
 
-func (c connectErrorCheck) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc { return next }
-
-func (c connectErrorCheck) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
-	return next
-}
-
-func (c connectErrorCheck) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
-	return func(ctx context.Context, conn connect.StreamingHandlerConn) error {
-		err := next(ctx, conn)
+func (c connectErrorCheck) intercept(next connect.ServerFunc) connect.ServerFunc {
+	return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
+		err := next(ctx, spec, stream)
 		if _, ok := errors.AsType[*connect.Error](err); err != nil && !ok {
-			c.t.Errorf("%s returned %v (%T), want *connect.Error",
-				conn.Spec().Procedure, err, err)
+			c.t.Errorf("%s returned %v (%T), want *connect.Error", spec.Procedure, err, err)
 		}
 		return err
 	}
@@ -437,15 +432,17 @@ func (c connectErrorCheck) WrapStreamingHandler(next connect.StreamingHandlerFun
 
 // serveNetworkService mounts svc on an HTTP/2 TLS test server and returns a
 // client for it.
-func serveNetworkService(t *testing.T, svc *NetworkService, opts ...connect.HandlerOption) peeringdbv1connect.NetworkServiceClient {
+func serveNetworkService(t *testing.T, svc *NetworkService, opts ...connect.ServerInterceptor) peeringdbv1connect.NetworkServiceClient {
 	t.Helper()
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewNetworkServiceHandler(svc, opts...))
+	server := connect.NewServer(opts...)
+	peeringdbv1connect.RegisterNetworkServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewNetworkServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewNetworkServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 // drainNetworkStream reads a StreamNetworks response to the end and returns
@@ -456,7 +453,16 @@ func drainNetworkStream(ctx context.Context, c peeringdbv1connect.NetworkService
 		return err
 	}
 	defer func() { _ = stream.Close() }()
-	for stream.Receive() {
+	var streamErr error
+	for {
+		_, err := stream.Receive()
+		if err != nil {
+			streamErr = err
+			break
+		}
 	}
-	return stream.Err()
+	if errors.Is(streamErr, io.EOF) {
+		streamErr = nil
+	}
+	return streamErr
 }

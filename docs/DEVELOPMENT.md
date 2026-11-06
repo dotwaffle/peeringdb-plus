@@ -154,7 +154,7 @@ These generator pins must match a module version in `go.mod`, because the genera
 | `gqlgen` | `github.com/99designs/gqlgen` |
 | `templ` | `github.com/a-h/templ` |
 | `protoc-gen-go` | `google.golang.org/protobuf` |
-| `protoc-gen-connect-go` | `connectrpc.com/connect` |
+| `protoc-gen-connect-go` | `connectrpc.com/connect/v2` |
 
 Change both versions in the same commit.
 Then run `mise run generate` and commit the regenerated files.

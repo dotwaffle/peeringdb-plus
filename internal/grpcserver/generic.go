@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -29,7 +29,7 @@ func ListEntities[E any, P any](ctx context.Context, params ListParams[E, P]) ([
 	offset, err := decodePageToken(params.PageToken)
 	if err != nil {
 		return nil, "", connect.NewError(connect.CodeInvalidArgument,
-			fmt.Errorf("invalid page_token: %w", err))
+			fmt.Errorf("invalid page_token: %w", err).Error())
 	}
 
 	predicates, err := params.ApplyFilters()
@@ -102,7 +102,8 @@ type StreamParams[E any, P any] struct {
 // (protocol/grpc strips or refuses application headers named grpc-*
 // depending on transport), so the application header moved to the
 // pdbplus- prefix. Drop the legacy emission after clients migrate.
-func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P], stream *connect.ServerStream[P]) error {
+func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P], stream interface{ Send(*P) error }) error {
+	info, _ := connect.CallInfoForServerContext(ctx)
 	// Apply stream timeout.
 	if params.Timeout > 0 {
 		var cancel context.CancelFunc
@@ -132,9 +133,9 @@ func StreamEntities[E any, P any](ctx context.Context, params StreamParams[E, P]
 		if err != nil {
 			return queryError(ctx, "count "+params.EntityName, err)
 		}
-		stream.ResponseHeader().Set("pdbplus-total-count", strconv.Itoa(total))
-		// Deprecated alias — see the header-contract comment above.
-		stream.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
+		info.ResponseHeader().Set("pdbplus-total-count", strconv.Itoa(total))
+		// Deprecated alias, see the header-contract comment above.
+		info.ResponseHeader().Set("grpc-total-count", strconv.Itoa(total))
 	}
 
 	// Stream records in batches under compound (updated, created, id) keyset

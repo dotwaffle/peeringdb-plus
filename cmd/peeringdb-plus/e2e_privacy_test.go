@@ -45,7 +45,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/privacy"
@@ -301,26 +302,24 @@ func buildE2EFixture(t *testing.T, tier privctx.Tier) *e2eFixture {
 	// ConnectRPC (/peeringdb.v1.PocService/*). We only need the Poc
 	// service for the assertion — any other service on the prod mux
 	// is privacy-irrelevant here and would pull in more setup.
-	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
+	otelInterceptor, err := otelconnect.NewServerInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}
-	handlerOpts := connect.WithInterceptors(otelInterceptor)
-	pocPath, pocHandler := peeringdbv1connect.NewPocServiceHandler(
-		&grpcserver.PocService{Client: client, StreamTimeout: 60 * time.Second},
-		handlerOpts,
-	)
-	mux.Handle(pocPath, pocHandler)
+	rpcServer := connect.NewServer(otelInterceptor)
+	peeringdbv1connect.RegisterPocServiceHandler(rpcServer, &grpcserver.PocService{Client: client, StreamTimeout: 60 * time.Second})
+	connecthttp.Mount(mux, rpcServer, connectHandlerOpts())
 
 	// Register IxLanService so the field-level E2E can
 	// exercise GetIxLan / ListIxLans. rawIxLanHandler + rawIxLanPath are
 	// exposed so the fail-closed-bypass-middleware sub-test can hit the
 	// handler WITHOUT going through the middleware chain — proving that
 	// privfield.Redact fail-closes even on an un-stamped ctx.
-	ixLanPath, ixLanHandler := peeringdbv1connect.NewIxLanServiceHandler(
-		&grpcserver.IxLanService{Client: client, StreamTimeout: 60 * time.Second},
-		handlerOpts,
-	)
+	ixLanServer := connect.NewServer(otelInterceptor)
+	peeringdbv1connect.RegisterIxLanServiceHandler(ixLanServer, &grpcserver.IxLanService{Client: client, StreamTimeout: 60 * time.Second})
+	ixLanPath := "/" + peeringdbv1connect.IxLanServiceName + "/"
+	ixLanHandler := http.NewServeMux()
+	connecthttp.Mount(ixLanHandler, ixLanServer, connectHandlerOpts())
 	mux.Handle(ixLanPath, ixLanHandler)
 
 	// Build the full production middleware chain. DefaultTier is the
@@ -557,7 +556,7 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 	// Surface 3: ConnectRPC PocService (Get + List)
 	// -------------------------------------------------------------------------
 	t.Run("grpc_get_CodeNotFound", func(t *testing.T) {
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		_, err := cl.GetPoc(t.Context(), &pbv1.GetPocRequest{Id: int64(fix.pocID)})
 		if err == nil {
 			t.Fatalf("GetPoc(%d): expected error (CodeNotFound), got nil", fix.pocID)
@@ -572,7 +571,7 @@ func TestE2E_AnonymousCannotSeeUsersPoc(t *testing.T) {
 	})
 
 	t.Run("grpc_list_absent", func(t *testing.T) {
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.ListPocs(t.Context(), &pbv1.ListPocsRequest{PageSize: 100})
 		if err != nil {
 			t.Fatalf("ListPocs: %v", err)
@@ -793,7 +792,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 
 	// Surface 3: ConnectRPC PocService
 	t.Run("grpc_get_ok", func(t *testing.T) {
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.GetPoc(t.Context(), &pbv1.GetPocRequest{Id: int64(fix.pocID)})
 		if err != nil {
 			t.Fatalf("GetPoc(%d) under TierUsers: %v — tier-override regression", fix.pocID, err)
@@ -807,7 +806,7 @@ func TestE2E_PublicTierUsersAdmitsRow(t *testing.T) {
 	})
 
 	t.Run("grpc_list_present", func(t *testing.T) {
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.ListPocs(t.Context(), &pbv1.ListPocsRequest{PageSize: 100})
 		if err != nil {
 			t.Fatalf("ListPocs: %v", err)
@@ -966,7 +965,7 @@ func TestE2E_PublicTierUsersHidesPrivatePoc(t *testing.T) {
 	})
 
 	t.Run("grpc_get_CodeNotFound", func(t *testing.T) {
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		_, err := cl.GetPoc(t.Context(), &pbv1.GetPocRequest{Id: e2ePrivatePocID})
 		ce, ok := errors.AsType[*connect.Error](err)
 		if !ok || ce.Code() != connect.CodeNotFound {
@@ -975,7 +974,7 @@ func TestE2E_PublicTierUsersHidesPrivatePoc(t *testing.T) {
 	})
 
 	t.Run("grpc_list_absent", func(t *testing.T) {
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.ListPocs(t.Context(), &pbv1.ListPocsRequest{PageSize: 100})
 		if err != nil {
 			t.Fatalf("ListPocs: %v", err)

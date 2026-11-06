@@ -8,7 +8,8 @@ import (
 	"slices"
 	"testing"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	"entgo.io/ent/dialect"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -56,7 +57,7 @@ func TestConnectOTelOpts_SpansWithoutMetrics(t *testing.T) {
 				otelconnect.WithMeterProvider(mp),
 				otelconnect.WithTracerProvider(tp),
 			}, tt.opts...)
-			interceptor, err := otelconnect.NewInterceptor(opts...)
+			interceptor, err := otelconnect.NewServerInterceptor(opts...)
 			if err != nil {
 				t.Fatalf("create otel interceptor: %v", err)
 			}
@@ -66,14 +67,14 @@ func TestConnectOTelOpts_SpansWithoutMetrics(t *testing.T) {
 			t.Cleanup(func() { _ = client.Close() })
 
 			mux := http.NewServeMux()
-			mux.Handle(peeringdbv1connect.NewNetworkServiceHandler(
-				&grpcserver.NetworkService{Client: client},
-				connectHandlerOpts(interceptor),
-			))
+			server := connect.NewServer(interceptor)
+			peeringdbv1connect.RegisterNetworkServiceHandler(server, &grpcserver.NetworkService{Client: client})
+			connecthttp.Mount(mux, server, connectHandlerOpts())
+
 			srv := httptest.NewServer(mux)
 			t.Cleanup(srv.Close)
 
-			rpc := peeringdbv1connect.NewNetworkServiceClient(srv.Client(), srv.URL)
+			rpc := peeringdbv1connect.NewNetworkServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 			_, err = rpc.GetNetwork(t.Context(), &pb.GetNetworkRequest{Id: 1})
 			if got := connect.CodeOf(err); got != connect.CodeNotFound {
 				t.Fatalf("GetNetwork on empty DB: code %v (err %v), want %v",

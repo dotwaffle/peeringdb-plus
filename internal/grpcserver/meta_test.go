@@ -2,6 +2,8 @@ package grpcserver
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"log"
 	"log/slog"
 	"reflect"
@@ -163,12 +165,17 @@ func TestMeta_RPCs(t *testing.T) {
 			t.Fatalf("StreamNetworks: %v", err)
 		}
 		got := map[int64]*pb.Network{}
-		for stream.Receive() {
-			got[stream.Msg().GetId()] = stream.Msg()
+		for {
+			msg, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				t.Fatalf("stream error: %v", err)
+			}
+			got[msg.GetId()] = msg
 		}
-		if err := stream.Err(); err != nil {
-			t.Fatalf("stream error: %v", err)
-		}
+
 		want := map[string]any{"preferred_ip_mtu": float64(9000)}
 		if m := got[1].GetMeta().AsMap(); !reflect.DeepEqual(m, want) {
 			t.Errorf("network 1 meta = %v, want %v", m, want)

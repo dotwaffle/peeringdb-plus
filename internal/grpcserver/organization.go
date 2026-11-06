@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/organization"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // OrganizationService implements the peeringdb.v1.OrganizationService
@@ -103,7 +104,7 @@ func (s *OrganizationService) GetOrganization(ctx context.Context, req *pb.GetOr
 	o, err := s.Client.Organization.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity organization %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity organization %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get organization %d", req.GetId()), err)
 	}
@@ -152,7 +153,7 @@ func (s *OrganizationService) ListOrganizations(ctx context.Context, req *pb.Lis
 
 // StreamOrganizations streams all matching organizations via compound
 // (updated, id) keyset pagination under the (-updated, -created, -id) order.
-func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.StreamOrganizationsRequest, stream *connect.ServerStream[pb.Organization]) error {
+func (s *OrganizationService) StreamOrganizations(ctx context.Context, req *pb.StreamOrganizationsRequest, stream peeringdbv1connect.OrganizationServiceStreamOrganizationsServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.Organization, pb.Organization]{
 		EntityName:   "organizations",
 		Timeout:      s.StreamTimeout,

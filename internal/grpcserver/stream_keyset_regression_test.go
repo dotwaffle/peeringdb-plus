@@ -1,6 +1,8 @@
 package grpcserver
 
 import (
+	"errors"
+	"io"
 	"testing"
 	"time"
 
@@ -69,16 +71,20 @@ func TestStreamKeysetCarriesCreated(t *testing.T) {
 
 	seen := make(map[int64]int, total)
 	var order []int64
-	for stream.Receive() {
-		msg := stream.Msg()
+	for {
+		msg2, streamErr := stream.Receive()
+		if streamErr != nil {
+			if errors.Is(streamErr, io.EOF) {
+				break
+			}
+			t.Fatalf("stream error: %v", streamErr)
+		}
+		msg := msg2
 		if msg == nil {
 			t.Fatal("received nil message from stream")
 		}
 		seen[msg.GetId()]++
 		order = append(order, msg.GetId())
-	}
-	if streamErr := stream.Err(); streamErr != nil {
-		t.Fatalf("stream error: %v", streamErr)
 	}
 
 	// No drops: every seeded id present exactly once.

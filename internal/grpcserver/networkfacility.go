@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/networkfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // NetworkFacilityService implements the peeringdb.v1.NetworkFacilityService
@@ -73,7 +74,7 @@ func (s *NetworkFacilityService) GetNetworkFacility(ctx context.Context, req *pb
 	nf, err := s.Client.NetworkFacility.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity networkfacility %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity networkfacility %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get networkfacility %d", req.GetId()), err)
 	}
@@ -119,7 +120,7 @@ func (s *NetworkFacilityService) ListNetworkFacilities(ctx context.Context, req 
 
 // StreamNetworkFacilities streams all matching network facilities via compound
 // (updated, id) keyset pagination under the (-updated, -created, -id) order.
-func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, req *pb.StreamNetworkFacilitiesRequest, stream *connect.ServerStream[pb.NetworkFacility]) error {
+func (s *NetworkFacilityService) StreamNetworkFacilities(ctx context.Context, req *pb.StreamNetworkFacilitiesRequest, stream peeringdbv1connect.NetworkFacilityServiceStreamNetworkFacilitiesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.NetworkFacility, pb.NetworkFacility]{
 		EntityName:   "network facilities",
 		Timeout:      s.StreamTimeout,

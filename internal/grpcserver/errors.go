@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -32,8 +32,8 @@ var errInternal = errors.New("internal error")
 // messages describe the caller's own input and are safe to send.
 func queryError(ctx context.Context, op string, err error) *connect.Error {
 	attrs := []any{slog.String("op", op), slog.Any("error", err)}
-	if info, ok := connect.CallInfoForHandlerContext(ctx); ok {
-		attrs = append(attrs, slog.String("procedure", info.Spec().Procedure))
+	if info, ok := connect.CallInfoForServerContext(ctx); ok {
+		attrs = append(attrs, slog.String("procedure", info.Spec.Procedure))
 	}
 
 	if ctxErr := contextError(ctx, err); ctxErr != nil {
@@ -50,7 +50,7 @@ func queryError(ctx context.Context, op string, err error) *connect.Error {
 	span.RecordError(err)
 	span.SetStatus(codes.Error, op)
 
-	return connect.NewError(connect.CodeInternal, errInternal)
+	return connect.NewError(connect.CodeInternal, errInternal.Error()).WithCause(errInternal)
 }
 
 // contextError returns CodeDeadlineExceeded or CodeCanceled if ctx has
@@ -66,9 +66,9 @@ func contextError(ctx context.Context, err error) *connect.Error {
 	}
 	switch {
 	case errors.Is(cause, context.DeadlineExceeded):
-		return connect.NewError(connect.CodeDeadlineExceeded, context.DeadlineExceeded)
+		return connect.NewError(connect.CodeDeadlineExceeded, context.DeadlineExceeded.Error()).WithCause(context.DeadlineExceeded)
 	case errors.Is(cause, context.Canceled):
-		return connect.NewError(connect.CodeCanceled, context.Canceled)
+		return connect.NewError(connect.CodeCanceled, context.Canceled.Error()).WithCause(context.Canceled)
 	default:
 		return nil
 	}

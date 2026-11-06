@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/poc"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // PocService implements the peeringdb.v1.PocService ConnectRPC handler
@@ -73,7 +74,7 @@ func (s *PocService) GetPoc(ctx context.Context, req *pb.GetPocRequest) (*pb.Get
 	p, err := s.Client.Poc.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity poc %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity poc %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get poc %d", req.GetId()), err)
 	}
@@ -119,7 +120,7 @@ func (s *PocService) ListPocs(ctx context.Context, req *pb.ListPocsRequest) (*pb
 
 // StreamPocs streams all matching points of contact via compound (updated, id)
 // keyset pagination under the (-updated, -created, -id) default order.
-func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, stream *connect.ServerStream[pb.Poc]) error {
+func (s *PocService) StreamPocs(ctx context.Context, req *pb.StreamPocsRequest, stream peeringdbv1connect.PocServiceStreamPocsServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.Poc, pb.Poc]{
 		EntityName:   "pocs",
 		Timeout:      s.StreamTimeout,

@@ -146,9 +146,9 @@ signer = "sigstore-oidc:https://github.com/jdx/jactionlint/.github/workflows/rel
 repository_ids = { repository = "1404951382" }
 
 [[tools.protoc-gen-connect-go]]
-version = "1.21.1"
-backend = "go:connectrpc.com/connect/cmd/protoc-gen-connect-go"
-specifiers = ["1.21.1"]
+version = "2.0.2"
+backend = "go:connectrpc.com/connect/v2/cmd/protoc-gen-connect-go"
+specifiers = ["2.0.2"]
 
 [[tools.protoc-gen-go]]
 version = "1.36.12"

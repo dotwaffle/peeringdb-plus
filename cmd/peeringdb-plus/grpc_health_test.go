@@ -3,8 +3,8 @@ package main
 import (
 	"testing"
 
-	"connectrpc.com/connect"
-	"connectrpc.com/grpchealth"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/grpchealth/v2"
 )
 
 // fakeReadiness drives syncHealthChecker through the sync-state

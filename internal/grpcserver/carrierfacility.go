@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/carrierfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // CarrierFacilityService implements the peeringdb.v1.CarrierFacilityService
@@ -61,7 +62,7 @@ func (s *CarrierFacilityService) GetCarrierFacility(ctx context.Context, req *pb
 	cf, err := s.Client.CarrierFacility.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity carrierfacility %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity carrierfacility %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get carrierfacility %d", req.GetId()), err)
 	}
@@ -109,7 +110,7 @@ func (s *CarrierFacilityService) ListCarrierFacilities(ctx context.Context, req 
 
 // StreamCarrierFacilities streams all matching carrier facilities via compound
 // (updated, id) keyset pagination under the (-updated, -created, -id) order.
-func (s *CarrierFacilityService) StreamCarrierFacilities(ctx context.Context, req *pb.StreamCarrierFacilitiesRequest, stream *connect.ServerStream[pb.CarrierFacility]) error {
+func (s *CarrierFacilityService) StreamCarrierFacilities(ctx context.Context, req *pb.StreamCarrierFacilitiesRequest, stream peeringdbv1connect.CarrierFacilityServiceStreamCarrierFacilitiesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.CarrierFacility, pb.CarrierFacility]{
 		EntityName:   "carrier facilities",
 		Timeout:      s.StreamTimeout,
