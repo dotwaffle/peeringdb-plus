@@ -29,7 +29,7 @@ All six surfaces are mounted on the same HTTP server and read from the same SQLi
 | Web UI | `/ui/` | templ + htmx search, detail pages, ASN comparison; content-negotiates terminal vs browser |
 | GraphQL | `/graphql` | gqlgen via entgql; interactive playground on `GET`, queries on `POST` |
 | REST | `/rest/v1/` | OpenAPI-compliant (entrest); spec at [`/rest/v1/openapi.json`](https://peeringdb-plus.fly.dev/rest/v1/openapi.json) |
-| PeeringDB Compat | `/api/` | Drop-in replacement for `www.peeringdb.com/api` — same paths, same envelope |
+| PeeringDB Compat | `/api/` | Drop-in replacement for `www.peeringdb.com/api` -- same paths, same envelope |
 | ConnectRPC / gRPC | `/peeringdb.v1.*/` | Get / List / Stream RPCs for all 13 entity types; reflection + health checks enabled |
 | MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
@@ -45,35 +45,16 @@ See [`docs/API.md`](docs/API.md) for each API, with filter semantics, ordering, 
 
 ## Quick start
 
-### Local (Go)
+### Run a mirror
 
-You need Go 1.27.3 or later.
-You can also use mise, as shown in [Development](#development).
+For an operator-managed mirror, follow [Getting Started](docs/GETTING-STARTED.md).
+It covers the standalone container, source build, first sync, and verification.
+These operator workflows contact upstream PeeringDB.
 
-```bash
-git clone https://github.com/dotwaffle/peeringdb-plus.git
-cd peeringdb-plus
-go build -o peeringdb-plus ./cmd/peeringdb-plus
-./peeringdb-plus
-# Listening on :8080, syncing from www.peeringdb.com every hour
-```
+### Develop locally
 
-The first sync takes 30-60 seconds against the public PeeringDB API.
-While it runs, `/healthz` returns 200 and `/readyz` returns 503; once the database is populated, `/readyz` flips to 200 and every API surface is usable.
-
-### Local (Docker)
-
-```bash
-docker run -p 8080:8080 -v pdbdata:/data ghcr.io/dotwaffle/peeringdb-plus:latest
-# Or build the image from your checkout:
-docker build -t peeringdb-plus .
-docker run -p 8080:8080 -v pdbdata:/data peeringdb-plus
-```
-
-CI publishes the image for `linux/amd64` and `linux/arm64`.
-For the tags and for how to verify an image, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#published-image).
-
-The image stores the database at `/data/peeringdb-plus.db`; mount a volume to persist data across container restarts.
+Follow [Development: Local setup](docs/DEVELOPMENT.md#local-setup) for the locked toolchain and a fixture-backed server.
+Do not point development servers or load tests at upstream PeeringDB.
 
 ### Verify it's working
 
@@ -86,7 +67,7 @@ curl -sO http://localhost:8080/skills/peeringdb-plus.zip # Origin-aware Agent Sk
 
 Open `http://localhost:8080/ui/` (Web UI) and `http://localhost:8080/graphql` (GraphQL playground) in a browser.
 
-For the full first-30-minutes walkthrough, see [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
+For operator setup and first-sync details, see [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md).
 
 ## Usage examples
 
@@ -100,7 +81,7 @@ curl https://peeringdb-plus.fly.dev/api/net
 curl https://peeringdb-plus.fly.dev/api/net/42
 
 # Search with query parameters. Lists accept limit, skip, fields, since, and q.
-# depth applies only to single-object requests such as /api/net/42.
+# Lists and single-object requests accept depth. See the API reference for limits.
 curl 'https://peeringdb-plus.fly.dev/api/net?q=cloudflare&limit=5'
 ```
 
@@ -173,7 +154,7 @@ Operationally-relevant defaults:
 | `PDBPLUS_LISTEN_ADDR` | `:8080` | HTTP listen address |
 | `PDBPLUS_DB_PATH` | `./peeringdb-plus.db` | SQLite database file path |
 | `PDBPLUS_PEERINGDB_URL` | `https://www.peeringdb.com` | Upstream PeeringDB API |
-| `PDBPLUS_PEERINGDB_API_KEY` | _(unset)_ | Optional — raises rate limit and shortens default sync interval |
+| `PDBPLUS_PEERINGDB_API_KEY` | _(unset)_ | Optional -- raises rate limit and shortens default sync interval |
 | `PDBPLUS_SYNC_MODE` | `incremental` | `incremental` (delta) or `full` (re-fetch); `full` is the operator escape-hatch |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (15m if API key set) | Time between sync cycles |
 | `PDBPLUS_FULL_SYNC_INTERVAL` | `24h` | Maximum time between full re-fetches in `incremental` mode. A full cycle repairs data that incremental sync cannot see. `0` disables it |
@@ -188,7 +169,7 @@ The server also reads the standard `OTEL_*` environment variables through OpenTe
 
 | Doc | Topic |
 |---|---|
-| [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) | First-30-minutes walkthrough: prerequisites, build, first run, verification |
+| [`docs/GETTING-STARTED.md`](docs/GETTING-STARTED.md) | Operator setup, first sync, and verification |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Component diagram, data flow, code-generation pipeline, middleware chain, privacy layer, sampling matrix |
 | [`docs/API.md`](docs/API.md) | All six API surfaces, filter semantics, ordering, cross-entity traversal, divergences |
 | [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) | Full environment-variable list with validation rules |
@@ -216,21 +197,14 @@ The server also reads the standard `OTEL_*` environment variables through OpenTe
 
 ## Development
 
-```bash
-mise trust                        # Trust the repository mise config
-mise install --locked             # Install the pinned toolchain
-mise run generate                 # Full codegen pipeline
-mise run check                    # Generate, tidy, build, test, lint, scan
-```
-
-Mise supplies Go, code generators, Tailwind, gotestsum, linters, and security tools from the committed cross-platform lockfile.
-CI runs the same tools plus generated-code and module-tidiness checks on every PR.
-See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the conventions, including the sibling-file pattern that protects hand-edited schema methods from being overwritten by `cmd/pdb-schema-generate`.
+[Development](docs/DEVELOPMENT.md) owns setup, build commands, generation, and change procedures.
+[Testing](docs/TESTING.md) covers fixtures and test selection.
+[Contributing](CONTRIBUTING.md#pre-pr-checklist) lists the pre-PR checks.
 
 ## Contributing
 
 PeeringDB Plus is open source.
-Bug reports, feature suggestions, and pull requests are welcome — please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a PR.
+Bug reports, feature suggestions, and pull requests are welcome -- please read [`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a PR.
 
 ## License
 

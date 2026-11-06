@@ -497,21 +497,21 @@ Valid `{type}` values are the same 13 constants defined in `internal/peeringdb/t
 
 ### Query parameters
 
-| Parameter | Applies to | Description |
-|-----------|------------|-------------|
-| `q` | List | Case-insensitive substring search across the type's search fields. For `/api/net`, an ASN literal (e.g. `8075` or `AS8075`) also matches `net.asn` exactly in addition to the text fields. This is a peeringdb-plus **extension**. Upstream ignores `?q=` on `/api` list endpoints. Unlike the field filters, `?q=` does not ignore diacritics. See § Known Divergences |
-| `name_search` | Both | Search by name on `org`, `fac`, `ix`, `net`, `campus` and `carrier`, as upstream's search index does. On the other 7 types a non-empty value returns no rows. On a single-object GET, an object that the search does not match returns `404`. See § Name search |
-| `limit` | Both | Maximum rows in response. **Default unlimited** when absent, as upstream 2.83.0 `rest.py:516` (`limit` defaults to `0`) + `rest.py:757-760` (no slice when `limit=0`). Bare `/api/<type>` URLs return ALL rows from the filtered queryset; the response is gated only by the response memory budget (see below). Explicit `limit=N`: positive `N` is honored with no upper cap, as upstream (`rest.py:757-758`); `limit=0` is the explicit "unlimited" sentinel. A `limit` that is not an integer, or an empty `limit`, returns `400` (`'limit' needs to be a number`), as upstream (`rest.py:515-518`). A negative `limit` serves every row, as `limit=0` does: upstream slices only when `limit > 0` (`rest.py:757-760`). At `depth` greater than `0`, a list without a filter is an exception, see § Known Divergences. The value is parsed as Python `int()` parses it: spaces at the ends, a sign, Unicode decimal digits and single underscores between digits are accepted. A value too large for a 64-bit integer serves every row. With a repeated `limit`, the last value applies. Constant: `DefaultLimit=0` (`internal/pdbcompat/response.go`). With `page`, see § Page-number pagination. On a single-object GET, a value above `0` returns `404` (see § Filters on a single-object GET) |
-| `skip` | Both | Offset for pagination. The value is parsed as for `limit`. A `skip` that is not an integer, or an empty `skip`, returns `400` (`'skip' needs to be a number`, 2.83.0 `rest.py:511-514`). A negative `skip` returns `400` (`Negative indexing is not supported.`): Django rejects the negative slice (`django/db/models/query.py:403-417`), and `list()` returns `400` (`rest.py:824-827`). A list with no filter key, a `since` that is absent or `0`, and a `limit` of `0` or more than `250` (any `limit` at `depth` greater than `0`) is the exception, see § Known Divergences. A `name_search` that matches no row is also an exception: the result is empty (see § Name search). On a single-object GET, a value above `0` returns `404` (see § Filters on a single-object GET) |
-| `depth` | Both | Edge expansion depth. A `depth` that is not an integer, or an empty `depth`, returns `400` (`'depth' needs to be a number`), as upstream (2.83.0 `rest.py:520-523`). The value is parsed as for `limit`, and with a repeated `depth` the last value applies. **Detail:** clamped to `0`–`4` (the range upstream accepts, 2.83.0 `serializers.py:1016-1039`: `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2). `0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default, with `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists. The detail default is `2` (`default_depth(is_list=False)`). Negatives floor to `0`. `3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced). **List:** default `0`; `0` or a negative value gives flat rows. `1` adds the reverse `_set` fields of each row as ID lists, `2` or higher as full objects. A list row never carries the forward FK object (`org`, `net`, `ixlan` and so on), as upstream (`serializers.py:1166-1167`, `:1286-1290`), so `fac`, `poc`, `ixpfx`, `netixlan`, `netfac`, `ixfac` and `carrierfac` return the same rows at every depth. `3` or higher renders the depth-2 shape. See § List depth. `_set` fields list only live children (see "Soft-delete tombstones" below). The sets are in ascending id order, with these exceptions: `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are in facility-id order, as upstream sends them, and `ixlan.net_set` keeps the order of the netixlan rows. See § Known Divergences |
-| `fields` | Both | Comma-separated list of keys to keep, as upstream (2.83.0 `serializers.py:942-950`). Each row keeps only the keys that `fields` names, so `id`, the `_set` fields and the nested objects are removed unless named. A named nested object or `_set` keeps all of its keys. The names are compared as given, so `fields=id,%20name` keeps only `id`, unknown names are ignored, and with a repeated `fields` the last value applies. An empty value returns every key. On a `?depth=` list, only the `_set` fields that `fields` names are loaded. On an `ixlan`, a row that keeps `ixf_ixp_member_list_url` also keeps `ixf_ixp_member_list_url_visible`, unless these two are the only keys left (upstream `serializers.py:4319-4337`, `permissions.py:355-372`): `ixlan?fields=id,ixf_ixp_member_list_url` returns both, and for a caller that may not see the URL, `ixlan?fields=ixf_ixp_member_list_url` returns only `_visible` |
-| `page`, `per_page` | List | Returns one page of the list with `meta.pagination`, as upstream. See § Page-number pagination. A single-object GET ignores them |
-| `since` | Both | The value is Unix seconds as an integer. The list holds the rows with `updated` at or after that second, in `updated` order, then `id` order (see § List order). It also admits `deleted` rows, and `pending` rows on `/api/campus` (see § Soft-delete tombstones). `since=0` or a negative value is ignored. The value is parsed as for `limit`, and with a repeated `since`, the last value applies. An empty value or a value that is not a number returns `400` (`'since' needs to be a unix timestamp (epoch seconds)`, 2.83.0 `rest.py:505-510`). A number that is not an integer, for example `1.5` or `1e3`, returns `400` with the Python message, for example `invalid literal for int() with base 10: '1.5'`: upstream first reads `since` with `int(float())`, which accepts it, and then with `int()` after the filter checks (`api_cache.py:80`). So a filter error comes first for such a value. Upstream stores `updated` with microseconds and compares it with `N.000000` (2.83.0 `rest.py:736-744`). It shows the value truncated to the second (`serializers.py:1920-1924`), so it also returns almost every row shown as `updated=N`. The mirror stores only the second and includes it. On a single-object GET, the value is checked and then ignored |
-| `_ctf` | Both | With a date filter that has an operator (`lt`, `lte`, `gt`, `gte`, `contains` or `startswith`) on `created` or `updated`, the same filter also applies to the rows of every `_set`, at every depth, as upstream (2.83.0 `rest.py:633-655`, `serializers.py:998-1002`). Through sets (`ix` `fac_set`, `ixlan` `net_set`) filter the join rows. With two or more date filters, the one whose key appears last in the query string applies, and a repeated key keeps the place of its first appearance. The value of `_ctf` is not read. Upstream's API cache generator sends it (`pdb_api_cache.py:195-199`). See § Known Divergences |
-| `format` | All `/api/` paths | `json` or an empty value is accepted. Another value, for example `?format=xml` or `?format=JSON`, returns `404` (`Not found.`) before any other check, as upstream (DRF content negotiation, `negotiation.py:80-88`). A format suffix in the path wins over the parameter. With a repeated `format`, the last value applies |
-| `pretty` | All `/api/` paths | With any value, the JSON body is indented by 2 spaces, as upstream (2.83.0 `renderers.py:64-73`). This includes error bodies. `?pretty=0` also indents: only the presence of the key counts |
-| `distance`, with `latitude` and `longitude` | Both (`fac`, `org`) | Keeps the rows within that many kilometers of the point, nearest first. On a single-object GET, an object that is farther returns `404`. See § Distance filter |
-| `{field}`, `{field}__{op}` | Both | Arbitrary field filter. Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`. `contains` and `startswith` are coerced to their case-insensitive variants per upstream 2.83.0 `rest.py:657-662`. Upstream ignores a key with the `__iexact`, `__icontains` or `__istartswith` suffix; the mirror applies them (see § Known Divergences). Typed against the field: an operator that the type does not support (e.g. `created__contains`) returns `400`, and so does a value that does not convert for an operator (`asn__lt=abc`, `asn__in=1,x`). On an integer, boolean or decimal field, `__contains` and `__startswith` match the text of the stored value, as MySQL does upstream: an integer as decimal text, a boolean as `1` or `0`, `latitude` and `longitude` with 6 decimals (`?asn__contains=33`, `?latitude__startswith=52.5`). A key without an operator and `__iexact` on `latitude` or `longitude` match that text, so `?latitude=52.5` matches no row and `?latitude=52.500000` matches. An integer value is parsed as Python `int()` parses it (spaces at the ends, a sign, Unicode digits, underscores between digits). A key without an operator on an integer field matches the decimal text of the stored value, as upstream (`__iexact`, 2.83.0 `rest.py:670-683`): `?asn=abc`, `?asn=042` and `?asn=` match no row. Upstream folds the value with `unidecode` first (`rest.py:597`), so a Unicode decimal digit, for example Arabic-Indic `٤٢`, reads as its ASCII digit. A key without an operator on a boolean field selects `true` for `true` in any case or `1`, and `false` for any other value (2.83.0 `rest.py:680-681`). On a boolean field, `__in`, `__lt`, `__lte`, `__gt` and `__gte` accept only `t`, `True`, `1`, `f`, `False` and `0`, as Django `BooleanField.to_python` does, and return `400` for any other value, for example `?info_unicast__in=true`. `__in` does not remove spaces from the items. On `fac` `diverse_serving_substations`, which can be null, `__in` ignores an empty item. A key that names a FK (`?org=abc`) and the count keys (`net_count` on `fac`, `fac_count` on `net`, `net_count` and `fac_count` on `ix`) still return `400` for a value that is not an integer, as upstream. A key that names a forward FK by its upstream model name filters the FK column: `?org=1` is the same filter as `?org_id=1`. `net` and `network` are names for `net_id`, and `fac` and `facility` are names for `fac_id` (`?network__in=1,2`, `?facility_id=2`). The operators compare the FK id, and `__contains` or `__startswith` on a FK name returns `400`, as upstream (2.83.0 `rest.py:608-631`, `:670-677`, `serializers.py:403-441`). If a request gives one FK in two spellings, the mirror applies both filters. Upstream keeps only the last one |
+| Parameter | Applies to | Details |
+|-----------|------------|---------|
+| `q` | List | [Text search parameter](#text-search-parameter) |
+| `name_search` | Both | [Name search parameter](#name-search-parameter) |
+| `limit` | Both | [Limit parameter](#limit-parameter) |
+| `skip` | Both | [Skip parameter](#skip-parameter) |
+| `depth` | Both | [Depth parameter](#depth-parameter) |
+| `fields` | Both | [Fields parameter](#fields-parameter) |
+| `page`, `per_page` | List | [Page parameters](#page-parameters) |
+| `since` | Both | [Since parameter](#since-parameter) |
+| `_ctf` | Both | [Child date filter parameter](#child-date-filter-parameter) |
+| `format` | All `/api/` paths | [Format parameter](#format-parameter) |
+| `pretty` | All `/api/` paths | [Pretty parameter](#pretty-parameter) |
+| `distance`, with `latitude` and `longitude` | Both (`fac`, `org`) | [Distance parameters](#distance-parameters) |
+| `{field}`, `{field}__{op}` | Both | [Field filter parameters](#field-filter-parameters) |
 
 The server reads every query parameter outside `limit`, `skip`, `depth`, `since`, `q`, `fields`, `pretty`, `format`, `_ctf`, `page` and `per_page` as a filter key.
 A key that names no field, or that has an unknown operator suffix, is ignored, and the response is `200` without that filter.
@@ -577,6 +577,163 @@ Upstream splits the value at every comma and does not remove empty items or spac
 - On `fac` `diverse_serving_substations`, which can be null, an empty item is ignored, and a value with no other item short-circuits the request to an empty `data: []` envelope without running SQL (a `404` if the request is a lookup by `id`, see § Lookup by `id` or `asn`).
   A filter error in any other key of the request returns `400` first.
 - The `net` keys `info_type__in` and `info_types__in` are an exception: an empty value returns all networks, as upstream (see § Multi-value choice filters).
+
+#### Text search parameter
+
+Case-insensitive substring search across the type's search fields.
+For `/api/net`, an ASN literal (e.g. `8075` or `AS8075`) also matches `net.asn` exactly in addition to the text fields.
+This is a peeringdb-plus **extension**.
+Upstream ignores `?q=` on `/api` list endpoints.
+Unlike the field filters, `?q=` does not ignore diacritics.
+See § Known Divergences.
+
+#### Name search parameter
+
+Search by name on `org`, `fac`, `ix`, `net`, `campus` and `carrier`, as upstream's search index does.
+On the other 7 types a non-empty value returns no rows.
+On a single-object GET, an object that the search does not match returns `404`.
+See § Name search.
+
+#### Limit parameter
+
+Maximum rows in response.
+**Default unlimited** when absent, as upstream 2.83.0 `rest.py:516` (`limit` defaults to `0`) + `rest.py:757-760` (no slice when `limit=0`).
+Bare `/api/<type>` URLs return ALL rows from the filtered queryset; the response is gated only by the response memory budget (see below).
+Explicit `limit=N`: positive `N` is honored with no upper cap, as upstream (`rest.py:757-758`); `limit=0` is the explicit "unlimited" sentinel.
+
+A `limit` that is not an integer, or an empty `limit`, returns `400` (`'limit' needs to be a number`), as upstream (`rest.py:515-518`).
+A negative `limit` serves every row, as `limit=0` does: upstream slices only when `limit > 0` (`rest.py:757-760`).
+At `depth` greater than `0`, a list without a filter is an exception, see § Known Divergences.
+The value is parsed as Python `int()` parses it: spaces at the ends, a sign, Unicode decimal digits and single underscores between digits are accepted.
+
+A value too large for a 64-bit integer serves every row.
+With a repeated `limit`, the last value applies.
+Constant: `DefaultLimit=0` (`internal/pdbcompat/response.go`).
+With `page`, see § Page-number pagination.
+
+On a single-object GET, a value above `0` returns `404` (see § Filters on a single-object GET).
+
+#### Skip parameter
+
+Offset for pagination.
+The value is parsed as for `limit`.
+A `skip` that is not an integer, or an empty `skip`, returns `400` (`'skip' needs to be a number`, 2.83.0 `rest.py:511-514`).
+A negative `skip` returns `400` (`Negative indexing is not supported.`): Django rejects the negative slice (`django/db/models/query.py:403-417`), and `list()` returns `400` (`rest.py:824-827`).
+
+A list with no filter key, a `since` that is absent or `0`, and a `limit` of `0` or more than `250` (any `limit` at `depth` greater than `0`) is the exception, see § Known Divergences.
+A `name_search` that matches no row is also an exception: the result is empty (see § Name search).
+On a single-object GET, a value above `0` returns `404` (see § Filters on a single-object GET).
+
+#### Depth parameter
+
+Edge expansion depth.
+A `depth` that is not an integer, or an empty `depth`, returns `400` (`'depth' needs to be a number`), as upstream (2.83.0 `rest.py:520-523`).
+The value is parsed as for `limit`, and with a repeated `depth` the last value applies.
+**Detail:** clamped to `0`–`4` (the range upstream accepts, 2.83.0 `serializers.py:1016-1039`: `max_depth` returns 3 for lists / 4 for detail, `default_depth` 0 / 2).
+
+`0` = flat row (FK fields as IDs, no `_set`); `1` = forward FK objects expanded flat with reverse `_set` fields as bare ID lists; `2` = default, with `_set` collections as full objects, each first-level nested FK object carrying its own reverse sets as ID lists.
+The detail default is `2` (`default_depth(is_list=False)`).
+Negatives floor to `0`.
+`3`/`4` render the depth-2 shape (the deeper sub-level nesting they add upstream is not reproduced).
+
+**List:** default `0`; `0` or a negative value gives flat rows.
+`1` adds the reverse `_set` fields of each row as ID lists, `2` or higher as full objects.
+A list row never carries the forward FK object (`org`, `net`, `ixlan` and so on), as upstream (`serializers.py:1166-1167`, `:1286-1290`), so `fac`, `poc`, `ixpfx`, `netixlan`, `netfac`, `ixfac` and `carrierfac` return the same rows at every depth.
+`3` or higher renders the depth-2 shape.
+
+See § List depth.
+`_set` fields list only live children (see "Soft-delete tombstones" below).
+The sets are in ascending id order, with these exceptions: `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are in facility-id order, as upstream sends them, and `ixlan.net_set` keeps the order of the netixlan rows.
+See § Known Divergences.
+
+#### Fields parameter
+
+Comma-separated list of keys to keep, as upstream (2.83.0 `serializers.py:942-950`).
+Each row keeps only the keys that `fields` names, so `id`, the `_set` fields and the nested objects are removed unless named.
+A named nested object or `_set` keeps all of its keys.
+The names are compared as given, so `fields=id,%20name` keeps only `id`, unknown names are ignored, and with a repeated `fields` the last value applies.
+
+An empty value returns every key.
+On a `?depth=` list, only the `_set` fields that `fields` names are loaded.
+On an `ixlan`, a row that keeps `ixf_ixp_member_list_url` also keeps `ixf_ixp_member_list_url_visible`, unless these two are the only keys left (upstream `serializers.py:4319-4337`, `permissions.py:355-372`): `ixlan?fields=id,ixf_ixp_member_list_url` returns both, and for a caller that may not see the URL, `ixlan?fields=ixf_ixp_member_list_url` returns only `_visible`.
+
+#### Page parameters
+
+Returns one page of the list with `meta.pagination`, as upstream.
+See § Page-number pagination.
+A single-object GET ignores them.
+
+#### Since parameter
+
+The value is Unix seconds as an integer.
+The list holds the rows with `updated` at or after that second, in `updated` order, then `id` order (see § List order).
+It also admits `deleted` rows, and `pending` rows on `/api/campus` (see § Soft-delete tombstones).
+`since=0` or a negative value is ignored.
+
+The value is parsed as for `limit`, and with a repeated `since`, the last value applies.
+An empty value or a value that is not a number returns `400` (`'since' needs to be a unix timestamp (epoch seconds)`, 2.83.0 `rest.py:505-510`).
+A number that is not an integer, for example `1.5` or `1e3`, returns `400` with the Python message, for example `invalid literal for int() with base 10: '1.5'`: upstream first reads `since` with `int(float())`, which accepts it, and then with `int()` after the filter checks (`api_cache.py:80`).
+So a filter error comes first for such a value.
+
+Upstream stores `updated` with microseconds and compares it with `N.000000` (2.83.0 `rest.py:736-744`).
+It shows the value truncated to the second (`serializers.py:1920-1924`), so it also returns almost every row shown as `updated=N`.
+The mirror stores only the second and includes it.
+On a single-object GET, the value is checked and then ignored.
+
+#### Child date filter parameter
+
+With a date filter that has an operator (`lt`, `lte`, `gt`, `gte`, `contains` or `startswith`) on `created` or `updated`, the same filter also applies to the rows of every `_set`, at every depth, as upstream (2.83.0 `rest.py:633-655`, `serializers.py:998-1002`).
+Through sets (`ix` `fac_set`, `ixlan` `net_set`) filter the join rows.
+With two or more date filters, the one whose key appears last in the query string applies, and a repeated key keeps the place of its first appearance.
+The value of `_ctf` is not read.
+Upstream's API cache generator sends it (`pdb_api_cache.py:195-199`).
+See § Known Divergences.
+
+#### Format parameter
+
+`json` or an empty value is accepted.
+Another value, for example `?format=xml` or `?format=JSON`, returns `404` (`Not found.`) before any other check, as upstream (DRF content negotiation, `negotiation.py:80-88`).
+A format suffix in the path wins over the parameter.
+With a repeated `format`, the last value applies.
+
+#### Pretty parameter
+
+With any value, the JSON body is indented by 2 spaces, as upstream (2.83.0 `renderers.py:64-73`).
+This includes error bodies.
+`?pretty=0` also indents: only the presence of the key counts.
+
+#### Distance parameters
+
+Keeps the rows within that many kilometers of the point, nearest first.
+On a single-object GET, an object that is farther returns `404`.
+See § Distance filter.
+
+#### Field filter parameters
+
+Arbitrary field filter.
+Operator suffixes: `__contains`, `__icontains`, `__startswith`, `__istartswith`, `__iexact`, `__in`, `__lt`, `__lte`, `__gt`, `__gte`.
+`contains` and `startswith` are coerced to their case-insensitive variants per upstream 2.83.0 `rest.py:657-662`.
+Upstream ignores a key with the `__iexact`, `__icontains` or `__istartswith` suffix; the mirror applies them (see § Known Divergences).
+
+Typed against the field: an operator that the type does not support returns `400`, and so does a value that does not convert for an operator (`asn__lt=abc`, `asn__in=1,x`).
+On an integer, boolean or decimal field, `__contains` and `__startswith` match the text of the stored value, as MySQL does upstream: an integer as decimal text, a boolean as `1` or `0`, `latitude` and `longitude` with 6 decimals (`?asn__contains=33`, `?latitude__startswith=52.5`).
+A key without an operator and `__iexact` on `latitude` or `longitude` match that text, so `?latitude=52.5` matches no row and `?latitude=52.500000` matches.
+An integer value is parsed as Python `int()` parses it (spaces at the ends, a sign, Unicode digits, underscores between digits).
+
+A key without an operator on an integer field matches the decimal text of the stored value, as upstream (`__iexact`, 2.83.0 `rest.py:670-683`): `?asn=abc`, `?asn=042` and `?asn=` match no row.
+Upstream folds the value with `unidecode` first (`rest.py:597`), so a Unicode decimal digit, for example Arabic-Indic `٤٢`, reads as its ASCII digit.
+A key without an operator on a boolean field selects `true` for `true` in any case or `1`, and `false` for any other value (2.83.0 `rest.py:680-681`).
+On a boolean field, `__in`, `__lt`, `__lte`, `__gt` and `__gte` accept only `t`, `True`, `1`, `f`, `False` and `0`, as Django `BooleanField.to_python` does, and return `400` for any other value, for example `?info_unicast__in=true`.
+
+`__in` does not remove spaces from the items.
+On `fac` `diverse_serving_substations`, which can be null, `__in` ignores an empty item.
+A key that names a FK (`?org=abc`) and the count keys (`net_count` on `fac`, `fac_count` on `net`, `net_count` and `fac_count` on `ix`) still return `400` for a value that is not an integer, as upstream.
+A key that names a forward FK by its upstream model name filters the FK column: `?org=1` is the same filter as `?org_id=1`.
+
+`net` and `network` are names for `net_id`, and `fac` and `facility` are names for `fac_id` (`?network__in=1,2`, `?facility_id=2`).
+The operators compare the FK id, and `__contains` or `__startswith` on a FK name returns `400`, as upstream (2.83.0 `rest.py:608-631`, `:670-677`, `serializers.py:403-441`).
+If a request gives one FK in two spellings, the mirror applies both filters.
+Upstream keeps only the last one.
 
 ### List depth
 
@@ -954,7 +1111,8 @@ pdbcompat resolves `<fk>__<field>` and `<fk>__<fk>__<field>` filter paths throug
   Derived from the upstream `peeringdb_server/serializers.py` `prepare_query(...)` / `get_relation_filters(...)` seed lists and from `queryable_relations()`.
   The keys are the mirror's choice of aliases, not a copy of an upstream list: some resolve keys that upstream ignores, and some do not resolve here.
   The relation keys that a `prepare_query` handles are not in Path A: they resolve first, as relation filters (see § Relation filters).
-  Generated from ent schema `pdbcompat.WithPrepareQueryAllow(...)` annotations via `cmd/pdb-compat-allowlist`; emitted into `internal/pdbcompat/allowlist_gen.go`.
+  Generated from `schema.PrepareQueryAllows` in `ent/schema/pdb_allowlists.go` by `cmd/pdb-compat-allowlist`.
+  The output is `internal/pdbcompat/allowlist_gen.go`.
   This is the "explicitly blessed" set of filter keys.
   Every entry carries a `// serializers.py:<line>` comment that anchors it to upstream 2.83.0.
 - **Path B: ent edge introspection.**
@@ -1844,74 +2002,891 @@ The REST subtree relies on this same outer middleware; it is not wrapped a secon
 
 ## Known Divergences
 
-PeeringDB Plus strives for behavioural parity with the upstream PeeringDB API (`peeringdb/peeringdb`) at the `/api/` surface.
+PeeringDB Plus targets behavior parity with the upstream PeeringDB API (`peeringdb/peeringdb`) at the `/api/` surface.
 The remaining divergences are listed below, each with an upstream citation and a guarding test.
 The shape of detail responses at `?depth=0`, `1` and `2` matches upstream, including `_set` ID lists, `net_set`, back-reference removal and `campus: null`.
 The shape of list responses at `?depth=1` and `2` also matches upstream.
 `internal/pdbcompat/depth_test.go` locks this.
 
-| Request | Upstream behaviour | peeringdb-plus behaviour | Rationale | Since |
-|---------|-------------------|-------------------------|-----------|-------|
-| `?depth=3` on list endpoints (also `?depth=4` with `?page=`); `?depth=3`/`4` on detail | A list at depth 3 gives each expanded set element its own `_set` fields as ID lists, for the set elements that have reverse sets (`org`: `net_set`, `ix_set`, `carrier_set`, `campus_set`; `ix`: `ixlan_set`; `ixlan`: `net_set`) (2.83.0 `serializers.py:1240-1309`, `pdb_api_test.py:4140-4152`). With `?page=`, a list takes the detail maximum of depth 4 (`serializers.py:933-934`, `:1024-1031`) and prefetches the sets of three levels (`rest.py:774-777`). Detail expands a third sub-level at depth 3-4. | Both render the depth-2 shape. List depths `1` and `2` and detail depths `0`/`1`/`2` match upstream. | Depth>2 sub-nesting is data almost no client reads three levels deep. Locked by `TestParity_Serializer/DIVERGENCE_list_depth3_renders_depth2_shape` and `TestDepth_DepthOne/depth_clamped_to_0_4`. | v1.16 (list) · v1.20.5 (detail 3-4) |
-| `?_ctf` when the date filter that upstream reads last is not `created` or `updated` of the listed type, for example `net?depth=1&_ctf&rir_status_updated__gt=<date>` or `fac?depth=1&_ctf&org__updated__gt=<date>`, and the response has a `_set` | Returns `500`. Upstream filters the related model of each `_set` with the key as given (2.83.0 `serializers.py:998-1002`). No related model has that field, so Django raises `FieldError` while it builds the query, and the view does not catch it (`rest.py:826-833`). Found by reading the code, not checked against a live upstream. | Filters no `_set`. The date filter still filters the listed rows. | A server error is an upstream bug. Locked by `TestParity_Serializer/DIVERGENCE_ctf_other_date_key`. | v1.37.0 (registered 2026-09-27) |
-| `poc_set` ID lists at `?depth=1` on detail and list responses, and the nested `net.poc_set` at detail depth 2 | PeeringDB 2.84.1 filters contact IDs by permission. Shared cached ID lists contain Public contacts only, including for authenticated callers. Uncached lists use the caller's permissions. | The local row policy applies to every query. Anonymous callers receive Public IDs only. The Users tier receives Public and Users IDs, never Private IDs. | Anonymous ID visibility matches the new upstream rule. The Users tier can receive more IDs than an upstream shared cached response. The mirror does not use that shared body cache. Locked by `TestDepth_PocSetPrivacy_DIVERGENCE`. | v1.20.5; upstream cache distinction reviewed for 2.84.1 |
-| `/api/poc/<id>` for a contact that the caller's tier cannot read: a `Users` contact for an anonymous caller, or a `Private` contact for any tier | Returns `403`. `retrieve` (2.83.0 `rest.py:849-865`) returns `HTTP_403_FORBIDDEN` when the permission applicator denies the object. The upstream tests expect it for a guest and a `Users` contact (`pdb_api_test.py:3855-3856`) and for a user who is not a member of the owning organization and a `Private` contact (`:1413-1414`), through `assert_get_forbidden` (`:575-577`). | Returns `404`, the same as for an id that does not exist. REST, ConnectRPC and GraphQL also use their not-found forms. The list content matches upstream: both leave the contact out. For the status code of `/api/poc?id=<id>`, see the `/api/poc?id=` row. | A `403` shows that a hidden contact with this id exists. The mirror does not show it. Locked by `TestParity_Status/DIVERGENCE_hidden_poc_detail_404`. | v1.14 (anonymous) · v1.28.0 (Users tier, `Private` contact) |
-| `ixlan.ixf_ixp_member_list_url` of a `Users` row, for a `Users`-tier caller (`PDBPLUS_PUBLIC_TIER=users`), when the mirror syncs without an API key | Emits the stored value: the URL, `null` or `""` (2.83.0 `permissions.py:344-353`). | Emits `null`. | An anonymous sync does not get the key for a `Users` row, because upstream deletes it (`permissions.py:350-353`). Sync stores NULL for an absent key. With an API key, sync gets the value, and the mirror emits it as upstream does. The default `public` tier omits the key, as upstream does for an anonymous caller. Locked by `TestParity_Serializer/DIVERGENCE_ixf_url_users_row_null_after_anonymous_sync`. | v1.28.0 |
-| `/api/netixlan?meta__planned_status_change__date__in=<dates>`, and `__in` on a time field, for example `/api/net?created__in=<times>` | Fails. Upstream parses the whole comma-separated value as one datetime (2.83.0 `rest.py:649`), which raises, and its error handler then fails on `inst[0]` (`:651`), so the response is `400`. For a single date, the parse succeeds and `v.split(",")` on the datetime (`:666`) raises an unhandled error (`500`). | Returns the rows whose date is in the list. On a time field, returns the rows at one of the listed times (see § Query parameters). | A list of whole dates has one clear meaning, and failing it has no value for a client. Locked by `TestParity_Meta/DIVERGENCE_date_in_filters` and `TestParity_In/DIVERGENCE_date_in_filters`. | v1.28.0 (registered 2026-09-23; time fields added 2026-09-27) |
-| A comparison on `created` or `updated` with a time in the same second as the stored value, for example `?created__gt=2024-01-01T12:30:45` for a row created at 12:30:45.5; a key without an operator that names a fraction of a second, for example `?created=2024-01-01 12:30:45.5` | Compares with microseconds: the columns are `DATETIME(6)`, and the API shows whole seconds. The row matches `__gt` and does not match `__lte`. A key without an operator matches the value as a prefix of the text with microseconds (`rest.py:678-679`). | Stores the second that the API shows, so the row matches `__lte` and does not match `__gt`. A key without an operator that goes on with a decimal point and up to 6 digits after the seconds matches every row of that second. | The mirror syncs from the API, which does not send the microseconds. Locked by `TestParity_In/DIVERGENCE_date_compare_whole_seconds`. | v1.37.0 (registered 2026-09-27) |
-| `?status=deleted&since=N` for a row that upstream deleted before the mirror's first sync, or that sync hard-deleted before v1.16 | Returns the tombstone with its deletion timestamp. | Returns empty until the history sweep has fetched the id window of the row. After that, returns the tombstone. A `poc` tombstone older than 30 days does not come back: the sweep skips `poc`, and upstream removes those tombstones. | A bare list holds only live rows, so the first sync gets no tombstones. The history sweep fetches them over many cycles (see [ARCHITECTURE.md § History sweep](ARCHITECTURE.md#history-sweep)). Locked by `TestParity_Status/list_since_admits_deleted_excludes_pending_noncampus` and `TestSync_HistorySweepLandsTombstones`. | v1.16; history sweep added in v1.32.0 |
-| A negative `skip`, or a negative `limit` at `depth` greater than `0`, on a list that upstream serves from its API cache: no filter key, no format suffix, a `since` that is absent or `0`, and a `limit` of `0` or more than `250` (any `limit` at `depth` greater than `0`), for example `/api/net?skip=-5` or `/api/net?depth=1&limit=-1` | Returns a slice of the list for a negative `skip`. Upstream serves such a list from its API cache file (`API_CACHE_ENABLED`, 2.83.0 `settings/__init__.py:399`, `api_cache.py:90-124`) and slices the rows with the Python slice rules (`api_cache.py:136-142`): `data[skip:]` without a `limit`, and `data[skip:skip+limit]` with one. So `skip=-5` returns the last 5 rows, `depth=1&skip=-2&limit=10` returns no rows on a list of 10 rows or more, and `depth=1&limit=-1` returns every row but the last (`data[:-1]`). Every other list returns `400` (`Negative indexing is not supported.`) for a negative `skip`, except a list with a `name_search` that matches no row (see § Name search), and serves every row for a negative `limit`. | Returns `400` (`Negative indexing is not supported.`) for every list with a negative `skip`, except a list with a `name_search` that matches no row, as upstream. Serves every row for a negative `limit` at every depth; a list at `depth` greater than `0` with a filter, a `since` other than `0` or `?q` is still cut to 250 rows (see § List depth). | The result depends on an upstream cache setting, not on the API rules. A negative offset is a client bug. Found by reading the code, not checked against a live upstream. Locked by `TestParity_Limit/DIVERGENCE_negative_skip_on_cacheable_list_returns_400`. | v1.21.0 (registered 2026-09-26) |
-| A string filter (`=`, `__contains`, `__startswith`, `__in`) on a folded field, for a row stored before the deploy that added the `_fold` column of the field | Folds via `unidecode.unidecode(v)` at query time (2.83.0 `rest.py:597`), so it works immediately. | The filter reads the `<field>_fold` shadow column, which sync writes. A deploy that adds a `_fold` column leaves it empty on the stored rows. An incremental cycle writes it only on the rows that upstream changed. The next full cycle (`PDBPLUS_FULL_SYNC_INTERVAL`, default 24h, or `POST /sync?mode=full`) writes it on all other rows. Until then, the filter does not match those rows, for ASCII and non-ASCII values. A new database has no window: the first sync writes every `_fold` column. | Shadow columns give SQLite one indexable comparison path (benchstat within ±1% of the direct path) and stay off the GraphQL/REST/proto wire (`entgql.Skip` / `entrest.WithSkip`). Locked by `TestParity_Unicode_FoldWindow_DIVERGENCE`. | v1.16 |
-| Text filters on stored JSON fields: `social_media` on the six searchable types, `meta` on `net` and `netixlan`, `ixp_update_exclude` on `net`, and their relation forms | MySQL JSON serialization and native JSON lookups determine matching. | Equality, case-insensitive substring/prefix and comma-separated `__in` compare normalized JSON text. Whitespace and object-key order are normalized. SQL NULL does not match. JSON-native containment, ordering and representation edge cases can differ. Unsupported JSON text operators return `400`. | These fields now filter instead of silently returning broader results. Text matching covers common queries without reproducing MySQL JSON storage. Locked by `TestStoredJSONFilters` and `TestJSONText`. | Registered 2026-10-29 |
-| `?q=<term>` on list endpoints | Ignored. The db-field filter loop skips `q` (2.83.0 `rest.py:566`) and no other consumer exists on the `/api` surface (the separate `name_search` parameter triggers the Elasticsearch-backed `search_v2`, `rest.py:532-553`), so any `?q=` value returns the unfiltered list. | Convenience **extension**: case-insensitive substring search (`ContainsFold`) across the type's SearchFields, plus exact-ASN match on `/api/net`. NOT diacritic-folded: `?q=munchen` does not match "München" although `?name__contains=munchen` does (the `_fold` shadow routing applies to the field filters only). With `?depth=` greater than `0`, the mirror counts `?q=` as a filter, so a list of more than 250 rows is cut to 250 with `meta.truncated` (`TestParity_Limit/list_depth_q_truncates`). Upstream serves the unfiltered list from its API cache, without truncation. | A search that narrows results is strictly more useful than upstream's silent no-op, and clients relying on upstream behaviour (unfiltered dump) should not be sending `?q=` at all. Fold-routing `?q=` would multiply every SearchFields OR-branch across the `_fold` shadows for marginal benefit; revisit if a real client asks. Locked by `TestParity_Unicode_QSearchExtension_DIVERGENCE`. | v1.1 (registered 2026-07-10) |
-| Filters on nonexcluded upstream model columns that the API does not serialize: `geocode_status` and `geocode_date` on `org` and `fac`, `location_method` and `location_place_id` on `fac`, `version` on every type, `notified_for_geocoords` on `fac`, and `avail_sonet`, `avail_ethernet` and `avail_atm` on `netfac`. This includes their relation forms. Relation keys also ignore the unavailable `vlan` column. | Filters these model columns through the model vocabulary or a `prepare_query` relation key (2.84.0 `serializers.py:1070-1119`, `models.py:223-236`). | Silently ignored: HTTP 200 with the unfiltered list. | The mirror does not receive the unserialized values. Stored JSON fields support text filters, as described above. Locked by `TestParity_Traversal/DIVERGENCE_unserialized_model_columns_silent_ignore`. Private columns in `FILTER_EXCLUDE` are now parity, not part of this divergence. | v1.1 (reclassified for 2.84.0) |
-| Legacy rows deleted before PeeringDB 2.84.0: `/api/netixlan?since=N` when N is not later than the `updated` value of a connection that upstream removed with its deleted network | A `?since` list returns nothing for the connection, and `?id=<id>&since=N` returns `404` `Entity not found` (2.83.0 `rest.py:809-815`). `pdb_rir_status` removes the live connections (`ok`, `not-operational`) of a network whose ASN the RIR reclaimed with an SQL delete, then soft-deletes the network (`management/commands/pdb_rir_status.py:440-443`, `models.py:5720-5725`). The connection gets no tombstone, although the API docs say that only contacts are hard-deleted (`docs/api/api_description.md:11-13`). | Returns the connection with `status` `deleted`, `operational` `false` and its last `updated` value, and `200` for the `id` query. Sync marks a live connection of a deleted network `deleted` when the RIR reclaim deleted the network in this sync, or when an uncached `?since=1&id__in=` request no longer returns it live. It does not change `updated`, and it leaves live a connection that upstream changed after the delete. Lists without `?since`, depth sets, relation keys, `/api/netixlan/<id>` and `?id=<id>` leave it out, as upstream does. | PeeringDB 2.84.0 emits normal child tombstones for new RIR deletions. This fallback remains for older deletions. Without a tombstone, the mirror would serve the connection as live forever. A client that applies the tombstone deletes a connection that upstream no longer has. A window that starts after the row's `updated` value does not return it. Locked by `TestParity_Status/DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window` and `TestSync_CascadesDeletedNetIxLans`. | v1.28.2 |
-| `/api/poc?since=N&fields=<list>` for a deleted contact when `<list>` leaves out `status`, for example `fields=id,name,email` | Returns the stored `name`, `phone`, `email` and `url`. The serializer removes the fields that `?fields=` does not name (2.83.0 `serializers.py:942-950`) and blanks the contact fields only when the rendered `status` is `deleted` (`:2941-2954`). A soft delete does not blank the stored values. | Returns `""` for these fields. pdbcompat blanks them before it applies `?fields=`, and sync stores a deleted contact without them. The mirror is **stricter** than upstream here. | The contact data of a deleted contact must not reach a caller, whatever fields the caller asks for. Locked by `TestParity_Status/DIVERGENCE_deleted_poc_blanked_without_status_field`. | v1.16 (registered 2026-09-23) |
-| Relation keys that upstream ignores: 2-hop keys, for example `ixpfx?ixlan__ix__id=` and `netixlan?net__org__name=`; reverse keys named by the mirror's traversal key, for example `org?net__name=`; and the field-level `FILTER_EXCLUDE` entries `org__latitude`, `org__longitude` and `ixlan__descr`, for example `fac?org__latitude__gt=` | Resolves one relation hop: `queryable_relations()` adds `<fk>__<field>` and `<related_name>__<field>` (2.83.0 `serializers.py:970-996`), and a `prepare_query` handles the keys whose first segment is in its seed list (`:614-656`). Other keys are ignored, and the list is unfiltered: `org?net__name=` becomes `network__name` (`serializers.py:403-441`), which is not a filter key (`rest.py:525-528`, `:670`). A key whose first segment a `prepare_query` handles is a relation filter (see § Relation filters). | Resolves each key through the Path A allowlist or the Path B edges and filters on the related rows as given, without a status check on them. The exception is `status`: a 2-hop key or a reverse key never filters it, so `org?net__status=` and `netixlan?net__org__status=` are ignored, as upstream. A field that is not a model field upstream is never a target either (see § Cross-entity traversal). | A 2-hop key and a reverse key have one clear meaning on the mirror's edges, and the extra filters cost one subquery each. Locked by `TestParity_Traversal/DIVERGENCE_relation_keys_upstream_ignores_resolve` and `TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`. The `status` keys are parity, locked by `TestParity_Traversal/status_on_reverse_and_2hop_keys_ignored_like_upstream`. | v1.16 (registered 2026-09-23) |
-| `?<field>__iexact=`, `__icontains=` and `__istartswith=`, for example `netixlan?status__iexact=OK`, `net?org__iexact=1` and `net?ix__name__icontains=x` | Ignored. The operator regex (2.83.0 `rest.py:616`) knows only `lt`, `lte`, `gt`, `gte`, `contains`, `startswith` and `in`, so a key with another suffix is not a filter key (`:628-630`, `:670`), and the list is unfiltered. On a relation key of a `prepare_query` (§ Relation filters), `get_relation_filters` does not parse the suffix (`serializers.py:614-656`). A 3-segment key, for example `net?ix__name__icontains=`, drops the suffix and runs an exact match, and so do the `netfac` and `ixfac` keys `name`, `country` and `city`. A status of the pinned row is then replaced with `ok`. After a lookup name, for example `fac?net__exact__iexact=`, upstream drops the suffix and runs the lookup, and the mirror does the same. A 2-segment key, for example `net?ixlan__iexact=`, keeps the suffix as a Django lookup on the relation, which raises `FieldError`, so upstream returns `400` (`rest.py:488-500`). `netixlan?name__iexact=` filters the name of the ixlan with the lookup (`serializers.py:3161-3169`), and `fac?org_name__iexact=` is ignored (`:2108-2117`). | Applies the suffix: an exact, substring or prefix match that ignores case. On an integer or decimal field, `__iexact` matches the text of the stored value, as a key without an operator does, so a value that is not in that form matches no row. On another field that is not a string, on a count key (`fac?net_count__iexact=`, `net?fac_count__iexact=`, `ix?net_count__iexact=`, `ix?fac_count__iexact=`) and on a key that names a FK, `__iexact` is an exact match, so a value that is not an integer returns `400`. `__icontains` and `__istartswith` are the same as `__contains` and `__startswith`, so they return `400` on a date field and on a key that names a FK. The `netixlan` `name` keys and the `fac` `org_name` keys with these suffixes match upstream (see § Relation filters). | These suffixes have one clear meaning, and `contains` and `startswith` already ignore case. The metadata keys accept only the upstream operators (see § Metadata filters). Locked by `TestParity_Status/DIVERGENCE_i_operator_suffixes_filter`. The lookup-name case is parity, locked by `TestParity_Traversal/relation_key_pk_and_lookup_names_like_upstream`. | v1.16 (registered 2026-09-23) |
-| `/api/as_set.json` and `/api/as_set/<asn>.json` | Returns `500`. The `as_set` list and retrieve take no `format` argument (2.83.0 `rest.py:1411-1414`), so the format suffix route calls them with an argument that they do not accept, which raises `TypeError`. Found by reading the code, not checked against a live upstream. | Returns the same body as the path without the suffix. | A server error has no use to a client, and the other routes serve the suffix. Locked by `TestParity_Status/DIVERGENCE_as_set_format_suffix_served`. | v1.37.0 (registered 2026-09-27) |
-| `netixlan?name__regex=`, `netixlan?name__iregex=`, and `netixlan?name__range=` with a value that is not two characters long | `related_to_name` applies the lookup to the ixlan name (2.83.0 `serializers.py:641-654`, `models.py:6172-6197`). `regex` and `iregex` run as MySQL `REGEXP`. Django `Range` iterates the characters of the value and builds `BETWEEN` from the first two, so another length fails as it builds the SQL, with a `500`. | Returns `400`. | SQLite has no `REGEXP` function, and a Go regular expression does not match as MySQL does. A `400` tells the caller that the value is wrong. Locked by `TestParity_Traversal/DIVERGENCE_netixlan_name_regex_and_range_lookups`. | v1.37.0 (registered 2026-09-27) |
-| `campus?facility__<field>=`, `campus?facility__in=` and the other `campus?facility` keys that match more than one facility of a campus | Returns the campus once for each matching facility. `related_to_facility` filters the reverse `fac_set` join (2.83.0 `models.py:2101-2111`). `_filters_may_produce_duplicates` looks up `facility`, which is not a `Campus` field, so upstream does not call `distinct()` (`rest.py:115-141`, `:715-716`). Found by reading the code, not checked against a live upstream. | Returns each campus once. | A list with repeated rows has no use to a client, and `distinct()` is what upstream runs for the other reverse joins. Locked by `TestParity_Traversal/DIVERGENCE_campus_facility_keys_no_duplicates`. | v1.28.0 (registered 2026-09-23) |
-| `/api/ixpfx?whereis=<address>` or `/api/ixpfx/<id>?whereis=<address>` while the table holds a prefix row with an empty prefix, for example the upstream tombstone ixpfx 4185 (`prefix: null`) | Returns `400`. `whereis_ip` tests the address against every row of every status (2.83.0 `rest.py:482`, `models.py:5193-5195`). django-inet loads an empty prefix as `None` (django-inet 1.1.1 `models.py:195-200`), `ip in None` raises `TypeError`, and `rest.py:497-498` returns it as `400`. An `ix` key that comes before `whereis` in the query string first keeps only the `ok` rows of that exchange (`models.py:221-234`, `:5166-5177`), and then the lookup works. This is derived from the source and was not verified on the live API. | Ignores rows with an empty prefix and returns the prefixes that contain the address. A single-object GET returns the prefix, or `404` when it does not contain the address. | The lookup has one clear meaning, and a `400` for every valid address has no value for a client. Sync stores the tombstone, because upstream sends it. Locked by `TestParity_Traversal/DIVERGENCE_whereis_ignores_empty_prefix_row`. | v1.37.0 (registered 2026-09-26) |
-| `?distance=` from a caller without a verified user account, on any `/api/` list or detail request | Returns `403`: "Please authenticate to use the `distance` filter", or "Please verify your account to use the `distance` filter" for a user who is not verified. `FilterDistanceThrottle` (2.83.0 `rest_throttles.py:275-331`, `:345-350`) is a default throttle class of every API view (`mainsite/settings/__init__.py:1467-1473`), and the settings require an authenticated, verified user (`:526-529`). DRF runs it before the query is built, so it comes before any `400`. An organization API key is not checked. A verified user gets the filter on `fac` and `org` at most 10 times per minute (`:459`); the other types ignore the key. | Serves the filter to every caller on `fac` and `org`, with no rate limit. The other 11 types ignore the key. | The mirror has no user accounts, so it cannot tell a verified user from an anonymous caller. The filter reads one table, about the cost of a full list. Locked by `TestParity_Traversal/DIVERGENCE_distance_served_without_auth`. | v1.37.0 (registered 2026-09-26) |
-| `fac?distance=<km>` or `org?distance=<km>` without `latitude` and `longitude`, with `city` and `country` (or `country__in`); and `fac?distance=<km>&name_search=<text>` without both `city` and `country` | Finds the coordinates of the address through the Google geocoding API and runs the distance search (2.83.0 `serializers.py:1866-1880`, `models.py:719-790`). On `fac`, `name_search` first finds a location in the search index (`serializers.py:2213-2280`). If no coordinates are found, the list is empty. | Returns `400`: the error message asks for `latitude` and `longitude`. | The mirror has no geocoder and no search index. An empty list would tell the client that no rows are near the address, which can be false. Locked by `TestParity_Traversal/DIVERGENCE_distance_without_coordinates_returns_400`. | v1.37.0 (registered 2026-09-26) |
-| A bare `city` filter on `fac` or `org` with one city, for example `fac?city=Frankfurt` or `org?city__in=Frankfurt&country=DE` | Becomes a distance search: `convert_to_spatial_search` (2.83.0 `serializers.py:1709-1834`, called at `:2203` and `:4985`) finds the city through the Google geocoding API, uses the diagonal of its bounding box as the distance (`geo.py:184-189`), and keeps the rows near the city, nearest first. The `city` key then does not filter (`rest.py:569-581`). This does not add `distance` to the query parameters, so the `403` for `distance` does not apply. A request with `distance` is not converted: a value of 0 or less keeps the substring match, and a positive value is a distance search. A request with two or more `country__in` values, or with no geocoding result, keeps the substring match. A geocoding result without a bounding box returns `400` (`serializers.py:1830-1832`, `geo.py:184-185`, `rest.py:497-498`). Found by reading the code; the live effect depends on the production API key and was not checked. | A substring match on the city, in `id` order (`rest.py:582-595`). A row with no coordinates can match. | The mirror has no geocoder. Locked by `TestParity_Traversal/DIVERGENCE_city_filter_is_substring_not_geocoded_radius`. | v1.21.0 (registered 2026-09-26) |
-| `fac` or `org` distance search with `?distance=nan`, `inf`, an overflowing value such as `1e999`, or a value in non-ASCII digits; or with a repeated `latitude` or `longitude`, or a `latitude` or `longitude` that is not a number | Python `float()` accepts `nan`, `inf`, `1e999` and non-ASCII digits, so `single_url_param` raises no error (2.83.0 `serializers.py:443-460`: only a `ValueError` is `400`), and `nan` and `inf` pass the `distance <= 0` test (`:1839`). `latitude` and `longitude` go to the SQL as the raw lists of URL values, not parsed (`rest.py:488-491`, `serializers.py:1881-1898`). The result then depends on the MySQL driver, which is not in the source tree; not checked against a live upstream. | `nan` and non-ASCII digits return `400`. `inf` and `1e999` keep every row with coordinates, nearest first. A repeated `latitude` or `longitude` uses its first value. A `latitude` or `longitude` that is not a finite number, or is empty, returns `400`. | SQLite binds NaN as NULL, so `nan` would match no row with no error. An infinite distance has one clear meaning. A number check on the coordinates gives a clear error in place of a database-specific cast of the text. Locked by `TestParity_Traversal/DIVERGENCE_distance_value_handling`. | v1.37.0 (registered 2026-09-26) |
-| `?name_search=` on the six searchable types, at uncommon token boundaries or with more than 1000 hits | Uses Elasticsearch analyzers, wildcard and phrase clauses, and the first 1000 ranked hits (2.84.0 `documents.py:52-65`, `search_v2.py:359-596`, `:962-967`). | Supports Unicode lowercase, Boolean wildcard clauses, and common phrase prefixes in SQL. Word boundaries keep internal apostrophes, dots and underscores, and separate Han, hiragana and katakana from adjacent Latin text. Full Lucene Unicode word-break and emoji rules remain unsupported. It does not reproduce Elasticsearch expansion limits or the 1000-hit cap. | The mirror has no search index. Common text cases are covered by `TestParity_NameSearch/text_operators_and_phrases` and `word_boundary_corpus`. Paginated `name_search` returns every match without a search-hit cap; the cap test also checks aggregation across pages. The retained cap difference is covered by `TestParity_NameSearch/DIVERGENCE_api_search_name_order_and_cap`. | v1.39.0 (narrowed 2026-10-28) |
-| `?name_search=` with a partial IPv4 address that has a number above 255, for example `net?name_search=999.1.1.1`; and `?name_search=` with no match together with a bad value in a model-field filter, `id__in` included, for example `net?name_search=nomatch&asn__lt=abc` or `net?name_search=nomatch&id__in=abc` | The first returns `500`: the IPv4 branch leaves the search term a list, and `construct_query_body` fails on it (2.83.0 `search_v2.py:888-891`, `:618`). The second returns `200` with no rows: `get_queryset` returns before the filter loop when the search has no hit (`rest.py:550-553`). Found by reading the code, not checked against a live upstream. | The first searches the value as text (`200`). The second returns `400`, as for any bad filter value. | A `500` is an upstream bug. The mirror checks every filter value before it runs the query, and whether the search has a hit is known only when the query runs. On the 7 types without a search index, and for a value that can match nothing, the result is known before the query, and the mirror matches upstream. Locked by `TestParity_NameSearch/DIVERGENCE_name_search_error_status`. | v1.37.0 (registered 2026-09-26) |
-| A single-object GET that upstream answers with a server error: a negative `skip`, unless the request has a `name_search` that matches no row, for example `/api/net/<id>?skip=-1`; a `since` that is a number but not an integer, for example `/api/net/<id>?since=1.5`; on a list or a single-object GET, a `since` that is infinite or too large for a float, for example `?since=inf` or `?since=1e999`; a `name_search` value on `org`, `fac`, `ix`, `net`, `campus` or `carrier` that Python `int()` rejects after the digit test, for example `/api/net/<id>?name_search=%C2%B2`; a filter value that does not parse for the field type, for example `?asn__lt=abc` or `?created__lt=x`, or an empty `__in` on an integer field (`?asn__in=`); and `/api/campus/<id>?facility__in=<ids>` (or another `campus?facility` key) that matches two or more facilities of the campus | Returns `500`. `retrieve` (2.83.0 `rest.py:849-865`) has no error handler, and DRF runs `get_queryset` outside its `404` wrapper. A negative `skip` makes Django raise `ValueError` at the slice (`rest.py:755-760`). The API cache loader runs `int()` on `since` (`rest.py:707`, `api_cache.py:80`), which raises `ValueError` for `1.5`, and `int(float())` raises `OverflowError` for `inf` (`rest.py:505-510`), which no handler catches on a list either. `get_queryset` calls `search_v2` outside the `prepare_query` handler (`rest.py:546`), and `int()` raises `ValueError` for a digit such as `²` (`search_v2.py:385`, `:619`; a list returns `400`, `rest.py:824-827`). A filter value error goes to a handler that reads `inst[0]` (`rest.py:647-651`, `:693-701`), which raises a new `TypeError` (a list catches it and returns `400`, `rest.py:828-831`). For the campus key, the join on the facilities (`serializers.py:4852-4869`) returns the campus once for each facility, upstream does not call `distinct()` (`rest.py:115-141`, `:711-716`), and the lookup finds more than one row. Found by reading the code, not checked against a live upstream. | Returns `400` for a negative `skip`, a `name_search` value that `int()` rejects, a `since` of `1.5` or a filter value that does not parse, as on a list. Returns `400` (`'since' needs to be a unix timestamp (epoch seconds)`) for an infinite `since`. Returns the campus for the `campus?facility` key. | A server error has no use to a client. The mirror answers as a list request does. Locked by `TestParity_Status/DIVERGENCE_detail_upstream_server_errors`. | v1.37.0 (registered 2026-09-26) |
-| `/api/netixlan` without `?since` | Returns the rows in the order of the MySQL access path, because the query has no `ORDER BY` (2.83.0 `rest.py:747-748`). MySQL can read the `status IN ('ok', 'not-operational')` filter through the `netixlan_status` index (`models.py:6111`), which returns the `not-operational` rows first. A live capture on 2026-09-23 of `/api/netixlan?limit=2` returned two `not-operational` rows ahead of `ok` rows with lower ids. Other filters can also change the upstream order when MySQL reads the rows through a different index. | Always returns `id` order, ascending (see § List order). | An order that depends on the query plan cannot be reproduced, and it changes when the upstream data or indexes change. A fixed order keeps `skip`/`limit` pages stable. Locked by `TestParity_Ordering/DIVERGENCE_netixlan_list_order_is_id_asc`. | v1.28.0 (registered 2026-09-23) |
-| `/api/poc?id=<id>` for a contact that the caller's tier cannot read: a `Users` contact for an anonymous caller, or a `Private` contact for any tier | Returns `200` with an empty `data` array. The unique-query `404` check runs before `APIPermissionsApplicator` removes the contact (2.83.0 `rest.py:809-821`), so the status shows that the contact exists: a missing id gets `404`. The same applies to a user who is not a member of the organization that owns a `Private` contact. | Returns `404` (`Entity not found`), the same as for a missing id. | The `poc.visible` privacy policy removes the contact in the query, before the check, so the status does not show whether a hidden contact exists. The mirror is stricter than upstream here. Locked by `TestParity_Status/DIVERGENCE_poc_hidden_id_returns_404`. | v1.28.0 (registered 2026-09-23) |
-| An `/api/` request whose `Accept` header names `application/problem+json` with a `q` value above 0, for example `Accept: application/problem+json` | Returns `406` with `{"meta": {"error": "Could not satisfy the request Accept header."}}` when no range in the header matches `application/json` (DRF content negotiation, `rest_framework/negotiation.py:78`). When the header also has `*/*` or `application/json`, an error has the `meta.error` form. | An error has an RFC 9457 `application/problem+json` body. A success response is the normal JSON envelope. The mirror sends no `406` for such a header. For every other header, the mirror sends the upstream `406`. | Clients that ask for RFC 9457 errors get the same form as from the REST API of the mirror. Upstream clients do not send this media type. Locked by `TestParity_Limit/DIVERGENCE_problem_json_when_accept_names_it`. | v1.37.0 (registered 2026-09-26) |
-| A path under `/api/` that no upstream route matches: a path that names no type, for example `/api/foo`, a path with a `/` at the end, for example `/api/net/` or `/api/net/1/`, and a path with more segments | Returns the `404` HTML page of the web site (`mainsite/urls.py:111`, `views.py:336-340`), for every method. The routes have no `/` at the end (2.83.0 `rest.py:185-230`, `:1305`), and `APPEND_SLASH` only adds a `/`. | Returns `404` with `{"meta": {"error": "unknown type \"foo\""}}`, or with `Not found.` for the other paths, for every method. The Go router sends a `307` to the clean path first for a path with a repeated `/` or a `.` or `..` segment, for example from `/api//net` to `/api/net`. | A JSON client can read the error. The status code is the same. Locked by `TestParity_Status/DIVERGENCE_unknown_path_json_404`. | v1.37.0 (registered 2026-09-26, `/` at the end 2026-09-27) |
-| `/api/{tag}/self` from a caller with an API key or a session, for example `/api/net/self` with `Authorization: Api-Key <key>` | Redirects to the object of the caller's primary organization: the organization itself for `org`, else its first `ok` object of the tag, and the default object when it has none (2.83.0 `rest.py:1617-1636`). | Redirects every caller to the default object of the tag (see § Self paths). | The mirror has no user or organization data, and it does not check API keys. Locked by `TestParity_Status/DIVERGENCE_self_redirects_keyed_caller_to_default`. | v1.39.0 (registered 2026-09-27) |
-| An organization users path (`/api/org/{id}/users` and the paths below it) from a caller with an API key, or more than one request per second | Lists the users of the organization for the key of an organization admin, or for an organization key with the users permission, and runs the add, change and remove actions (2.83.0 `rest.py:1726-1748`, `:1775-1972`). Another key gets `403` with another text. `OrganizationUsersThrottle` allows 1 request per second (`rest_throttles.py:598-611`) and answers more with `429`. | Returns `403` (`Invalid authentication`) for an `ok` organization, for every caller, with no rate limit (see § Organization users paths). | The mirror has no user data, does not check API keys and is read-only. Locked by `TestParity_Status/DIVERGENCE_org_users_keyed_caller_403`. | v1.39.0 (registered 2026-09-27) |
-| `OPTIONS` on `/api/org/{id}/users/{user_id}` when `{id}` is an organization with the status `ok` | Returns `500`. SimpleMetadata calls `get_object` for `PUT` (DRF `metadata.py:74-100`), which fails its assertion that the route has a `pk` argument (DRF `generics.py:79-96`, 2.83.0 `rest.py:1676-1694`). | Returns `200` with the metadata without `actions`, the body that upstream sends when the organization is not an `ok` row. | A server error gives the caller no information. Locked by `TestParity_Status/DIVERGENCE_org_users_options_change_route_200`. | v1.39.0 (registered 2026-09-27) |
-| `GET /api/asset/{tag}/{id}/logo` of an object whose `created` or `updated` has a fraction of a second | Renders the time with its microseconds, for example `2020-01-02T03:04:05.678901+00:00` (Python `isoformat`, 2.83.0 `renderers.py:35-36`). | Renders whole seconds, for example `2020-01-02T03:04:05+00:00`. | The upstream API sends whole seconds, so the mirror stores no fraction. Locked by `TestParity_Status/DIVERGENCE_asset_timestamps_whole_seconds`. | v1.40.0 (registered 2026-09-27) |
-| `POST`, `PUT` or `DELETE` on an asset path from a caller with an API key that has write permission on the object, or more than 2 such requests a minute | Stores or deletes the logo (2.83.0 `rest.py:1495-1590`). `WriteRateThrottle` allows 2 writes a minute per user or address (`rest_throttles.py:574-595`) and answers more with `429`. | Returns `403` for every request that passes the checks, with no rate limit (see § Asset paths). | The mirror is read-only, does not check API keys, and sends no request that changes upstream data. Locked by `TestParity_Status/DIVERGENCE_asset_writes_keyed_caller_403`. | v1.40.0 (registered 2026-09-27) |
-| `GET /api/asset/{tag}/{id}/logo` when the mirror cannot read the logo file | Reads the file from its own storage, and sends `file_data` `null` only when that read fails (2.83.0 `serializers.py:5277-5283`). | Reads the file from the upstream media host. `file_data` is `null` when the read fails, when the host answers with a status other than `200`, when the file is larger than 1 MiB, or when the logo URL names another host. After a failed read, the mirror waits 5 minutes before it reads that URL again. | The mirror stores the logo URL, not the file. Locked by `TestParity_Status/DIVERGENCE_asset_file_data_unreadable_null`. | v1.40.0 (registered 2026-09-27) |
-| A `POST` or `PUT` body on an asset path with a charset other than `utf-8`, `latin-1` or `ascii`, larger than 1 MB, or at the edge of a parser | Decodes the body with any charset that Python knows (Django 5.2 `http/request.py:152-163`) and accepts bodies up to 2.5 MB. The multipart parser decodes a `base64` transfer encoding and HTML entities in file names, and Pillow also identifies MPO files. | Reads another charset as `utf-8` and returns `413` for a body larger than 1 MB. It does not decode a multipart `base64` transfer encoding or HTML entities in file names. The order of `POST` and `PUT` in the `OPTIONS` body is fixed (upstream: the order of a Python set). | Every such body fails a field check or gets `403`, as upstream, so only the error text can differ. Locked by `TestParity_Status/DIVERGENCE_asset_body_other_charset_read_as_utf8`. | v1.40.0 (registered 2026-09-27) |
-| A `POST` or `PUT` body on an asset path with JSON that is not an object, for example `[1]`, or JSON nested deeper than 1000 levels | Returns `500`: `{**request.data}` raises `TypeError` for a value that is not a mapping (2.83.0 `rest.py:1506-1511`, `:1540-1545`), and the JSON decoder raises `RecursionError` for a deep document. | Returns `400`: `{"non_field_errors": ["Invalid data. Expected a dictionary, but got list."]}` (the DRF `Serializer` error for data that is not a dict, DRF `serializers.py:497-503`), or `JSON parse error - maximum recursion depth exceeded while decoding a JSON document`. | A request must not cause a server error: a `500` counts against the error-rate alerts. Locked by `TestParity_Status/DIVERGENCE_asset_non_object_json_400`. | v1.40.0 (registered 2026-09-27) |
-| An `/api/` request with an `Authorization` header that upstream rejects: `Api-Key <key>` with a key that is unknown, revoked or inactive, or `Basic` with a wrong user name or password, an inactive account, or a value that is not base64 of `<user>:<password>` | `PDBPermissionMiddleware` checks the header before any view (2.83.0 `middleware.py:228-346`). An unknown key returns `401` with `{"meta": {"error": "Invalid API key"}}`, a revoked or inactive key `401` `Inactive API key`. A `Basic` header returns `401` `Invalid username or password` or `Inactive account`, or `400` `Corrupt base64 input.` or `Invalid Input.`. | Ignores the header and answers as for a caller without credentials. The privacy tier comes from `PDBPLUS_PUBLIC_TIER`, not from the request. | The mirror has no user or key data. Locked by `TestParity_Status/DIVERGENCE_invalid_credentials_ignored`. | v1.39.0 (registered 2026-09-27) |
-| `/api/search` with an `Authorization` header of two words that upstream does not accept, for example `Api-Key <unknown key>`, or with the key of a user who hides exchanges without facilities | `PDBPermissionMiddleware` checks an API key before any view: an unknown key gets `401` with `{"meta": {"error": "Invalid API key"}}`, a revoked or inactive key `401` with `Inactive API key` (2.83.0 `middleware.py:229-346`). A user key applies the user's `hide_ixs_without_fac` setting to the `ix` hits (`search_v2.py:693-718`). | Runs the search for every header of two words (see § Search). | The mirror has no user accounts and does not check API keys. Locked by `TestParity_NameSearch/DIVERGENCE_api_search_key_not_checked`. | v1.39.0 (registered 2026-09-27) |
-| `/api/search` results: a location in `q` (`near <lat>,<lon>`, `near <place>`, `in <place>`), the order of the hits and the 1000-hit cap, and a digit value that Python `int()` rejects | Turns the location into a filter by distance (Google geocoding, or the search index for a place name, `views.py:3823-4098`), and with no text left returns up to 1000 rows near it. Keeps the first 1000 hits of the search index in score order over the 6 types (`settings/__init__.py:1516`, `search_v2.py:962-967`) and sorts each type by score, then by lower-case name (`search_v2.py:325-329`). The words match as the search index matches them (see the `name_search` row). A digit such as `²` raises `ValueError`, and the view answers `500` (`search_v2.py:385`, `:393`). | Removes the same location words and does not filter by location, so it returns more rows, and no row when no text is left. Keeps the first 1000 hits in lower-case name order over all types (SQLite `lower()` folds ASCII letters only) and sorts each type by name. Matches as `name_search` does. Returns `400` with `{"error": "invalid literal for int() with base 10: '²'"}`. | The mirror has no geocoder and no search index. The name order is a stable order that a client can predict. Locked by `TestParity_NameSearch/DIVERGENCE_api_search_location_words_dropped`, `TestParity_NameSearch/DIVERGENCE_api_search_name_order_and_cap` and `TestParity_NameSearch/DIVERGENCE_api_search_int_error_400`. | v1.39.0 (registered 2026-09-27) |
-| A write method that upstream maps (`POST` on a list, `PUT`, `PATCH` or `DELETE` on an object), `OPTIONS`, and the `Allow` header | Runs the handler. For an anonymous caller: `POST` or `PUT` with no body returns `400` (`No data was supplied with the POST request`, 2.83.0 `rest.py:867-924`), `PATCH` returns `403` (`:970-974`), `DELETE` returns `204`, `403` or `400` (`:978-1020`), and `OPTIONS` returns `200` with DRF metadata. Every response has `Allow` with the methods of the route: `GET, POST, HEAD, OPTIONS` on a list, `GET, PUT, PATCH, DELETE, HEAD, OPTIONS` on an object (`GET` and `GET, PUT` for `ixlan`). A method that the route does not map returns `405` with `Method "<METHOD>" not allowed.`. `as_set` answers an anonymous write with `401` (`Authentication credentials were not provided.`, DRF `views.py:174-180`, `permissions.py:191-199`) and `OPTIONS` with `405`, and sends `Allow: GET` (`rest.py:1396-1399`). | On a path that an upstream route matches, write methods return `405` with `{"meta": {"error": "Method \"<METHOD>\" not allowed."}}` and `Allow: GET, HEAD, OPTIONS` (`Allow: GET` on the `as_set` and `ixlan` paths, where `HEAD` and `OPTIONS` return `405` as upstream). The `self` and organization users paths and `/api/search` answer as upstream (see § Self paths, § Organization users paths and § Search). Ordinary read routes answer `OPTIONS` with `200` and DRF metadata without write actions. Read responses and errors carry the same supported-method `Allow` header. Metadata names use the upstream List/Instance suffixes. | The mirror is read-only. Writes go to PeeringDB. Locked by `TestParity_Status/DIVERGENCE_non_get_method_405_read_only`. | v1.37.0 (registered 2026-09-26) |
+| Difference | Since |
+|------------|-------|
+| [Depth above two](#depth-above-two) | v1.16 (list) · v1.20.5 (detail 3-4) |
+| [Child date filters on other fields](#child-date-filters-on-other-fields) | v1.37.0 (registered 2026-09-27) |
+| [Contact ID lists](#contact-id-lists) | v1.20.5; upstream cache distinction reviewed for 2.84.1 |
+| [Hidden contact detail](#hidden-contact-detail) | v1.14 (anonymous) · v1.28.0 (Users tier, `Private` contact) |
+| [Unavailable IX-F URL](#unavailable-ix-f-url) | v1.28.0 |
+| [Time membership filters](#time-membership-filters) | v1.28.0 (registered 2026-09-23; time fields added 2026-09-27) |
+| [Subsecond timestamps](#subsecond-timestamps) | v1.37.0 (registered 2026-09-27) |
+| [Tombstones before the first sync](#tombstones-before-the-first-sync) | v1.16; history sweep added in v1.32.0 |
+| [Negative cached-list pagination](#negative-cached-list-pagination) | v1.21.0 (registered 2026-09-26) |
+| [Rows without folded values](#rows-without-folded-values) | v1.16 |
+| [JSON text filters](#json-text-filters) | Registered 2026-10-29 |
+| [List text search](#list-text-search) | v1.1 (registered 2026-07-10) |
+| [Unserialized model columns](#unserialized-model-columns) | v1.1 (reclassified for 2.84.0) |
+| [Legacy deleted-network connections](#legacy-deleted-network-connections) | v1.28.2 |
+| [Deleted contact projection](#deleted-contact-projection) | v1.16 (registered 2026-09-23) |
+| [Additional traversal keys](#additional-traversal-keys) | v1.16 (registered 2026-09-23) |
+| [Case-insensitive operator suffixes](#case-insensitive-operator-suffixes) | v1.16 (registered 2026-09-23) |
+| [AS-SET format suffixes](#as-set-format-suffixes) | v1.37.0 (registered 2026-09-27) |
+| [Netixlan name operators](#netixlan-name-operators) | v1.37.0 (registered 2026-09-27) |
+| [Campus facility duplicates](#campus-facility-duplicates) | v1.28.0 (registered 2026-09-23) |
+| [Empty prefix rows](#empty-prefix-rows) | v1.37.0 (registered 2026-09-26) |
+| [Distance search authentication](#distance-search-authentication) | v1.37.0 (registered 2026-09-26) |
+| [Distance search without coordinates](#distance-search-without-coordinates) | v1.37.0 (registered 2026-09-26) |
+| [City geocoding](#city-geocoding) | v1.21.0 (registered 2026-09-26) |
+| [Invalid distance values and coordinates](#invalid-distance-values-and-coordinates) | v1.37.0 (registered 2026-09-26) |
+| [Name search matching and cap](#name-search-matching-and-cap) | v1.39.0 (narrowed 2026-10-28) |
+| [Name search error precedence](#name-search-error-precedence) | v1.37.0 (registered 2026-09-26) |
+| [Detail request server errors](#detail-request-server-errors) | v1.37.0 (registered 2026-09-26) |
+| [Netixlan list order](#netixlan-list-order) | v1.28.0 (registered 2026-09-23) |
+| [Hidden contact ID lookup](#hidden-contact-id-lookup) | v1.28.0 (registered 2026-09-23) |
+| [Problem JSON negotiation](#problem-json-negotiation) | v1.37.0 (registered 2026-09-26) |
+| [Unmatched API paths](#unmatched-api-paths) | v1.37.0 (registered 2026-09-26, `/` at the end 2026-09-27) |
+| [Authenticated self paths](#authenticated-self-paths) | v1.39.0 (registered 2026-09-27) |
+| [Organization users authentication and throttle](#organization-users-authentication-and-throttle) | v1.39.0 (registered 2026-09-27) |
+| [Organization user OPTIONS](#organization-user-options) | v1.39.0 (registered 2026-09-27) |
+| [Asset timestamp precision](#asset-timestamp-precision) | v1.40.0 (registered 2026-09-27) |
+| [Asset writes and throttle](#asset-writes-and-throttle) | v1.40.0 (registered 2026-09-27) |
+| [Missing logo files](#missing-logo-files) | v1.40.0 (registered 2026-09-27) |
+| [Asset body parsing limits](#asset-body-parsing-limits) | v1.40.0 (registered 2026-09-27) |
+| [Non-object asset JSON](#non-object-asset-json) | v1.40.0 (registered 2026-09-27) |
+| [Invalid request credentials](#invalid-request-credentials) | v1.39.0 (registered 2026-09-27) |
+| [Search authentication](#search-authentication) | v1.39.0 (registered 2026-09-27) |
+| [Search location and result order](#search-location-and-result-order) | v1.39.0 (registered 2026-09-27) |
+| [Read-only methods and metadata](#read-only-methods-and-metadata) | v1.37.0 (registered 2026-09-26) |
+
+### Depth above two
+
+**Request:** `?depth=3` on list endpoints (also `?depth=4` with `?page=`); `?depth=3`/`4` on detail
+
+**Upstream:** A list at depth 3 gives each expanded set element its own `_set` fields as ID lists, for the set elements that have reverse sets (`org`: `net_set`, `ix_set`, `carrier_set`, `campus_set`; `ix`: `ixlan_set`; `ixlan`: `net_set`) (2.83.0 `serializers.py:1240-1309`, `pdb_api_test.py:4140-4152`).
+With `?page=`, a list takes the detail maximum of depth 4 (`serializers.py:933-934`, `:1024-1031`) and prefetches the sets of three levels (`rest.py:774-777`).
+Detail expands a third sub-level at depth 3-4.
+
+**Mirror:** Both render the depth-2 shape.
+List depths `1` and `2` and detail depths `0`/`1`/`2` match upstream.
+
+**Rationale and tests:** Depth>2 sub-nesting is data almost no client reads three levels deep.
+Locked by `TestParity_Serializer/DIVERGENCE_list_depth3_renders_depth2_shape` and `TestDepth_DepthOne/depth_clamped_to_0_4`.
+
+**Since:** v1.16 (list) · v1.20.5 (detail 3-4).
+
+### Child date filters on other fields
+
+**Request:** `?_ctf` when the date filter that upstream reads last is not `created` or `updated` of the listed type, for example `net?depth=1&_ctf&rir_status_updated__gt=<date>` or `fac?depth=1&_ctf&org__updated__gt=<date>`, and the response has a `_set`
+
+**Upstream:** Returns `500`.
+Upstream filters the related model of each `_set` with the key as given (2.83.0 `serializers.py:998-1002`).
+No related model has that field, so Django raises `FieldError` while it builds the query, and the view does not catch it (`rest.py:826-833`).
+Found by reading the code, not checked against a live upstream.
+
+**Mirror:** Filters no `_set`.
+The date filter still filters the listed rows.
+
+**Rationale and tests:** A server error is an upstream bug.
+Locked by `TestParity_Serializer/DIVERGENCE_ctf_other_date_key`.
+
+**Since:** v1.37.0 (registered 2026-09-27).
+
+### Contact ID lists
+
+**Request:** `poc_set` ID lists at `?depth=1` on detail and list responses, and the nested `net.poc_set` at detail depth 2
+
+**Upstream:** PeeringDB 2.84.1 filters contact IDs by permission.
+Shared cached ID lists contain Public contacts only, including for authenticated callers.
+Uncached lists use the caller's permissions.
+
+**Mirror:** The local row policy applies to every query.
+Anonymous callers receive Public IDs only.
+The Users tier receives Public and Users IDs, never Private IDs.
+
+**Rationale and tests:** Anonymous ID visibility matches the new upstream rule.
+The Users tier can receive more IDs than an upstream shared cached response.
+The mirror does not use that shared body cache.
+Locked by `TestDepth_PocSetPrivacy_DIVERGENCE`.
+
+**Since:** v1.20.5; upstream cache distinction reviewed for 2.84.1.
+
+### Hidden contact detail
+
+**Request:** `/api/poc/<id>` for a contact that the caller's tier cannot read: a `Users` contact for an anonymous caller, or a `Private` contact for any tier
+
+**Upstream:** Returns `403`.
+`retrieve` (2.83.0 `rest.py:849-865`) returns `HTTP_403_FORBIDDEN` when the permission applicator denies the object.
+The upstream tests expect it for a guest and a `Users` contact (`pdb_api_test.py:3855-3856`) and for a user who is not a member of the owning organization and a `Private` contact (`:1413-1414`), through `assert_get_forbidden` (`:575-577`).
+
+**Mirror:** Returns `404`, the same as for an id that does not exist.
+REST, ConnectRPC and GraphQL also use their not-found forms.
+The list content matches upstream: both leave the contact out.
+For the status code of `/api/poc?id=<id>`, see the `/api/poc?id=` row.
+
+**Rationale and tests:** A `403` shows that a hidden contact with this id exists.
+The mirror does not show it.
+Locked by `TestParity_Status/DIVERGENCE_hidden_poc_detail_404`.
+
+**Since:** v1.14 (anonymous) · v1.28.0 (Users tier, `Private` contact).
+
+### Unavailable IX-F URL
+
+**Request:** `ixlan.ixf_ixp_member_list_url` of a `Users` row, for a `Users`-tier caller (`PDBPLUS_PUBLIC_TIER=users`), when the mirror syncs without an API key
+
+**Upstream:** Emits the stored value: the URL, `null` or `""` (2.83.0 `permissions.py:344-353`).
+
+**Mirror:** Emits `null`.
+
+**Rationale and tests:** An anonymous sync does not get the key for a `Users` row, because upstream deletes it (`permissions.py:350-353`).
+Sync stores NULL for an absent key.
+With an API key, sync gets the value, and the mirror emits it as upstream does.
+The default `public` tier omits the key, as upstream does for an anonymous caller.
+Locked by `TestParity_Serializer/DIVERGENCE_ixf_url_users_row_null_after_anonymous_sync`.
+
+**Since:** v1.28.0.
+
+### Time membership filters
+
+**Request:** `/api/netixlan?meta__planned_status_change__date__in=<dates>`, and `__in` on a time field, for example `/api/net?created__in=<times>`
+
+**Upstream:** Fails.
+Upstream parses the whole comma-separated value as one datetime (2.83.0 `rest.py:649`), which raises, and its error handler then fails on `inst[0]` (`:651`), so the response is `400`.
+For a single date, the parse succeeds and `v.split(",")` on the datetime (`:666`) raises an unhandled error (`500`).
+
+**Mirror:** Returns the rows whose date is in the list.
+On a time field, returns the rows at one of the listed times (see § Query parameters).
+
+**Rationale and tests:** A list of whole dates has one clear meaning, and failing it has no value for a client.
+Locked by `TestParity_Meta/DIVERGENCE_date_in_filters` and `TestParity_In/DIVERGENCE_date_in_filters`.
+
+**Since:** v1.28.0 (registered 2026-09-23; time fields added 2026-09-27).
+
+### Subsecond timestamps
+
+**Request:** A comparison on `created` or `updated` with a time in the same second as the stored value, for example `?created__gt=2024-01-01T12:30:45` for a row created at 12:30:45.5; a key without an operator that names a fraction of a second, for example `?created=2024-01-01 12:30:45.5`
+
+**Upstream:** Compares with microseconds: the columns are `DATETIME(6)`, and the API shows whole seconds.
+The row matches `__gt` and does not match `__lte`.
+A key without an operator matches the value as a prefix of the text with microseconds (`rest.py:678-679`).
+
+**Mirror:** Stores the second that the API shows, so the row matches `__lte` and does not match `__gt`.
+A key without an operator that goes on with a decimal point and up to 6 digits after the seconds matches every row of that second.
+
+**Rationale and tests:** The mirror syncs from the API, which does not send the microseconds.
+Locked by `TestParity_In/DIVERGENCE_date_compare_whole_seconds`.
+
+**Since:** v1.37.0 (registered 2026-09-27).
+
+### Tombstones before the first sync
+
+**Request:** `?status=deleted&since=N` for a row that upstream deleted before the mirror's first sync, or that sync hard-deleted before v1.16
+
+**Upstream:** Returns the tombstone with its deletion timestamp.
+
+**Mirror:** Returns empty until the history sweep has fetched the id window of the row.
+After that, returns the tombstone.
+A `poc` tombstone older than 30 days does not come back: the sweep skips `poc`, and upstream removes those tombstones.
+
+**Rationale and tests:** A bare list holds only live rows, so the first sync gets no tombstones.
+The history sweep fetches them over many cycles (see [ARCHITECTURE.md § History sweep](ARCHITECTURE.md#history-sweep)).
+Locked by `TestParity_Status/list_since_admits_deleted_excludes_pending_noncampus` and `TestSync_HistorySweepLandsTombstones`.
+
+**Since:** v1.16; history sweep added in v1.32.0.
+
+### Negative cached-list pagination
+
+**Request:** A negative `skip`, or a negative `limit` at `depth` greater than `0`, on a list that upstream serves from its API cache: no filter key, no format suffix, a `since` that is absent or `0`, and a `limit` of `0` or more than `250` (any `limit` at `depth` greater than `0`), for example `/api/net?skip=-5` or `/api/net?depth=1&limit=-1`
+
+**Upstream:** Returns a slice of the list for a negative `skip`.
+Upstream serves such a list from its API cache file (`API_CACHE_ENABLED`, 2.83.0 `settings/__init__.py:399`, `api_cache.py:90-124`) and slices the rows with the Python slice rules (`api_cache.py:136-142`): `data[skip:]` without a `limit`, and `data[skip:skip+limit]` with one.
+So `skip=-5` returns the last 5 rows, `depth=1&skip=-2&limit=10` returns no rows on a list of 10 rows or more, and `depth=1&limit=-1` returns every row but the last (`data[:-1]`).
+Every other list returns `400` (`Negative indexing is not supported.`) for a negative `skip`, except a list with a `name_search` that matches no row (see § Name search), and serves every row for a negative `limit`.
+
+**Mirror:** Returns `400` (`Negative indexing is not supported.`) for every list with a negative `skip`, except a list with a `name_search` that matches no row, as upstream.
+Serves every row for a negative `limit` at every depth; a list at `depth` greater than `0` with a filter, a `since` other than `0` or `?q` is still cut to 250 rows (see § List depth).
+
+**Rationale and tests:** The result depends on an upstream cache setting, not on the API rules.
+A negative offset is a client bug.
+Found by reading the code, not checked against a live upstream.
+Locked by `TestParity_Limit/DIVERGENCE_negative_skip_on_cacheable_list_returns_400`.
+
+**Since:** v1.21.0 (registered 2026-09-26).
+
+### Rows without folded values
+
+**Request:** A string filter (`=`, `__contains`, `__startswith`, `__in`) on a folded field, for a row stored before the deploy that added the `_fold` column of the field
+
+**Upstream:** Folds via `unidecode.unidecode(v)` at query time (2.83.0 `rest.py:597`), so it works immediately.
+
+**Mirror:** The filter reads the `<field>_fold` shadow column, which sync writes.
+A deploy that adds a `_fold` column leaves it empty on the stored rows.
+An incremental cycle writes it only on the rows that upstream changed.
+The next full cycle (`PDBPLUS_FULL_SYNC_INTERVAL`, default 24h, or `POST /sync?mode=full`) writes it on all other rows.
+Until then, the filter does not match those rows, for ASCII and non-ASCII values.
+A new database has no window: the first sync writes every `_fold` column.
+
+**Rationale and tests:** Shadow columns give SQLite one indexable comparison path (benchstat within ±1% of the direct path) and stay off the GraphQL/REST/proto wire (`entgql.Skip` / `entrest.WithSkip`).
+Locked by `TestParity_Unicode_FoldWindow_DIVERGENCE`.
+
+**Since:** v1.16.
+
+### JSON text filters
+
+**Request:** Text filters on stored JSON fields: `social_media` on the six searchable types, `meta` on `net` and `netixlan`, `ixp_update_exclude` on `net`, and their relation forms
+
+**Upstream:** MySQL JSON serialization and native JSON lookups determine matching.
+
+**Mirror:** Equality, case-insensitive substring/prefix and comma-separated `__in` compare normalized JSON text.
+Whitespace and object-key order are normalized.
+SQL NULL does not match.
+JSON-native containment, ordering and representation edge cases can differ.
+Unsupported JSON text operators return `400`.
+
+**Rationale and tests:** These fields now filter instead of silently returning broader results.
+Text matching covers common queries without reproducing MySQL JSON storage.
+Locked by `TestStoredJSONFilters` and `TestJSONText`.
+
+**Since:** Registered 2026-10-29.
+
+### List text search
+
+**Request:** `?q=<term>` on list endpoints
+
+**Upstream:** Ignored.
+The db-field filter loop skips `q` (2.83.0 `rest.py:566`) and no other consumer exists on the `/api` surface (the separate `name_search` parameter triggers the Elasticsearch-backed `search_v2`, `rest.py:532-553`), so any `?q=` value returns the unfiltered list.
+
+**Mirror:** Convenience **extension**: case-insensitive substring search (`ContainsFold`) across the type's SearchFields, plus exact-ASN match on `/api/net`.
+NOT diacritic-folded: `?q=munchen` does not match "München" although `?name__contains=munchen` does (the `_fold` shadow routing applies to the field filters only).
+With `?depth=` greater than `0`, the mirror counts `?q=` as a filter, so a list of more than 250 rows is cut to 250 with `meta.truncated` (`TestParity_Limit/list_depth_q_truncates`).
+Upstream serves the unfiltered list from its API cache, without truncation.
+
+**Rationale and tests:** A search that narrows results is strictly more useful than upstream's silent no-op, and clients relying on upstream behavior (unfiltered dump) should not be sending `?q=` at all.
+Fold-routing `?q=` would multiply every SearchFields OR-branch across the `_fold` shadows for marginal benefit; revisit if a real client asks.
+Locked by `TestParity_Unicode_QSearchExtension_DIVERGENCE`.
+
+**Since:** v1.1 (registered 2026-07-10).
+
+### Unserialized model columns
+
+**Request:** Filters on nonexcluded upstream model columns that the API does not serialize: `geocode_status` and `geocode_date` on `org` and `fac`, `location_method` and `location_place_id` on `fac`, `version` on every type, `notified_for_geocoords` on `fac`, and `avail_sonet`, `avail_ethernet` and `avail_atm` on `netfac`.
+This includes their relation forms.
+Relation keys also ignore the unavailable `vlan` column.
+
+**Upstream:** Filters these model columns through the model vocabulary or a `prepare_query` relation key (2.84.0 `serializers.py:1070-1119`, `models.py:223-236`).
+
+**Mirror:** Silently ignored: HTTP 200 with the unfiltered list.
+
+**Rationale and tests:** The mirror does not receive the unserialized values.
+Stored JSON fields support text filters, as described above.
+Locked by `TestParity_Traversal/DIVERGENCE_unserialized_model_columns_silent_ignore`.
+Private columns in `FILTER_EXCLUDE` are now parity, not part of this divergence.
+
+**Since:** v1.1 (reclassified for 2.84.0).
+
+### Legacy deleted-network connections
+
+**Request:** Legacy rows deleted before PeeringDB 2.84.0: `/api/netixlan?since=N` when N is not later than the `updated` value of a connection that upstream removed with its deleted network
+
+**Upstream:** A `?since` list returns nothing for the connection, and `?id=<id>&since=N` returns `404` `Entity not found` (2.83.0 `rest.py:809-815`).
+`pdb_rir_status` removes the live connections (`ok`, `not-operational`) of a network whose ASN the RIR reclaimed with an SQL delete, then soft-deletes the network (`management/commands/pdb_rir_status.py:440-443`, `models.py:5720-5725`).
+The connection gets no tombstone, although the API docs say that only contacts are hard-deleted (`docs/api/api_description.md:11-13`).
+
+**Mirror:** Returns the connection with `status` `deleted`, `operational` `false` and its last `updated` value, and `200` for the `id` query.
+Sync marks a live connection of a deleted network `deleted` when the RIR reclaim deleted the network in this sync, or when an uncached `?since=1&id__in=` request no longer returns it live.
+It does not change `updated`, and it leaves live a connection that upstream changed after the delete.
+Lists without `?since`, depth sets, relation keys, `/api/netixlan/<id>` and `?id=<id>` leave it out, as upstream does.
+
+**Rationale and tests:** PeeringDB 2.84.0 emits normal child tombstones for new RIR deletions.
+This fallback remains for older deletions.
+Without a tombstone, the mirror would serve the connection as live forever.
+A client that applies the tombstone deletes a connection that upstream no longer has.
+A window that starts after the row's `updated` value does not return it.
+Locked by `TestParity_Status/DIVERGENCE_deleted_net_netixlan_tombstone_in_since_window` and `TestSync_CascadesDeletedNetIxLans`.
+
+**Since:** v1.28.2.
+
+### Deleted contact projection
+
+**Request:** `/api/poc?since=N&fields=<list>` for a deleted contact when `<list>` leaves out `status`, for example `fields=id,name,email`
+
+**Upstream:** Returns the stored `name`, `phone`, `email` and `url`.
+The serializer removes the fields that `?fields=` does not name (2.83.0 `serializers.py:942-950`) and blanks the contact fields only when the rendered `status` is `deleted` (`:2941-2954`).
+A soft delete does not blank the stored values.
+
+**Mirror:** Returns `""` for these fields. pdbcompat blanks them before it applies `?fields=`, and sync stores a deleted contact without them.
+The mirror is **stricter** than upstream here.
+
+**Rationale and tests:** The contact data of a deleted contact must not reach a caller, whatever fields the caller asks for.
+Locked by `TestParity_Status/DIVERGENCE_deleted_poc_blanked_without_status_field`.
+
+**Since:** v1.16 (registered 2026-09-23).
+
+### Additional traversal keys
+
+**Request:** Relation keys that upstream ignores: 2-hop keys, for example `ixpfx?ixlan__ix__id=` and `netixlan?net__org__name=`; reverse keys named by the mirror's traversal key, for example `org?net__name=`; and the field-level `FILTER_EXCLUDE` entries `org__latitude`, `org__longitude` and `ixlan__descr`, for example `fac?org__latitude__gt=`
+
+**Upstream:** Resolves one relation hop: `queryable_relations()` adds `<fk>__<field>` and `<related_name>__<field>` (2.83.0 `serializers.py:970-996`), and a `prepare_query` handles the keys whose first segment is in its seed list (`:614-656`).
+Other keys are ignored, and the list is unfiltered: `org?net__name=` becomes `network__name` (`serializers.py:403-441`), which is not a filter key (`rest.py:525-528`, `:670`).
+A key whose first segment a `prepare_query` handles is a relation filter (see § Relation filters).
+
+**Mirror:** Resolves each key through the Path A allowlist or the Path B edges and filters on the related rows as given, without a status check on them.
+The exception is `status`: a 2-hop key or a reverse key never filters it, so `org?net__status=` and `netixlan?net__org__status=` are ignored, as upstream.
+A field that is not a model field upstream is never a target either (see § Cross-entity traversal).
+
+**Rationale and tests:** A 2-hop key and a reverse key have one clear meaning on the mirror's edges, and the extra filters cost one subquery each.
+Locked by `TestParity_Traversal/DIVERGENCE_relation_keys_upstream_ignores_resolve` and `TestParity_Traversal/DIVERGENCE_path_a_2hop_ixpfx_via_ixlan_ix_id`.
+The `status` keys are parity, locked by `TestParity_Traversal/status_on_reverse_and_2hop_keys_ignored_like_upstream`.
+
+**Since:** v1.16 (registered 2026-09-23).
+
+### Case-insensitive operator suffixes
+
+**Request:** `?<field>__iexact=`, `__icontains=` and `__istartswith=`, for example `netixlan?status__iexact=OK`, `net?org__iexact=1` and `net?ix__name__icontains=x`
+
+**Upstream:** Ignored.
+The operator regex (2.83.0 `rest.py:616`) knows only `lt`, `lte`, `gt`, `gte`, `contains`, `startswith` and `in`, so a key with another suffix is not a filter key (`:628-630`, `:670`), and the list is unfiltered.
+On a relation key of a `prepare_query` (§ Relation filters), `get_relation_filters` does not parse the suffix (`serializers.py:614-656`).
+A 3-segment key, for example `net?ix__name__icontains=`, drops the suffix and runs an exact match, and so do the `netfac` and `ixfac` keys `name`, `country` and `city`.
+A status of the pinned row is then replaced with `ok`.
+After a lookup name, for example `fac?net__exact__iexact=`, upstream drops the suffix and runs the lookup, and the mirror does the same.
+A 2-segment key, for example `net?ixlan__iexact=`, keeps the suffix as a Django lookup on the relation, which raises `FieldError`, so upstream returns `400` (`rest.py:488-500`).
+`netixlan?name__iexact=` filters the name of the ixlan with the lookup (`serializers.py:3161-3169`), and `fac?org_name__iexact=` is ignored (`:2108-2117`).
+
+**Mirror:** Applies the suffix: an exact, substring or prefix match that ignores case.
+On an integer or decimal field, `__iexact` matches the text of the stored value, as a key without an operator does, so a value that is not in that form matches no row.
+On another field that is not a string, on a count key (`fac?net_count__iexact=`, `net?fac_count__iexact=`, `ix?net_count__iexact=`, `ix?fac_count__iexact=`) and on a key that names a FK, `__iexact` is an exact match, so a value that is not an integer returns `400`.
+`__icontains` and `__istartswith` are the same as `__contains` and `__startswith`, so they return `400` on a date field and on a key that names a FK.
+The `netixlan` `name` keys and the `fac` `org_name` keys with these suffixes match upstream (see § Relation filters).
+
+**Rationale and tests:** These suffixes have one clear meaning, and `contains` and `startswith` already ignore case.
+The metadata keys accept only the upstream operators (see § Metadata filters).
+Locked by `TestParity_Status/DIVERGENCE_i_operator_suffixes_filter`.
+The lookup-name case is parity, locked by `TestParity_Traversal/relation_key_pk_and_lookup_names_like_upstream`.
+
+**Since:** v1.16 (registered 2026-09-23).
+
+### AS-SET format suffixes
+
+**Request:** `/api/as_set.json` and `/api/as_set/<asn>.json`
+
+**Upstream:** Returns `500`.
+The `as_set` list and retrieve take no `format` argument (2.83.0 `rest.py:1411-1414`), so the format suffix route calls them with an argument that they do not accept, which raises `TypeError`.
+Found by reading the code, not checked against a live upstream.
+
+**Mirror:** Returns the same body as the path without the suffix.
+
+**Rationale and tests:** A server error has no use to a client, and the other routes serve the suffix.
+Locked by `TestParity_Status/DIVERGENCE_as_set_format_suffix_served`.
+
+**Since:** v1.37.0 (registered 2026-09-27).
+
+### Netixlan name operators
+
+**Request:** `netixlan?name__regex=`, `netixlan?name__iregex=`, and `netixlan?name__range=` with a value that is not two characters long
+
+**Upstream:** `related_to_name` applies the lookup to the ixlan name (2.83.0 `serializers.py:641-654`, `models.py:6172-6197`).
+`regex` and `iregex` run as MySQL `REGEXP`.
+Django `Range` iterates the characters of the value and builds `BETWEEN` from the first two, so another length fails as it builds the SQL, with a `500`.
+
+**Mirror:** Returns `400`.
+
+**Rationale and tests:** SQLite has no `REGEXP` function, and a Go regular expression does not match as MySQL does.
+A `400` tells the caller that the value is wrong.
+Locked by `TestParity_Traversal/DIVERGENCE_netixlan_name_regex_and_range_lookups`.
+
+**Since:** v1.37.0 (registered 2026-09-27).
+
+### Campus facility duplicates
+
+**Request:** `campus?facility__<field>=`, `campus?facility__in=` and the other `campus?facility` keys that match more than one facility of a campus
+
+**Upstream:** Returns the campus once for each matching facility.
+`related_to_facility` filters the reverse `fac_set` join (2.83.0 `models.py:2101-2111`).
+`_filters_may_produce_duplicates` looks up `facility`, which is not a `Campus` field, so upstream does not call `distinct()` (`rest.py:115-141`, `:715-716`).
+Found by reading the code, not checked against a live upstream.
+
+**Mirror:** Returns each campus once.
+
+**Rationale and tests:** A list with repeated rows has no use to a client, and `distinct()` is what upstream runs for the other reverse joins.
+Locked by `TestParity_Traversal/DIVERGENCE_campus_facility_keys_no_duplicates`.
+
+**Since:** v1.28.0 (registered 2026-09-23).
+
+### Empty prefix rows
+
+**Request:** `/api/ixpfx?whereis=<address>` or `/api/ixpfx/<id>?whereis=<address>` while the table holds a prefix row with an empty prefix, for example the upstream tombstone ixpfx 4185 (`prefix: null`)
+
+**Upstream:** Returns `400`.
+`whereis_ip` tests the address against every row of every status (2.83.0 `rest.py:482`, `models.py:5193-5195`). django-inet loads an empty prefix as `None` (django-inet 1.1.1 `models.py:195-200`), `ip in None` raises `TypeError`, and `rest.py:497-498` returns it as `400`.
+An `ix` key that comes before `whereis` in the query string first keeps only the `ok` rows of that exchange (`models.py:221-234`, `:5166-5177`), and then the lookup works.
+This is derived from the source and was not verified on the live API.
+
+**Mirror:** Ignores rows with an empty prefix and returns the prefixes that contain the address.
+A single-object GET returns the prefix, or `404` when it does not contain the address.
+
+**Rationale and tests:** The lookup has one clear meaning, and a `400` for every valid address has no value for a client.
+Sync stores the tombstone, because upstream sends it.
+Locked by `TestParity_Traversal/DIVERGENCE_whereis_ignores_empty_prefix_row`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### Distance search authentication
+
+**Request:** `?distance=` from a caller without a verified user account, on any `/api/` list or detail request
+
+**Upstream:** Returns `403`: "Please authenticate to use the `distance` filter", or "Please verify your account to use the `distance` filter" for a user who is not verified.
+`FilterDistanceThrottle` (2.83.0 `rest_throttles.py:275-331`, `:345-350`) is a default throttle class of every API view (`mainsite/settings/__init__.py:1467-1473`), and the settings require an authenticated, verified user (`:526-529`).
+DRF runs it before the query is built, so it comes before any `400`.
+An organization API key is not checked.
+A verified user gets the filter on `fac` and `org` at most 10 times per minute (`:459`); the other types ignore the key.
+
+**Mirror:** Serves the filter to every caller on `fac` and `org`, with no rate limit.
+The other 11 types ignore the key.
+
+**Rationale and tests:** The mirror has no user accounts, so it cannot tell a verified user from an anonymous caller.
+The filter reads one table, about the cost of a full list.
+Locked by `TestParity_Traversal/DIVERGENCE_distance_served_without_auth`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### Distance search without coordinates
+
+**Request:** `fac?distance=<km>` or `org?distance=<km>` without `latitude` and `longitude`, with `city` and `country` (or `country__in`); and `fac?distance=<km>&name_search=<text>` without both `city` and `country`
+
+**Upstream:** Finds the coordinates of the address through the Google geocoding API and runs the distance search (2.83.0 `serializers.py:1866-1880`, `models.py:719-790`).
+On `fac`, `name_search` first finds a location in the search index (`serializers.py:2213-2280`).
+If no coordinates are found, the list is empty.
+
+**Mirror:** Returns `400`: the error message asks for `latitude` and `longitude`.
+
+**Rationale and tests:** The mirror has no geocoder and no search index.
+An empty list would tell the client that no rows are near the address, which can be false.
+Locked by `TestParity_Traversal/DIVERGENCE_distance_without_coordinates_returns_400`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### City geocoding
+
+**Request:** A bare `city` filter on `fac` or `org` with one city, for example `fac?city=Frankfurt` or `org?city__in=Frankfurt&country=DE`
+
+**Upstream:** Becomes a distance search: `convert_to_spatial_search` (2.83.0 `serializers.py:1709-1834`, called at `:2203` and `:4985`) finds the city through the Google geocoding API, uses the diagonal of its bounding box as the distance (`geo.py:184-189`), and keeps the rows near the city, nearest first.
+The `city` key then does not filter (`rest.py:569-581`).
+This does not add `distance` to the query parameters, so the `403` for `distance` does not apply.
+A request with `distance` is not converted: a value of 0 or less keeps the substring match, and a positive value is a distance search.
+A request with two or more `country__in` values, or with no geocoding result, keeps the substring match.
+A geocoding result without a bounding box returns `400` (`serializers.py:1830-1832`, `geo.py:184-185`, `rest.py:497-498`).
+Found by reading the code; the live effect depends on the production API key and was not checked.
+
+**Mirror:** A substring match on the city, in `id` order (`rest.py:582-595`).
+A row with no coordinates can match.
+
+**Rationale and tests:** The mirror has no geocoder.
+Locked by `TestParity_Traversal/DIVERGENCE_city_filter_is_substring_not_geocoded_radius`.
+
+**Since:** v1.21.0 (registered 2026-09-26).
+
+### Invalid distance values and coordinates
+
+**Request:** `fac` or `org` distance search with `?distance=nan`, `inf`, an overflowing value such as `1e999`, or a value in non-ASCII digits; or with a repeated `latitude` or `longitude`, or a `latitude` or `longitude` that is not a number
+
+**Upstream:** Python `float()` accepts `nan`, `inf`, `1e999` and non-ASCII digits, so `single_url_param` raises no error (2.83.0 `serializers.py:443-460`: only a `ValueError` is `400`), and `nan` and `inf` pass the `distance <= 0` test (`:1839`).
+`latitude` and `longitude` go to the SQL as the raw lists of URL values, not parsed (`rest.py:488-491`, `serializers.py:1881-1898`).
+The result then depends on the MySQL driver, which is not in the source tree; not checked against a live upstream.
+
+**Mirror:** `nan` and non-ASCII digits return `400`.
+`inf` and `1e999` keep every row with coordinates, nearest first.
+A repeated `latitude` or `longitude` uses its first value.
+A `latitude` or `longitude` that is not a finite number, or is empty, returns `400`.
+
+**Rationale and tests:** SQLite binds NaN as NULL, so `nan` would match no row with no error.
+An infinite distance has one clear meaning.
+A number check on the coordinates gives a clear error in place of a database-specific cast of the text.
+Locked by `TestParity_Traversal/DIVERGENCE_distance_value_handling`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### Name search matching and cap
+
+**Request:** `?name_search=` on the six searchable types, at uncommon token boundaries or with more than 1000 hits
+
+**Upstream:** Uses Elasticsearch analyzers, wildcard and phrase clauses, and the first 1000 ranked hits (2.84.0 `documents.py:52-65`, `search_v2.py:359-596`, `:962-967`).
+
+**Mirror:** Supports Unicode lowercase, Boolean wildcard clauses, and common phrase prefixes in SQL.
+Word boundaries keep internal apostrophes, dots and underscores, and separate Han, hiragana and katakana from adjacent Latin text.
+Full Lucene Unicode word-break and emoji rules remain unsupported.
+It does not reproduce Elasticsearch expansion limits or the 1000-hit cap.
+
+**Rationale and tests:** The mirror has no search index.
+Common text cases are covered by `TestParity_NameSearch/text_operators_and_phrases` and `word_boundary_corpus`.
+Paginated `name_search` returns every match without a search-hit cap; the cap test also checks aggregation across pages.
+The retained cap difference is covered by `TestParity_NameSearch/DIVERGENCE_api_search_name_order_and_cap`.
+
+**Since:** v1.39.0 (narrowed 2026-10-28).
+
+### Name search error precedence
+
+**Request:** `?name_search=` with a partial IPv4 address that has a number above 255, for example `net?name_search=999.1.1.1`; and `?name_search=` with no match together with a bad value in a model-field filter, `id__in` included, for example `net?name_search=nomatch&asn__lt=abc` or `net?name_search=nomatch&id__in=abc`
+
+**Upstream:** The first returns `500`: the IPv4 branch leaves the search term a list, and `construct_query_body` fails on it (2.83.0 `search_v2.py:888-891`, `:618`).
+The second returns `200` with no rows: `get_queryset` returns before the filter loop when the search has no hit (`rest.py:550-553`).
+Found by reading the code, not checked against a live upstream.
+
+**Mirror:** The first searches the value as text (`200`).
+The second returns `400`, as for any bad filter value.
+
+**Rationale and tests:** A `500` is an upstream bug.
+The mirror checks every filter value before it runs the query, and whether the search has a hit is known only when the query runs.
+On the 7 types without a search index, and for a value that can match nothing, the result is known before the query, and the mirror matches upstream.
+Locked by `TestParity_NameSearch/DIVERGENCE_name_search_error_status`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### Detail request server errors
+
+**Request:** A single-object GET that upstream answers with a server error: a negative `skip`, unless the request has a `name_search` that matches no row, for example `/api/net/<id>?skip=-1`; a `since` that is a number but not an integer, for example `/api/net/<id>?since=1.5`; on a list or a single-object GET, a `since` that is infinite or too large for a float, for example `?since=inf` or `?since=1e999`; a `name_search` value on `org`, `fac`, `ix`, `net`, `campus` or `carrier` that Python `int()` rejects after the digit test, for example `/api/net/<id>?name_search=%C2%B2`; a filter value that does not parse for the field type, for example `?asn__lt=abc` or `?created__lt=x`, or an empty `__in` on an integer field (`?asn__in=`); and `/api/campus/<id>?facility__in=<ids>` (or another `campus?facility` key) that matches two or more facilities of the campus
+
+**Upstream:** Returns `500`.
+`retrieve` (2.83.0 `rest.py:849-865`) has no error handler, and DRF runs `get_queryset` outside its `404` wrapper.
+A negative `skip` makes Django raise `ValueError` at the slice (`rest.py:755-760`).
+The API cache loader runs `int()` on `since` (`rest.py:707`, `api_cache.py:80`), which raises `ValueError` for `1.5`, and `int(float())` raises `OverflowError` for `inf` (`rest.py:505-510`), which no handler catches on a list either.
+`get_queryset` calls `search_v2` outside the `prepare_query` handler (`rest.py:546`), and `int()` raises `ValueError` for a digit such as `²` (`search_v2.py:385`, `:619`; a list returns `400`, `rest.py:824-827`).
+A filter value error goes to a handler that reads `inst[0]` (`rest.py:647-651`, `:693-701`), which raises a new `TypeError` (a list catches it and returns `400`, `rest.py:828-831`).
+For the campus key, the join on the facilities (`serializers.py:4852-4869`) returns the campus once for each facility, upstream does not call `distinct()` (`rest.py:115-141`, `:711-716`), and the lookup finds more than one row.
+Found by reading the code, not checked against a live upstream.
+
+**Mirror:** Returns `400` for a negative `skip`, a `name_search` value that `int()` rejects, a `since` of `1.5` or a filter value that does not parse, as on a list.
+Returns `400` (`'since' needs to be a unix timestamp (epoch seconds)`) for an infinite `since`.
+Returns the campus for the `campus?facility` key.
+
+**Rationale and tests:** A server error has no use to a client.
+The mirror answers as a list request does.
+Locked by `TestParity_Status/DIVERGENCE_detail_upstream_server_errors`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### Netixlan list order
+
+**Request:** `/api/netixlan` without `?since`
+
+**Upstream:** Returns the rows in the order of the MySQL access path, because the query has no `ORDER BY` (2.83.0 `rest.py:747-748`).
+MySQL can read the `status IN ('ok', 'not-operational')` filter through the `netixlan_status` index (`models.py:6111`), which returns the `not-operational` rows first.
+A live capture on 2026-09-23 of `/api/netixlan?limit=2` returned two `not-operational` rows ahead of `ok` rows with lower ids.
+Other filters can also change the upstream order when MySQL reads the rows through a different index.
+
+**Mirror:** Always returns `id` order, ascending (see § List order).
+
+**Rationale and tests:** An order that depends on the query plan cannot be reproduced, and it changes when the upstream data or indexes change.
+A fixed order keeps `skip`/`limit` pages stable.
+Locked by `TestParity_Ordering/DIVERGENCE_netixlan_list_order_is_id_asc`.
+
+**Since:** v1.28.0 (registered 2026-09-23).
+
+### Hidden contact ID lookup
+
+**Request:** `/api/poc?id=<id>` for a contact that the caller's tier cannot read: a `Users` contact for an anonymous caller, or a `Private` contact for any tier
+
+**Upstream:** Returns `200` with an empty `data` array.
+The unique-query `404` check runs before `APIPermissionsApplicator` removes the contact (2.83.0 `rest.py:809-821`), so the status shows that the contact exists: a missing id gets `404`.
+The same applies to a user who is not a member of the organization that owns a `Private` contact.
+
+**Mirror:** Returns `404` (`Entity not found`), the same as for a missing id.
+
+**Rationale and tests:** The `poc.visible` privacy policy removes the contact in the query, before the check, so the status does not show whether a hidden contact exists.
+The mirror is stricter than upstream here.
+Locked by `TestParity_Status/DIVERGENCE_poc_hidden_id_returns_404`.
+
+**Since:** v1.28.0 (registered 2026-09-23).
+
+### Problem JSON negotiation
+
+**Request:** An `/api/` request whose `Accept` header names `application/problem+json` with a `q` value above 0, for example `Accept: application/problem+json`
+
+**Upstream:** Returns `406` with `{"meta": {"error": "Could not satisfy the request Accept header."}}` when no range in the header matches `application/json` (DRF content negotiation, `rest_framework/negotiation.py:78`).
+When the header also has `*/*` or `application/json`, an error has the `meta.error` form.
+
+**Mirror:** An error has an RFC 9457 `application/problem+json` body.
+A success response is the normal JSON envelope.
+The mirror sends no `406` for such a header.
+For every other header, the mirror sends the upstream `406`.
+
+**Rationale and tests:** Clients that ask for RFC 9457 errors get the same form as from the REST API of the mirror.
+Upstream clients do not send this media type.
+Locked by `TestParity_Limit/DIVERGENCE_problem_json_when_accept_names_it`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
+
+### Unmatched API paths
+
+**Request:** A path under `/api/` that no upstream route matches: a path that names no type, for example `/api/foo`, a path with a `/` at the end, for example `/api/net/` or `/api/net/1/`, and a path with more segments
+
+**Upstream:** Returns the `404` HTML page of the web site (`mainsite/urls.py:111`, `views.py:336-340`), for every method.
+The routes have no `/` at the end (2.83.0 `rest.py:185-230`, `:1305`), and `APPEND_SLASH` only adds a `/`.
+
+**Mirror:** Returns `404` with `{"meta": {"error": "unknown type \"foo\""}}`, or with `Not found.` for the other paths, for every method.
+The Go router sends a `307` to the clean path first for a path with a repeated `/` or a `.` or `..` segment, for example from `/api//net` to `/api/net`.
+
+**Rationale and tests:** A JSON client can read the error.
+The status code is the same.
+Locked by `TestParity_Status/DIVERGENCE_unknown_path_json_404`.
+
+**Since:** v1.37.0 (registered 2026-09-26, `/` at the end 2026-09-27).
+
+### Authenticated self paths
+
+**Request:** `/api/{tag}/self` from a caller with an API key or a session, for example `/api/net/self` with `Authorization: Api-Key <key>`
+
+**Upstream:** Redirects to the object of the caller's primary organization: the organization itself for `org`, else its first `ok` object of the tag, and the default object when it has none (2.83.0 `rest.py:1617-1636`).
+
+**Mirror:** Redirects every caller to the default object of the tag (see § Self paths).
+
+**Rationale and tests:** The mirror has no user or organization data, and it does not check API keys.
+Locked by `TestParity_Status/DIVERGENCE_self_redirects_keyed_caller_to_default`.
+
+**Since:** v1.39.0 (registered 2026-09-27).
+
+### Organization users authentication and throttle
+
+**Request:** An organization users path (`/api/org/{id}/users` and the paths below it) from a caller with an API key, or more than one request per second
+
+**Upstream:** Lists the users of the organization for the key of an organization admin, or for an organization key with the users permission, and runs the add, change and remove actions (2.83.0 `rest.py:1726-1748`, `:1775-1972`).
+Another key gets `403` with another text.
+`OrganizationUsersThrottle` allows 1 request per second (`rest_throttles.py:598-611`) and answers more with `429`.
+
+**Mirror:** Returns `403` (`Invalid authentication`) for an `ok` organization, for every caller, with no rate limit (see § Organization users paths).
+
+**Rationale and tests:** The mirror has no user data, does not check API keys and is read-only.
+Locked by `TestParity_Status/DIVERGENCE_org_users_keyed_caller_403`.
+
+**Since:** v1.39.0 (registered 2026-09-27).
+
+### Organization user OPTIONS
+
+**Request:** `OPTIONS` on `/api/org/{id}/users/{user_id}` when `{id}` is an organization with the status `ok`
+
+**Upstream:** Returns `500`.
+SimpleMetadata calls `get_object` for `PUT` (DRF `metadata.py:74-100`), which fails its assertion that the route has a `pk` argument (DRF `generics.py:79-96`, 2.83.0 `rest.py:1676-1694`).
+
+**Mirror:** Returns `200` with the metadata without `actions`, the body that upstream sends when the organization is not an `ok` row.
+
+**Rationale and tests:** A server error gives the caller no information.
+Locked by `TestParity_Status/DIVERGENCE_org_users_options_change_route_200`.
+
+**Since:** v1.39.0 (registered 2026-09-27).
+
+### Asset timestamp precision
+
+**Request:** `GET /api/asset/{tag}/{id}/logo` of an object whose `created` or `updated` has a fraction of a second
+
+**Upstream:** Renders the time with its microseconds, for example `2020-01-02T03:04:05.678901+00:00` (Python `isoformat`, 2.83.0 `renderers.py:35-36`).
+
+**Mirror:** Renders whole seconds, for example `2020-01-02T03:04:05+00:00`.
+
+**Rationale and tests:** The upstream API sends whole seconds, so the mirror stores no fraction.
+Locked by `TestParity_Status/DIVERGENCE_asset_timestamps_whole_seconds`.
+
+**Since:** v1.40.0 (registered 2026-09-27).
+
+### Asset writes and throttle
+
+**Request:** `POST`, `PUT` or `DELETE` on an asset path from a caller with an API key that has write permission on the object, or more than 2 such requests a minute
+
+**Upstream:** Stores or deletes the logo (2.83.0 `rest.py:1495-1590`).
+`WriteRateThrottle` allows 2 writes a minute per user or address (`rest_throttles.py:574-595`) and answers more with `429`.
+
+**Mirror:** Returns `403` for every request that passes the checks, with no rate limit (see § Asset paths).
+
+**Rationale and tests:** The mirror is read-only, does not check API keys, and sends no request that changes upstream data.
+Locked by `TestParity_Status/DIVERGENCE_asset_writes_keyed_caller_403`.
+
+**Since:** v1.40.0 (registered 2026-09-27).
+
+### Missing logo files
+
+**Request:** `GET /api/asset/{tag}/{id}/logo` when the mirror cannot read the logo file
+
+**Upstream:** Reads the file from its own storage, and sends `file_data` `null` only when that read fails (2.83.0 `serializers.py:5277-5283`).
+
+**Mirror:** Reads the file from the upstream media host.
+`file_data` is `null` when the read fails, when the host answers with a status other than `200`, when the file is larger than 1 MiB, or when the logo URL names another host.
+After a failed read, the mirror waits 5 minutes before it reads that URL again.
+
+**Rationale and tests:** The mirror stores the logo URL, not the file.
+Locked by `TestParity_Status/DIVERGENCE_asset_file_data_unreadable_null`.
+
+**Since:** v1.40.0 (registered 2026-09-27).
+
+### Asset body parsing limits
+
+**Request:** A `POST` or `PUT` body on an asset path with a charset other than `utf-8`, `latin-1` or `ascii`, larger than 1 MB, or at the edge of a parser
+
+**Upstream:** Decodes the body with any charset that Python knows (Django 5.2 `http/request.py:152-163`) and accepts bodies up to 2.5 MB.
+The multipart parser decodes a `base64` transfer encoding and HTML entities in file names, and Pillow also identifies MPO files.
+
+**Mirror:** Reads another charset as `utf-8` and returns `413` for a body larger than 1 MB.
+It does not decode a multipart `base64` transfer encoding or HTML entities in file names.
+The order of `POST` and `PUT` in the `OPTIONS` body is fixed (upstream: the order of a Python set).
+
+**Rationale and tests:** Every such body fails a field check or gets `403`, as upstream, so only the error text can differ.
+Locked by `TestParity_Status/DIVERGENCE_asset_body_other_charset_read_as_utf8`.
+
+**Since:** v1.40.0 (registered 2026-09-27).
+
+### Non-object asset JSON
+
+**Request:** A `POST` or `PUT` body on an asset path with JSON that is not an object, for example `[1]`, or JSON nested deeper than 1000 levels
+
+**Upstream:** Returns `500`: `{**request.data}` raises `TypeError` for a value that is not a mapping (2.83.0 `rest.py:1506-1511`, `:1540-1545`), and the JSON decoder raises `RecursionError` for a deep document.
+
+**Mirror:** Returns `400`: `{"non_field_errors": ["Invalid data. Expected a dictionary, but got list."]}` (the DRF `Serializer` error for data that is not a dict, DRF `serializers.py:497-503`), or `JSON parse error - maximum recursion depth exceeded while decoding a JSON document`.
+
+**Rationale and tests:** A request must not cause a server error: a `500` counts against the error-rate alerts.
+Locked by `TestParity_Status/DIVERGENCE_asset_non_object_json_400`.
+
+**Since:** v1.40.0 (registered 2026-09-27).
+
+### Invalid request credentials
+
+**Request:** An `/api/` request with an `Authorization` header that upstream rejects: `Api-Key <key>` with a key that is unknown, revoked or inactive, or `Basic` with a wrong user name or password, an inactive account, or a value that is not base64 of `<user>:<password>`
+
+**Upstream:** `PDBPermissionMiddleware` checks the header before any view (2.83.0 `middleware.py:228-346`).
+An unknown key returns `401` with `{"meta": {"error": "Invalid API key"}}`, a revoked or inactive key `401` `Inactive API key`.
+A `Basic` header returns `401` `Invalid username or password` or `Inactive account`, or `400` `Corrupt base64 input.` or `Invalid Input.`.
+
+**Mirror:** Ignores the header and answers as for a caller without credentials.
+The privacy tier comes from `PDBPLUS_PUBLIC_TIER`, not from the request.
+
+**Rationale and tests:** The mirror has no user or key data.
+Locked by `TestParity_Status/DIVERGENCE_invalid_credentials_ignored`.
+
+**Since:** v1.39.0 (registered 2026-09-27).
+
+### Search authentication
+
+**Request:** `/api/search` with an `Authorization` header of two words that upstream does not accept, for example `Api-Key <unknown key>`, or with the key of a user who hides exchanges without facilities
+
+**Upstream:** `PDBPermissionMiddleware` checks an API key before any view: an unknown key gets `401` with `{"meta": {"error": "Invalid API key"}}`, a revoked or inactive key `401` with `Inactive API key` (2.83.0 `middleware.py:229-346`).
+A user key applies the user's `hide_ixs_without_fac` setting to the `ix` hits (`search_v2.py:693-718`).
+
+**Mirror:** Runs the search for every header of two words (see § Search).
+
+**Rationale and tests:** The mirror has no user accounts and does not check API keys.
+Locked by `TestParity_NameSearch/DIVERGENCE_api_search_key_not_checked`.
+
+**Since:** v1.39.0 (registered 2026-09-27).
+
+### Search location and result order
+
+**Request:** `/api/search` results: a location in `q` (`near <lat>,<lon>`, `near <place>`, `in <place>`), the order of the hits and the 1000-hit cap, and a digit value that Python `int()` rejects
+
+**Upstream:** Turns the location into a filter by distance (Google geocoding, or the search index for a place name, `views.py:3823-4098`), and with no text left returns up to 1000 rows near it.
+Keeps the first 1000 hits of the search index in score order over the 6 types (`settings/__init__.py:1516`, `search_v2.py:962-967`) and sorts each type by score, then by lower-case name (`search_v2.py:325-329`).
+The words match as the search index matches them (see the `name_search` row).
+A digit such as `²` raises `ValueError`, and the view answers `500` (`search_v2.py:385`, `:393`).
+
+**Mirror:** Removes the same location words and does not filter by location, so it returns more rows, and no row when no text is left.
+Keeps the first 1000 hits in lower-case name order over all types (SQLite `lower()` folds ASCII letters only) and sorts each type by name.
+Matches as `name_search` does.
+Returns `400` with `{"error": "invalid literal for int() with base 10: '²'"}`.
+
+**Rationale and tests:** The mirror has no geocoder and no search index.
+The name order is a stable order that a client can predict.
+Locked by `TestParity_NameSearch/DIVERGENCE_api_search_location_words_dropped`, `TestParity_NameSearch/DIVERGENCE_api_search_name_order_and_cap` and `TestParity_NameSearch/DIVERGENCE_api_search_int_error_400`.
+
+**Since:** v1.39.0 (registered 2026-09-27).
+
+### Read-only methods and metadata
+
+**Request:** A write method that upstream maps (`POST` on a list, `PUT`, `PATCH` or `DELETE` on an object), `OPTIONS`, and the `Allow` header
+
+**Upstream:** Runs the handler.
+For an anonymous caller: `POST` or `PUT` with no body returns `400` (`No data was supplied with the POST request`, 2.83.0 `rest.py:867-924`), `PATCH` returns `403` (`:970-974`), `DELETE` returns `204`, `403` or `400` (`:978-1020`), and `OPTIONS` returns `200` with DRF metadata.
+Every response has `Allow` with the methods of the route: `GET, POST, HEAD, OPTIONS` on a list, `GET, PUT, PATCH, DELETE, HEAD, OPTIONS` on an object (`GET` and `GET, PUT` for `ixlan`).
+A method that the route does not map returns `405` with `Method "<METHOD>" not allowed.`.
+`as_set` answers an anonymous write with `401` (`Authentication credentials were not provided.`, DRF `views.py:174-180`, `permissions.py:191-199`) and `OPTIONS` with `405`, and sends `Allow: GET` (`rest.py:1396-1399`).
+
+**Mirror:** On a path that an upstream route matches, write methods return `405` with `{"meta": {"error": "Method \"<METHOD>\" not allowed."}}` and `Allow: GET, HEAD, OPTIONS` (`Allow: GET` on the `as_set` and `ixlan` paths, where `HEAD` and `OPTIONS` return `405` as upstream).
+The `self` and organization users paths and `/api/search` answer as upstream (see § Self paths, § Organization users paths and § Search).
+Ordinary read routes answer `OPTIONS` with `200` and DRF metadata without write actions.
+Read responses and errors carry the same supported-method `Allow` header.
+Metadata names use the upstream List/Instance suffixes.
+
+**Rationale and tests:** The mirror is read-only.
+Writes go to PeeringDB.
+Locked by `TestParity_Status/DIVERGENCE_non_get_method_405_read_only`.
+
+**Since:** v1.37.0 (registered 2026-09-26).
 
 ## Validation Notes
 
-Future conformance auditors reading third-party gotchas documentation (notably pdbfe's upstream-behaviour claims) against the PeeringDB Plus codebase may encounter assertions about upstream behaviour that turn out to be wrong.
-This section documents 4 such invalid claims from the v1.16 audit, each with a pinned `peeringdb/peeringdb@<sha>` reference so the authoritative upstream source can be re-read without re-research.
-The filter exclusions and relation-prefix rules also use PeeringDB 2.84.0 source and tests.
-The older source anchors below describe unchanged behavior unless a 2.84.0 note supersedes them.
+### Current validation rules
 
-All 4 were re-confirmed against commit `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516` (PeeringDB 2.83.0), the parity anchor as of 2026-09-23.
+The API sections above define current behavior.
+The [Known Divergences](#known-divergences) section records accepted differences and their tests.
+Historical source revisions identify evidence, not the current upstream release.
+Filter exclusions and relation-prefix rules include PeeringDB 2.84.0 corrections.
+Pending-detail behavior follows PeeringDB 2.84.1, as described in [Soft-delete tombstones](#soft-delete-tombstones).
 
-| Claim | Verdict | Upstream truth | Our implementation |
-|-------|---------|----------------|--------------------|
-| `net?country=NL` is a valid filter key | **WRONG** | `country` lives on `org`, not `net`. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:3708` — `NetworkSerializer.prepare_query` has no `country` key, and `django-peeringdb/src/django_peeringdb/models/abstract.py`'s Network model has no country field. Callers who want `net` filtered by country must traverse through `org` (e.g. `net?org__country=NL`). | Filter key silently ignored via the unknown-field silent-ignore mechanism — no row-level match, response unfiltered. OTel span attribute `pdbplus.filter.unknown_fields` records the dropped key. Parity-locked by `TestParity_Traversal/unknown_field_silently_ignored_with_otel_attr`. |
-| `?limit=0` returns a count-only envelope | **WRONG** | `limit=0` means unlimited. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:516` (`limit` defaults to `0`) + `:757-760` (`if limit > 0: qset[skip:skip+limit] else: qset[skip:]`: a non-positive `limit` applies no SQL `LIMIT`). There is no count-only semantic upstream. Callers wanting a count read the length of the returned `data` array (`meta` is the empty `{}` envelope, with no top-level count field). | Unbounded response: when `limit` is `0`, the list query has no SQL `LIMIT` (`wireEntity` in `internal/pdbcompat/registry_funcs.go`). The memory budget (`PDBPLUS_RESPONSE_MEMORY_LIMIT`, default 128 MiB) still applies and returns `413` when the response is too large. Parity-locked by `TestParity_Limit/bare_url_and_zero_both_return_all_rows` and `TestParity_Limit/zero_over_budget_returns_413`. |
-| Unicode folding uses MySQL collation (`utf8_general_ci` or similar) | **WRONG** | Folding is Python-side via `unidecode.unidecode(v)` at query time. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:597` — the call happens in the Python filter construction layer before any SQL is emitted, so the database collation is irrelevant. | peeringdb-plus uses shadow `<field>_fold` columns populated at sync time via `internal/unifold.Fold` (`golang.org/x/text/unicode/norm` NFKD decomposition + a hand-rolled ligature map for `ß`/`æ`/`œ`/`ø`/`ł`/`þ`/`đ`/`ð`/dotless `ı`). `__contains` / `__startswith` route to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS. Not byte-compatible with Python `unidecode` for every input (e.g. the two libraries handle rare CJK edge cases differently); any specific gap that surfaces will be logged as a new § Known Divergences row. Parity-locked by `TestParity_Unicode/net_name_contains_diacritic_matches_ascii`, `fac_city_cjk_roundtrip`, and `combining_mark_NFKD_equivalent`. |
-| Filter surface is a DRF `filterset_class` per ViewSet | **WRONG** | Filter surface is a per-serializer `prepare_query(...)` method plus an auto-`queryable_relations()` mechanism with a `FILTER_EXCLUDE` denylist. See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:970` (`queryable_relations()`) and `:136-166` (`FILTER_EXCLUDE`). No `django_filters.FilterSet` subclass exists anywhere in the upstream codebase. | Path A = `pdbcompat.WithPrepareQueryAllow` ent-schema annotations → `allowlist_gen.go` `Allowlists` map (13 entries derived from upstream `prepare_query` seed lists and `queryable_relations()`); Path B = ent edge introspection via the generated `Edges` map, plus the column edges declared in `schema.ColumnEdges` (today netixlan `ix_side`). The `WithFilterExcludeFromTraversal` edge annotation is the edge-level counterpart of upstream's `FILTER_EXCLUDE`, currently empty across all 13 schemas (every FK edge exposed in v1.16). Runtime exclusions follow 2.84.0 for contact fields and `prepare_query` relation keys. The established Path A/B compound-field extensions remain (see § Known Divergences). Parity-locked by `TestParity_Traversal/path_a_1hop_org_name` and `path_b_1hop_org_city`. |
+Edit traversal allowlists in `schema.PrepareQueryAllows` in `ent/schema/pdb_allowlists.go`.
+Follow the [traversal procedure](DEVELOPMENT.md#adding-a-pdbcompat-1-hop-or-2-hop-traversal-filter) to regenerate the maps and check parity.
+
+Quarterly re-validation is a manual review and does not block merges.
+Compare current upstream behavior with the recorded source evidence and parity tests.
+If upstream behavior changes, update the relevant rule and test, or register an intentional divergence.
+Obtain approval before filing a GitHub issue.
+
+### Historical validation evidence
+
+The v1.16 audit rejected the following four claims on 2026-09-23.
+Its pinned source was `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516` (PeeringDB 2.83.0).
+The implementation notes include later corrections.
+
+#### Network country filter claim
+
+**Rejected claim:** `net?country=NL` is a valid filter key.
+
+**Upstream evidence:** `country` lives on `org`, not `net`.
+See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:3708` -- `NetworkSerializer.prepare_query` has no `country` key, and `django-peeringdb/src/django_peeringdb/models/abstract.py`'s Network model has no country field.
+Callers who want `net` filtered by country must traverse through `org` (e.g. `net?org__country=NL`).
+
+**Implementation:** Filter key silently ignored via the unknown-field silent-ignore mechanism -- no row-level match, response unfiltered.
+OTel span attribute `pdbplus.filter.unknown_fields` records the dropped key.
+Parity-locked by `TestParity_Traversal/unknown_field_silently_ignored_with_otel_attr`.
+
+#### Count-only limit claim
+
+**Rejected claim:** `?limit=0` returns a count-only envelope.
+
+**Upstream evidence:** `limit=0` means unlimited.
+See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:516` (`limit` defaults to `0`) + `:757-760` (`if limit > 0: qset[skip:skip+limit] else: qset[skip:]`: a non-positive `limit` applies no SQL `LIMIT`).
+There is no count-only semantic upstream.
+Callers wanting a count read the length of the returned `data` array (`meta` is the empty `{}` envelope, with no top-level count field).
+
+**Implementation:** Unbounded response: when `limit` is `0`, the list query has no SQL `LIMIT` (`wireEntity` in `internal/pdbcompat/registry_funcs.go`).
+The memory budget (`PDBPLUS_RESPONSE_MEMORY_LIMIT`, default 128 MiB) still applies and returns `413` when the response is too large.
+Parity-locked by `TestParity_Limit/bare_url_and_zero_both_return_all_rows` and `TestParity_Limit/zero_over_budget_returns_413`.
+
+#### Unicode folding claim
+
+**Rejected claim:** Unicode folding uses MySQL collation (`utf8_general_ci` or similar).
+
+**Upstream evidence:** Folding is Python-side via `unidecode.unidecode(v)` at query time.
+See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/rest.py:597` -- the call happens in the Python filter construction layer before any SQL is emitted, so the database collation is irrelevant.
+
+**Implementation:** peeringdb-plus uses shadow `<field>_fold` columns populated at sync time via `internal/unifold.Fold` (`golang.org/x/text/unicode/norm` NFKD decomposition + a hand-rolled ligature map for `ß`/`æ`/`œ`/`ø`/`ł`/`þ`/`đ`/`ð`/dotless `ı`).
+`__contains` / `__startswith` route to `<field>_fold LIKE ?` with `unifold.Fold(query)` on the RHS.
+Not byte-compatible with Python `unidecode` for every input (e.g. the two libraries handle rare CJK edge cases differently); any specific gap that surfaces will be logged as a new entry in [Known Divergences](#known-divergences).
+Parity-locked by `TestParity_Unicode/net_name_contains_diacritic_matches_ascii`, `fac_city_cjk_roundtrip`, and `combining_mark_NFKD_equivalent`.
+
+#### DRF filterset claim
+
+**Rejected claim:** Filter surface is a DRF `filterset_class` per ViewSet.
+
+**Upstream evidence:** Filter surface is a per-serializer `prepare_query(...)` method plus an auto-`queryable_relations()` mechanism with a `FILTER_EXCLUDE` denylist.
+See `peeringdb/peeringdb@465931c0c03df32c5c956699eff4c5308a064516:src/peeringdb_server/serializers.py:970` (`queryable_relations()`) and `:136-166` (`FILTER_EXCLUDE`).
+No `django_filters.FilterSet` subclass exists anywhere in the upstream codebase.
+
+**Implementation:** Path A = `schema.PrepareQueryAllows` in `ent/schema/pdb_allowlists.go` → `allowlist_gen.go` `Allowlists` map (13 entries derived from upstream `prepare_query` seed lists and `queryable_relations()`); Path B = ent edge introspection via the generated `Edges` map, plus the column edges declared in `schema.ColumnEdges` (today netixlan `ix_side`).
+The `WithFilterExcludeFromTraversal` edge annotation is the edge-level counterpart of upstream's `FILTER_EXCLUDE`, currently empty across all 13 schemas (every FK edge exposed in v1.16).
+Runtime exclusions follow 2.84.0 for contact fields and `prepare_query` relation keys.
+The established Path A/B compound-field extensions remain (see § Known Divergences).
+Parity-locked by `TestParity_Traversal/path_a_1hop_org_name` and `path_b_1hop_org_city`.
 
 An earlier revision of this section also listed one claim from the 2026-05-30 audit as wrong: that `org_flags` is a valid filter on `/api/org`.
 That claim was correct for 2.83.0.
@@ -1928,6 +2903,3 @@ The upstream migrations record no `ordering` option for them (2.83.0 `migrations
 A list without `?since` has no `ORDER BY` (`rest.py:747-748`), and MySQL returns primary-key order.
 A live capture on 2026-09-23 returned the lowest ids first on every type except netixlan.
 See § List order and § Known Divergences.
-
-Quarterly re-validation against upstream is a manual review against the pinned commit above — it does not block merges.
-Drift that invalidates a Validation Note row should be surfaced as a GitHub issue and reviewed against the parity test suite; if upstream has changed semantics, update the row here and flip or retain the matching parity assertion as a new § Known Divergences row.

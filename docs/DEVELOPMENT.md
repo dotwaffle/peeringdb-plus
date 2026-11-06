@@ -29,14 +29,59 @@ mise install --locked
 mise run build
 ```
 
-There is no live-reload tooling.
-After a code change, rebuild and restart the binary manually:
+### Run against local fixtures
+
+Never start a development server against real PeeringDB.
+Use the committed fixtures for browser checks and local API experiments.
+Python 3 serves the fixture files on loopback.
+The fixture server ignores filters and does not simulate upstream permissions or changes.
+Use the [sync integration tests](TESTING.md#fixtures-testdatafixtures) for those cases.
+
+From the repository root, prepare a task directory and start the fixture server:
 
 ```bash
-go build -o peeringdb-plus ./cmd/peeringdb-plus && ./peeringdb-plus
+export PDBPLUS_DEV_DIR="${TMPDIR:-/tmp}/peeringdb-plus/local-dev"
+mkdir -p "$PDBPLUS_DEV_DIR/upstream/api"
+for fixture in testdata/fixtures/*.json; do
+  name=$(basename "$fixture" .json)
+  cp "$fixture" "$PDBPLUS_DEV_DIR/upstream/api/$name"
+done
+python3 -m http.server 18080 --bind 127.0.0.1 \
+  --directory "$PDBPLUS_DEV_DIR/upstream"
 ```
 
-The server serves all six API surfaces on a single port (`:8080` by default).
+In a second terminal, from the repository root, build and start the application:
+
+```bash
+export PDBPLUS_DEV_DIR="${TMPDIR:-/tmp}/peeringdb-plus/local-dev"
+mise exec -- go build -o "$PDBPLUS_DEV_DIR/peeringdb-plus" ./cmd/peeringdb-plus
+env -i PATH="$PATH" \
+  PDBPLUS_PEERINGDB_URL=http://127.0.0.1:18080 \
+  PDBPLUS_LISTEN_ADDR=127.0.0.1:8080 \
+  PDBPLUS_DB_PATH="$PDBPLUS_DEV_DIR/peeringdb-plus.db" \
+  PDBPLUS_SCRATCH_DIR="$PDBPLUS_DEV_DIR" \
+  PDBPLUS_SYNC_INTERVAL=24h \
+  OTEL_TRACES_EXPORTER=none OTEL_METRICS_EXPORTER=none OTEL_LOGS_EXPORTER=none \
+  "$PDBPLUS_DEV_DIR/peeringdb-plus"
+```
+
+The empty environment prevents inherited production settings and credentials from affecting this run.
+The first sync reads the fixtures from loopback.
+Wait for `/readyz` to return 200, then open `/ui/` or `/graphql`:
+
+```bash
+curl --fail http://127.0.0.1:8080/readyz
+curl --fail 'http://127.0.0.1:8080/api/net?limit=1'
+```
+
+There is no live reload.
+After a code change, stop the application, rebuild it, and repeat the application command.
+To reset the fixture database, stop both processes and remove the task directory.
+Recreate it with the preparation commands before the next run.
+
+```bash
+rm -r "${TMPDIR:-/tmp}/peeringdb-plus/local-dev"
+```
 
 ## Project layout
 
@@ -45,7 +90,7 @@ Code-change-relevant directories:
 
 | Path | Purpose |
 |---|---|
-| `cmd/peeringdb-plus/` | Main binary — config load, server wiring, handler registration |
+| `cmd/peeringdb-plus/` | Main binary -- config load, server wiring, handler registration |
 | `cmd/pdb-schema-extract/` | Drift detector. Reads a local PeeringDB source checkout and prints the schema it finds as JSON. It never writes `schema/peeringdb.json`. |
 | `cmd/pdb-schema-generate/` | Generates `ent/schema/{type}.go` and `ent/schema/types.go` from `schema/peeringdb.json` |
 | `cmd/pdb-compat-allowlist/` | Codegens `internal/pdbcompat/allowlist_gen.go` from `ent/schema/pdb_allowlists.go` |
@@ -233,10 +278,10 @@ Without a fix, ent generates `Campu`-themed code and entrest produces `/campu` U
 1. The global `inflect` default ruleset -- used by `entrest.Pluralize` for URL paths.
 2. Ent's internal, unexported `gen.rules` ruleset -- used by `Edge.MutationAdd`/`Remove`, graph column naming, and template funcs that feed both Go code and templates.
 
-`AddIrregular("campus", "campuses")` alone is not enough — it only adds the plural→singular mapping, so the bare word `campus` still falls through to the default `s` → `∅` rule.
+`AddIrregular("campus", "campuses")` alone is not enough -- it only adds the plural→singular mapping, so the bare word `campus` still falls through to the default `s` → `∅` rule.
 The patch explicitly calls `AddSingular("campus", "campus")` plus PascalCase `AddSingularExact`/`AddPluralExact` entries for entrest (which passes type names directly without case folding).
 
-If you see `Campu`, `campue`, or `/campuses/campu/` anywhere in generated output, the patch is broken — check `ent/entc.go`.
+If you see `Campu`, `campue`, or `/campuses/campu/` anywhere in generated output, the patch is broken -- check `ent/entc.go`.
 
 ### ent schema flow
 
@@ -270,7 +315,9 @@ internal/pdbcompat/allowlist_gen.go
 3. Run the tool on the `src/` directory of the checkout:
 
    ```bash
-   go run ./cmd/pdb-schema-extract <peeringdb-checkout>/src > "${TMPDIR:-/tmp}/extracted.json"
+   PDBPLUS_SCHEMA_DIR="${TMPDIR:-/tmp}/peeringdb-plus/schema-drift"
+   mkdir -p "$PDBPLUS_SCHEMA_DIR"
+   mise exec -- go run ./cmd/pdb-schema-extract <peeringdb-checkout>/src > "$PDBPLUS_SCHEMA_DIR/extracted.json"
    ```
 
 4. Compare the fields of each type in `extracted.json` with `schema/peeringdb.json`.
@@ -279,14 +326,15 @@ internal/pdbcompat/allowlist_gen.go
 5. Apply real drift to `schema/peeringdb.json` by hand.
    Do not copy the tool output over the file.
 6. Run `mise run generate`.
+7. Remove the schema-drift scratch directory after saving any required comparison evidence.
 
 ### proto / buf workflow
 
-- `proto/peeringdb/v1/v1.proto` — message definitions. entproto generated it up to v1.6.
+- `proto/peeringdb/v1/v1.proto` -- message definitions. entproto generated it up to v1.6.
   Since then it is **hand-maintained** (see the note below).
-- `proto/peeringdb/v1/services.proto` — **hand-written**.
+- `proto/peeringdb/v1/services.proto` -- **hand-written**.
   Defines the `Get*` / `List*` / `Stream*` RPCs and their request/response messages.
-- `proto/peeringdb/v1/common.proto` — **hand-written**.
+- `proto/peeringdb/v1/common.proto` -- **hand-written**.
   Shared types such as `SocialMedia`.
   Their presence does not make an ent field part of a response.
   The project chooses response mappings explicitly.
@@ -362,7 +410,7 @@ CI checks this (see [Generated Code Drift Check](../CONTRIBUTING.md#generated-co
 
 ## Adding a new ent field
 
-Do **NOT** add the field to the `Fields()` slice in `ent/schema/{type}.go` — those files are regenerated wholesale from `schema/peeringdb.json` by `cmd/pdb-schema-generate` on every `go generate ./...` run, so a hand-added field is silently stripped before entc ever sees it (see "Sibling-file convention" above).
+Do **NOT** add the field to the `Fields()` slice in `ent/schema/{type}.go` -- those files are regenerated wholesale from `schema/peeringdb.json` by `cmd/pdb-schema-generate` on every `go generate ./...` run, so a hand-added field is silently stripped before entc ever sees it (see "Sibling-file convention" above).
 Add the field at its source instead:
 
 1. Pick the source that matches the origin of the field:
@@ -478,7 +526,7 @@ Do not edit it by hand.
 ## Adding a new field-level-privacy gated field
 
 When a new PeeringDB field gains a `<field>_visible` companion (or you introduce a new auth-gated column), redaction must be applied at **every** serializer surface or you have a privacy leak.
-`internal/privfield.Redact` is the single source of truth — never hand-roll a tier check.
+`internal/privfield.Redact` is the single source of truth -- never hand-roll a tier check.
 
 **Developer checklist:**
 
@@ -541,14 +589,14 @@ To add a new searchable text field on one of these entities (e.g. a future `netw
    ``StructTag(`json:"-"`)`` keeps it out of `/rest/v1/` bodies.
    `entrest.WithSkip(true)` keeps it out of the REST spec and filters.
    Any other server-only field needs all three.
-3. **Sync upsert** — extend `internal/sync/upsert.go` `upsertNetworks` builder chain with `.SetTaglineFold(unifold.Fold(n.Tagline))`.
+3. **Sync upsert** -- extend `internal/sync/upsert.go` `upsertNetworks` builder chain with `.SetTaglineFold(unifold.Fold(n.Tagline))`.
    Place the new setter in the trailing `_fold` block per the existing convention.
-4. **Filter routing** — add `"tagline": true` to `network`'s `FoldedFields` map in `internal/pdbcompat/registry.go`.
+4. **Filter routing** -- add `"tagline": true` to `network`'s `FoldedFields` map in `internal/pdbcompat/registry.go`.
    The filter layer reads this map to decide whether to route to the shadow column.
 5. **Round-trip test** -- extend `internal/pdbcompat/fold_filter_test.go` with a test proving `?tagline__contains=<ascii>` matches a `tagline="<diacritic>"` row.
 
 To add shadow columns on a 7th entity, create a new sibling `ent/schema/{type}_fold.go` with the `foldMixin` wiring, then steps 3-5 above plus add the `FoldedFields` map for the entity in `registry.go`.
-The other 6 upsert functions stay untouched — per-entity surgery is the convention.
+The other 6 upsert functions stay untouched -- per-entity surgery is the convention.
 
 ## Adding a pdbcompat 1-hop or 2-hop traversal filter
 
@@ -557,8 +605,8 @@ Two-step:
 
 1. Edit `ent/schema/pdb_allowlists.go` and add the new key to the relevant entry's `Fields` slice.
    Carry a `// Source: serializers.py:<line>` comment for audit.
-   The sibling-file location is load-bearing — `cmd/pdb-schema-generate` does not touch sibling files.
-2. `go generate ./...` — regenerates `internal/pdbcompat/allowlist_gen.go` via `cmd/pdb-compat-allowlist`.
+   The sibling-file location is load-bearing -- `cmd/pdb-schema-generate` does not touch sibling files.
+2. `go generate ./...` -- regenerates `internal/pdbcompat/allowlist_gen.go` via `cmd/pdb-compat-allowlist`.
    Codegen routes 3-segment keys (e.g. `first__second__field`) into `AllowlistEntry.Via` automatically.
 
 To exclude an edge from Path B traversal, the edge needs the `schemaannot.WithFilterExcludeFromTraversal()` annotation (package `internal/pdbcompat/schemaannot`).
@@ -590,7 +638,7 @@ See `docs/API.md § Relation filters`.
 The pdbcompat list path enforces a `PDBPLUS_RESPONSE_MEMORY_LIMIT` budget (default 128 MiB) via a pre-flight `count × typicalRowBytes` check that short-circuits to HTTP 413 when the request would exceed the budget.
 Any new entity wired into `/api/` must integrate with this budget:
 
-1. **Row-size table** — add a `typicalRowBytes` entry in `internal/pdbcompat/rowsize.go` with `Depth0` + `Depth2` numbers.
+1. **Row-size table** -- add a `typicalRowBytes` entry in `internal/pdbcompat/rowsize.go` with `Depth0` + `Depth2` numbers.
    Compute them by running:
 
    ```bash
@@ -598,8 +646,8 @@ Any new entity wired into `/api/` must integrate with this budget:
    ```
 
    against a seeded fixture, doubling the measured mean, and rounding **up** to the nearest 64 bytes.
-2. **wireEntity registration** — in `internal/pdbcompat/registry_funcs.go`, add a `wireEntity(entityWiring[...]{...})` entry to `init()` naming the entity's ent query constructor, serializer, and depth getter.
-   The generic helper derives the List and Count closures from a single shared predicate builder — they cannot diverge, which is what upholds the 413 guarantee — and preserves the `applyStatusMatrix(live, isCampus, opts.Since != nil)` last-predicate invariant and the `EmptyResult` short-circuit.
+2. **wireEntity registration** -- in `internal/pdbcompat/registry_funcs.go`, add a `wireEntity(entityWiring[...]{...})` entry to `init()` naming the entity's ent query constructor, serializer, and depth getter.
+   The generic helper derives the List and Count closures from a single shared predicate builder -- they cannot diverge, which is what upholds the 413 guarantee -- and preserves the `applyStatusMatrix(live, isCampus, opts.Since != nil)` last-predicate invariant and the `EmptyResult` short-circuit.
    `live` comes from `pdbtypes.LiveStatuses`; extend it if upstream `live_statuses()` gives the new type a live status other than `ok`.
 3. **Architecture doc** -- add a row to the per-entity sizing table in `docs/ARCHITECTURE.md § Response Memory Envelope` with the computed `max_rows @ 128 MiB`.
 4. **E2E coverage** -- extend `cmd/peeringdb-plus/*_e2e_test.go` (or `internal/pdbcompat/stream_integration_test.go`) with an under-budget smoke test and an over-budget 413 assertion mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
@@ -610,7 +658,7 @@ Any new entity wired into `/api/` must integrate with this budget:
    `TestListDepth_CountsMatchRender` checks each loader against the count of its `childSets` entry.
 
 `memStatsHeapInuseBytes` in `internal/pdbcompat/telemetry.go` is the **single call site** for `runtime.ReadMemStats`.
-Do not call it elsewhere — STW cost compounds, and the single-call-site invariant is grep-enforceable.
+Do not call it elsewhere -- STW cost compounds, and the single-call-site invariant is grep-enforceable.
 
 ## Testing
 
@@ -652,12 +700,12 @@ Before you open a PR:
 ## Debugging tips
 
 - **Server won't start:** config validation is fail-fast.
-  Check the first `slog.Error("failed to load config", ...)` line in stderr — invalid durations, missing required files, and unparseable memory limits all print a clear error here.
+  Check the first `slog.Error("failed to load config", ...)` line in stderr -- invalid durations, missing required files, and unparseable memory limits all print a clear error here.
 - **gRPC / streaming breaks under a custom middleware:** response writer wrappers **must** implement `http.Flusher` (delegate to the underlying writer).
   Streaming RPCs will hang or buffer without it.
   Also add `Unwrap() http.ResponseWriter` so nested middleware can unwrap to the inner writer.
 - **Sync never completes / `/readyz` stays unhealthy:** the sync worker only writes on the LiteFS primary.
-  Check `internal/litefs/primary.go` — `.primary` file **absent** = this node is primary (inverted semantics), if it is a lease candidate (`FLY_PROCESS_GROUP` is `primary`).
+  Check `internal/litefs/primary.go` -- `.primary` file **absent** = this node is primary (inverted semantics), if it is a lease candidate (`FLY_PROCESS_GROUP` is `primary`).
   For local dev without LiteFS, `PDBPLUS_IS_PRIMARY=true` is the default.
 - **Generated code drift in CI:** run `mise run generate` locally and commit the resulting diff.
   The drift check compares tracked files and separately rejects untracked output under `ent/`, `gen/`, `graph/`, `internal/web/templates/`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
@@ -677,7 +725,7 @@ Before you open a PR:
 
 ## Next steps
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) — system design and package layout.
+- [ARCHITECTURE.md](ARCHITECTURE.md) -- system design and package layout.
 - [CONFIGURATION.md](CONFIGURATION.md) -- environment variables and runtime configuration.
-- [TESTING.md](TESTING.md) — test framework and conventions.
+- [TESTING.md](TESTING.md) -- test framework and conventions.
 - [API.md](API.md) -- API surfaces, traversal allowlists, divergence registry.

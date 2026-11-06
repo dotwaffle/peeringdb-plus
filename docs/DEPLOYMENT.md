@@ -3,6 +3,95 @@
 PeeringDB Plus is designed to be deployed to [Fly.io](https://fly.io/) with [LiteFS](https://fly.io/docs/litefs/) providing edge-local SQLite replication.
 The production topology is an [asymmetric fleet](#asymmetric-fleet): two LiteFS lease candidates with persistent volumes (`lhr`, and a standby in `fra`; the Consul-elected primary runs the sync worker) and a set of ephemeral, read-only replicas in other regions that cold-sync from the primary on boot.
 
+Obtain authorization for each push, deployment, resource change, or credential creation batch.
+Record the target release and previous image before deployment.
+Build release images from a clean checkout of the intended tag.
+Local global Git ignores do not apply inside the build container.
+An untracked `.codegraph/` directory can therefore produce a `+dirty` version even when local `git status` is clean.
+Check the version after deployment.
+Run the [local validation gate](TESTING.md) before the authorized rollout.
+
+## Deploy command summary
+
+```bash
+# Deploy the current working tree with Fly's remote builder.
+# After a long pause the remote builder starts cold. `go build -v` in
+# Dockerfile.litefs prints each package, so a slow build shows progress.
+# If a transient api.machines.dev error occurs, run `fly deploy` again.
+fly deploy
+
+# Build on the local Docker daemon instead
+fly deploy --local-only
+
+# Deploy with a specific Dockerfile (defaults to Dockerfile.litefs per fly.toml)
+fly deploy --dockerfile Dockerfile.litefs
+
+# Check status after deploy
+fly status
+fly machines list
+```
+
+## Verify a deployment
+
+1. Check `fly status` and `fly machines list` for the expected regions and process groups.
+2. Check readiness and the deployed version:
+
+   ```bash
+   curl --fail --silent --show-error https://peeringdb-plus.fly.dev/readyz
+   curl --fail --silent --show-error -H 'Accept: application/json' https://peeringdb-plus.fly.dev/ | jq -r .version
+   ```
+
+3. Check Grafana for failed syncs, replica lag, memory pressure, and HTTP errors.
+4. Confirm that the latest successful sync advances within the configured interval.
+
+Redact credentials and authenticated connection URLs before sharing logs.
+
+Use [Monitoring](#monitoring) for signals and [Operational failure modes](#operational-failure-modes-quick-runbook) for recovery.
+
+## Rollback
+
+Fly.io keeps the image of each release.
+To deploy an earlier image again, do these steps:
+
+1. List the releases with their image references:
+
+   ```bash
+   fly releases --app peeringdb-plus --image
+   ```
+
+2. Deploy the image of the release that you want:
+
+   ```bash
+   fly deploy --app peeringdb-plus --image <image-ref>
+   ```
+
+This procedure does not build a new image.
+To build from an earlier commit, check out that commit and run `fly deploy`.
+`fly deploy` sends the working tree, and `go build` stamps the version from it: the tag on a tagged commit, a Go pseudo-version between tags, and a `+dirty` suffix for an uncommitted change or for an untracked file that `.dockerignore` does not exclude:
+
+```bash
+git checkout <previous-sha>
+fly deploy
+```
+
+## Initial app setup
+
+Initial setup (one-time, per app):
+
+```bash
+fly apps create peeringdb-plus
+fly consul attach                                          # populates FLY_CONSUL_URL
+fly volumes create litefs_data --size 1 --region lhr       # optional: the first deploy creates the volume from [[mounts]]
+fly secrets import --app peeringdb-plus < /secure/path/peeringdb-plus.env
+fly deploy
+fly scale count 1 --process-group replica --region <region>   # repeat for each replica region
+fly machines list                                          # find each replica-group machine in lhr
+fly machine destroy --force <id>                           # repeat for each replica-group machine in lhr
+```
+
+The first deploy creates the `replica` group machines in `lhr`, the `primary_region` of `fly.toml`.
+Create the replicas in their regions first, then destroy each `replica` machine in `lhr` (see [Regional rollout](#regional-rollout)).
+
 ## Deployment targets
 
 | Target | Config file | Notes |
@@ -12,7 +101,7 @@ The production topology is an [asymmetric fleet](#asymmetric-fleet): two LiteFS 
 
 - `fly.toml`: app (`peeringdb-plus`), primary region (`lhr`), rolling deploy strategy with `max_unavailable = 0.5`, Consul enabled for LiteFS leases, two `[processes]` groups (`primary`, `replica`) with separate `[[vm]]` blocks (`shared-cpu-2x` / 512 MB for both), a 1 GB auto-extending `litefs_data` volume mounted at `/var/lib/litefs` **scoped to `processes = ["primary"]`** (replicas have no volume), and an HTTP health check on `GET /readyz` every 15s (the readiness probe, so Fly Proxy routes around hydrating or stale machines; `GET /healthz` remains the always-200 liveness probe).
 - `Dockerfile.litefs`: LiteFS-aware production image.
-  Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident response — see [Incident-response debug shell](#incident-response-debug-shell)) installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and sets `ENTRYPOINT ["litefs", "mount"]`.
+  Chainguard `glibc-dynamic` runtime with `fuse3` and `sqlite` (CLI for incident response -- see [Incident-response debug shell](#incident-response-debug-shell)) installed, copies the LiteFS 0.5 binary from `flyio/litefs:0.5`, copies `litefs.yml` to `/etc/litefs.yml`, creates the `/litefs` mount point, and sets `ENTRYPOINT ["litefs", "mount"]`.
   The application binary is built with `CGO_ENABLED=0` (pure Go via `modernc.org/sqlite`) and `-trimpath -ldflags="-s -w …"`.
   `go build` stamps the version from git (Go 1.24 and later), so the build context holds `.git` and every tracked file.
   An explicit `VERSION` build argument overrides the stamp (`-X github.com/dotwaffle/peeringdb-plus/internal/buildinfo.injected=$VERSION`).
@@ -69,90 +158,28 @@ docker buildx imagetools inspect ghcr.io/dotwaffle/peeringdb-plus:<tag> --format
 
 ## Build pipeline
 
-GitHub Actions workflow `.github/workflows/ci.yml` runs on every pull request, on pushes to `main`, and on pushes of `v*` tags.
-It has three jobs:
-
-1. **`ci`**: runs on pull requests and on pushes to `main`, but not on pushes of `v*` tags.
-   It is a single mise/Go job that installs the committed lockfile, warms one module/build cache, then runs these steps in order:
-   1. **Generated-code drift check** — `mise run generate` then `git diff --exit-code` over `ent/`, `gen/`, `graph/`, `internal/web/templates/`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go` (the security-load-bearing `/api` traversal allowlist).
-      The step also fails when generation creates untracked files in these paths.
-      Runs first so a forgotten regeneration fails in seconds, ahead of the expensive build and test steps.
-      A `go mod tidy` gate follows it, failing the job when go.mod/go.sum are untidy.
-   2. **Build** — `mise run build` to confirm compilation and warm the cache.
-   3. **Test** — `mise run test` runs gotestsum with the race detector.
-   4. **Lint** — `mise run lint` checks the workflow and Go sources.
-   5. **Govulncheck** — `mise run vulncheck`.
-      Advisory (`continue-on-error`): a flagged vulnerability surfaces as a workflow warning but does **not** block the merge.
-2. **`docker-build`**: runs only on pull requests, as a separate parallel job that uses `docker/build-push-action@v7` with BuildKit's `type=gha` cache.
-   It builds `Dockerfile` for `linux/amd64` and `linux/arm64` and `Dockerfile.litefs` for `linux/amd64`.
-   Each Dockerfile has its own cache scope.
-   This job pushes nothing.
-3. **`docker-publish`**: runs only on pushes to `main` and `v*` tags.
-   On a push to `main`, it runs after `ci` passes.
-   On a `v*` tag push, its first step requires that the tagged commit passed `ci` in a push to `main` (see [Release tags](#release-tags)).
-   It builds `Dockerfile` for both platforms, pushes it to `ghcr.io/dotwaffle/peeringdb-plus` with an SBOM and BuildKit provenance, and adds a GitHub artifact attestation.
-   See [Published image](#published-image) for the tags.
-   Pull requests publish nothing.
-   `Dockerfile.litefs` is never published, because it needs the LiteFS lease of the Fly deployment.
-
-`docker-build` is a separate job because its BuildKit `type=gha` cache is separate from the Go build cache.
-A push does not run it.
-`docker-publish` checks out the full history for the version stamp, so its build context and version string differ from a shallow checkout, and a second build could not share its compile layers.
-`docker-publish` writes the `dev` cache on `main`, and pull request builds read it.
-
-There is no automated deploy step.
-Deployment to Fly.io is a manual action run from a developer workstation, as documented in `fly.toml`.
-
-### Release tags
-
-A release tag points to a commit that CI already tested in a push to `main`.
-Thus a `v*` tag push does not run `ci` again.
-Instead, the first step of `docker-publish` looks for a run of `ci.yml` for a push to `main` that has the tagged commit.
-The step passes when the `CI` job of such a run passed.
-The step fails when each such run completed without a passed `CI` job.
-You can push `main` and the tag together (`git push origin main vX.Y.Z`).
-The step then waits for the `CI` job of the `main` run.
-It checks every 30 seconds and fails after 30 minutes.
-
-Tag a commit that a push to `main` tested, for example the last commit of a push.
-A push to `main` tests only its last commit.
-If you tag a commit from the middle of a push of more than one commit, `docker-publish` fails.
-
-The tag run builds and pushes its own image.
-The image of the `main` run can have a Go pseudo-version, but `go build` stamps the tag as the version of the tag image.
-The tag run pushes only `X.Y.Z`, `X.Y` and `latest`.
-The `main` run pushes `sha-<commit>` for the same commit, so each tag has one image.
-
-### Production image: accepted risks
-
-Two deliberate trade-offs in `Dockerfile.litefs`, recorded here so they read as decisions rather than oversights:
-
-- **The process tree runs as root.**
-  The LiteFS FUSE mount genuinely requires root, and the application process — which parses untrusted internet input on six API surfaces — currently inherits it (LiteFS `exec:`s the app without dropping privileges).
-  Accepted for now because the container boundary (Fly microVM per machine) is the primary isolation layer.
-  Revisit if LiteFS grows a privilege-drop option or the app moves off FUSE.
-- **The runtime base is `glibc-dynamic:latest-dev`.**
-  The `-dev` variant has a shell and `apk`, and `Dockerfile.litefs` installs the `sqlite3` CLI with `apk`.
-  This supports incident response through `fly ssh console` and queries against a `litefs export` copy.
-  Never open the live database with `sqlite3`.
-  The dev `Dockerfile` uses `static`, which has no shell, since nothing execs into it.
-  Both base tags float (`:latest`); Chainguard's free tier offers no pinned tags, and digest-pinning without bump automation (deliberately not installed) would only freeze staleness in place.
+See [Required CI Checks](../CONTRIBUTING.md#required-ci-checks) for workflow triggers, validation, and publishing gates.
+The workflow publishes the standalone image.
+Deploy the LiteFS production image separately with the authorized Fly rollout.
 
 ## Environment setup
 
 Runtime configuration is supplied by environment variables.
 See [CONFIGURATION.md](CONFIGURATION.md) for the full list.
-Set these secrets with `fly secrets set` (or `fly secrets import`):
+Import these secrets from a protected file through stdin:
 
 | Secret | Purpose |
 | --- | --- |
 | `PDBPLUS_PEERINGDB_API_KEY` | Optional PeeringDB API key. Empty = unauthenticated. |
 | `PDBPLUS_SYNC_TOKEN` | Shared secret required to call `POST /sync`. Empty = on-demand sync disabled. |
 
-Example:
+Use a mode-0600 file outside the repository with `NAME=VALUE` entries.
+Disable shell tracing and do not print the file.
+[Fly secrets import](https://docs.fly.io/flyctl/cmd/fly_secrets_import) reads these entries from stdin.
+Secret imports restart the machines.
 
 ```bash
-fly secrets set PDBPLUS_PEERINGDB_API_KEY=... PDBPLUS_SYNC_TOKEN=...
+fly secrets import --app peeringdb-plus < /secure/path/peeringdb-plus.env
 ```
 
 ### Authenticated PeeringDB Sync (Recommended)
@@ -167,7 +194,7 @@ The sync worker then fetches both `Public`- and `Users`-tier rows from PeeringDB
    The secret is applied to the app and triggers a rolling deploy so the sync worker picks it up on the next machine start:
 
    ```bash
-   fly secrets set PDBPLUS_PEERINGDB_API_KEY=<key> --app peeringdb-plus
+   fly secrets import --app peeringdb-plus < /secure/path/peeringdb-api-key.env
    ```
 
 3. **Confirm rollout.**
@@ -180,7 +207,7 @@ The sync worker then fetches both `Public`- and `Users`-tier rows from PeeringDB
 
    The "Sync mode" row on the `/ui/about` page also shows the authentication mode.
 
-   `fly secrets list --app peeringdb-plus` should also show `PDBPLUS_PEERINGDB_API_KEY` in the output (value is masked, only the digest is visible — this is expected).
+   `fly secrets list --app peeringdb-plus` should also show `PDBPLUS_PEERINGDB_API_KEY` in the output (value is masked, only the digest is visible -- this is expected).
 4. **Operational implication.**
    `Users`-tier rows are now present in the local SQLite database.
    If the key belongs to a member of an organization, that organization's `Private` contacts are also present.
@@ -197,7 +224,7 @@ fly secrets set PDBPLUS_PUBLIC_TIER=users --app peeringdb-plus
 ```
 
 Startup then emits a WARN log (`public tier override active`) naming the override every time the app boots.
-This is intentional — the elevated default must never be silent.
+This is intentional -- the elevated default must never be silent.
 Use this only for deployments you would not want indexed by a search engine.
 See [CONFIGURATION.md §Privacy & Tiers](./CONFIGURATION.md#privacy--tiers) for the full state matrix.
 
@@ -222,7 +249,7 @@ Set `PDBPLUS_SYNC_MODE=full` only when every cycle must fetch all data.
 
 ## LiteFS
 
-LiteFS is in maintenance mode — stable but no longer actively supported by Fly.io.
+LiteFS is in maintenance mode -- stable but no longer actively supported by Fly.io.
 There is no drop-in alternative for edge SQLite replication, so the project continues to use it.
 
 - **FUSE mount.**
@@ -235,7 +262,7 @@ There is no drop-in alternative for edge SQLite replication, so the project cont
   `promote: false`: a candidate that starts does not take the lease from the current primary, so the lease moves only when its holder is lost or stops.
 - **Replication state volume.**
   A 1 GB `litefs_data` volume is mounted at `/var/lib/litefs` per `fly.toml`'s `[[mounts]]` block, auto-extending up to 10 GB when 80 percent full.
-  The mount is scoped to `processes = ["primary"]` — replicas have no volume and cold-sync to ephemeral rootfs.
+  The mount is scoped to `processes = ["primary"]` -- replicas have no volume and cold-sync to ephemeral rootfs.
   The sync scratch directory is also on this volume (see [Asymmetric fleet](#asymmetric-fleet)).
 - **Direct HTTP on :8080 with h2c.**
   The LiteFS proxy is intentionally not used; the app serves traffic directly on port 8080 with HTTP/2 cleartext so that gRPC/ConnectRPC streaming requests work end-to-end (the LiteFS proxy does not support HTTP/2 for gRPC).
@@ -428,7 +455,7 @@ The burn-rate rules of the availability SLO are the alerts for 5xx responses.
 
 The OTLP endpoint, the Grafana host, and the Mimir tenant are deployment values.
 They are not in the repository.
-Set the OTLP endpoint and headers as Fly secrets: `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=... OTEL_EXPORTER_OTLP_HEADERS=...`.
+Import the OTLP endpoint and headers from a protected file as described in [Environment setup](#environment-setup).
 
 Fly.io's built-in machine metrics (CPU, memory, network, disk) are available through the Fly dashboard without additional configuration.
 Fly.io also scrapes the LiteFS metrics endpoint of each machine (port 20202, `[[metrics]]` in `fly.toml`) every 15 seconds.
@@ -465,7 +492,8 @@ Bytes is the canonical Prometheus unit.
 Grafana formats MiB and GiB at render time.
 
 Thresholds via `PDBPLUS_HEAP_WARN_MIB` (default 400) and `PDBPLUS_RSS_WARN_MIB` (default 384).
-Defaults sit under the Fly 512 MB VM cap with margin so the order under pressure is: log → app crash → Fly OOM-kill.
+Defaults are below the Fly 512 MB VM cap.
+They do not guarantee a warning before an OOM kill.
 Zero disables the warn for that metric (attrs still fire).
 A sustained breach of `PDBPLUS_HEAP_WARN_MIB` needs investigation (see **Memory escalation** below).
 
@@ -473,7 +501,7 @@ A sustained breach of `PDBPLUS_HEAP_WARN_MIB` needs investigation (see **Memory 
 The `Sync Memory` row in `deploy/grafana/dashboards/pdbplus-overview.json` contains four panels:
 
 - `Peak Heap` -- threshold line at 400 MiB (Grafana auto-formats MiB / GiB from the `bytes` field unit)
-- `Peak RSS` — threshold line at 384 MiB
+- `Peak RSS` -- threshold line at 384 MiB
 - `Live Heap by Instance` -- sourced from the `go_memory_used_bytes` OTel runtime gauge, plots all fleet machines (primary + replicas) across the asymmetric fleet
 - `Response Heap Delta`: p50, p95, and p99 of `pdbplus_response_heap_delta_bytes` for each endpoint
 
@@ -483,7 +511,7 @@ Look at `pdbplus_sync_peak_heap_bytes` for each cycle and at the sync mode of th
 Full cycles use more memory than incremental cycles.
 `sync_status` keeps the newest 3000 cycles (about 31 days at the 15m interval), plus the newest success row and the newest full success row.
 For older cycles, use the Grafana metrics and logs.
-Observed baseline (2026-04-17): primary peak 83.8 MiB, replicas 58-59 MiB.
+Historical baseline (2026-04-17, not a current capacity guarantee): primary peak 83.8 MiB, replicas 58-59 MiB.
 
 ### Incident-response debug shell
 
@@ -516,13 +544,13 @@ Production database writes require approval of the exact SQL and affected counts
 ## Capacity probing
 
 `cmd/loadtest` is an operator binary (NOT shipped in the prod image, NOT invoked by CI) that drives read-only traffic against a deployed mirror to validate capacity, warm dashboards, and reproduce load.
-Build with `go build -o loadtest ./cmd/loadtest`.
+Use the [loadtest build instructions](../cmd/loadtest/README.md#build) to keep the binary outside the checkout.
 
 Four subcommands:
 
 - `loadtest endpoints` -- one-shot inventory sweep across all 5 API surfaces (~114 requests).
-- `loadtest sync` — replays the 13-step ordered sync GET sequence.
-- `loadtest soak` — sustained QPS-capped mixed-surface load.
+- `loadtest sync` -- replays the 13-step ordered sync GET sequence.
+- `loadtest soak` -- sustained QPS-capped mixed-surface load.
 - `loadtest ramp` -- finds the per-surface inflection point by ramping concurrency C=1 ×1.5/2s, triggering on p95 > 2× baseline OR p99 > 1s OR error rate > 1% OR a step in which no request completes, holding past inflection, then emitting a markdown table per surface to stdout (paste into capacity-planning docs / incident reports).
 
 The default `--base` is `https://peeringdb-plus.fly.dev` (`--target` is an alias).
@@ -530,69 +558,6 @@ The tool refuses `peeringdb.com` and its subdomains, except `beta.peeringdb.com`
 Do not point it at upstream PeeringDB.
 Upstream rate limits are strict and can block your IP.
 See `cmd/loadtest/README.md` for full flag documentation and example output.
-
-## Rollback
-
-Fly.io keeps the image of each release.
-To deploy an earlier image again, do these steps:
-
-1. List the releases with their image references:
-
-   ```bash
-   fly releases --app peeringdb-plus --image
-   ```
-
-2. Deploy the image of the release that you want:
-
-   ```bash
-   fly deploy --app peeringdb-plus --image <image-ref>
-   ```
-
-This procedure does not build a new image.
-To build from an earlier commit, check out that commit and run `fly deploy`.
-`fly deploy` sends the working tree, and `go build` stamps the version from it: the tag on a tagged commit, a Go pseudo-version between tags, and a `+dirty` suffix for an uncommitted change or for an untracked file that `.dockerignore` does not exclude:
-
-```bash
-git checkout <previous-sha>
-fly deploy
-```
-
-## Deploy command summary
-
-```bash
-# Deploy the current working tree with Fly's remote builder.
-# After a long pause the remote builder starts cold. `go build -v` in
-# Dockerfile.litefs prints each package, so a slow build shows progress.
-# If a transient api.machines.dev error occurs, run `fly deploy` again.
-fly deploy
-
-# Build on the local Docker daemon instead
-fly deploy --local-only
-
-# Deploy with a specific Dockerfile (defaults to Dockerfile.litefs per fly.toml)
-fly deploy --dockerfile Dockerfile.litefs
-
-# Check status after deploy
-fly status
-fly logs
-fly machines list
-```
-
-Initial setup (one-time, per app):
-
-```bash
-fly apps create peeringdb-plus
-fly consul attach                                          # populates FLY_CONSUL_URL
-fly volumes create litefs_data --size 1 --region lhr       # optional: the first deploy creates the volume from [[mounts]]
-fly secrets set PDBPLUS_PEERINGDB_API_KEY=... PDBPLUS_SYNC_TOKEN=...
-fly deploy
-fly scale count 1 --process-group replica --region <region>   # repeat for each replica region
-fly machines list                                          # find each replica-group machine in lhr
-fly machine destroy --force <id>                           # repeat for each replica-group machine in lhr
-```
-
-The first deploy creates the `replica` group machines in `lhr`, the `primary_region` of `fly.toml`.
-Create the replicas in their regions first, then destroy each `replica` machine in `lhr` (see [Regional rollout](#regional-rollout)).
 
 ## After an upstream PeeringDB release
 
@@ -606,63 +571,16 @@ Do not send test requests to upstream PeeringDB.
 
 ### PeeringDB 2.83.0
 
-Upstream migration 0160 changes each netixlan with `status='ok'` and `operational=false` to `status='not-operational'`.
-All of these rows get one `updated` value, so the paged `?since=` fetch can skip some of them.
-On 2026-09-23 the mirror had 627 such rows.
+Historical migration note (2026-09-23): migration 0160 changed live netixlan rows with `operational=false` to `status='not-operational'`.
+The mirror had 627 affected rows at that time.
+Older releases used offset pagination and could miss rows with the same `updated` timestamp.
+Current sync streams the complete `?since=` response, including the full-cycle tombstone window.
+The old repeated-full-sync recovery procedure no longer applies.
 
-The checks below use a SQLite shell on a machine of the fleet:
-
-```bash
-fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
-```
-
-1. Make sure that the mirror runs v1.28.0 or later.
-   To see the running version, run:
-
-   ```bash
-   curl -s -H 'Accept: application/json' https://peeringdb-plus.fly.dev/ | jq -r .version
-   ```
-
-   Older releases hide `not-operational` connections on `/api` and in the Web UI.
-2. Wait until upstream has deployed 2.83.0.
-   After the deploy, the next incremental sync stores `not-operational` rows:
-
-   ```sql
-   SELECT status, COUNT(*) FROM network_ix_lans GROUP BY status;
-   ```
-
-3. Start one full sync.
-   The request returns `202`, and the sync runs on the primary.
-   A `409` response means that a sync cycle is already running.
-   Wait until it ends, then send the request again:
-
-   ```bash
-   curl -X POST -H "X-Sync-Token: $PDBPLUS_SYNC_TOKEN" \
-     'https://peeringdb-plus.fly.dev/sync?mode=full'
-   ```
-
-   The full sync also stores each `meta` document that upstream set before the mirror had the column.
-4. Wait until the newest full sync has `status` `success`.
-   Scheduled incremental cycles continue to run and add newer rows, so select the full cycles only:
-
-   ```sql
-   SELECT id, mode, status, completed_at FROM sync_status
-     WHERE mode = 'full' ORDER BY id DESC LIMIT 1;
-   ```
-
-   `sync_status` keeps the newest 3000 cycles and the newest full success row, so this query always finds the full sync that you started.
-5. Make sure that no skipped row is left.
-   The result must be `0`, because upstream now sets `operational` to `status == 'ok'` on every save (2.83.0 `models.py:6512`):
-
-   ```sql
-   SELECT COUNT(*) FROM network_ix_lans WHERE status = 'ok' AND operational = 0;
-   ```
-
-   If the result is not `0`, the paged window of the full sync skipped some rows.
-   While the upstream API cache predates 2.83.0, only the window returns these rows in their current state.
-   Compare the `pdbplus.sync.snapshot.generated` attribute on the `sync-fetch-netixlan` span with the time of the upstream deploy.
-   Start another full sync later: each full sync fetches the window again, and a row stored as `not-operational` stays, because the upserts keep a stored row that is newer than the snapshot.
-   When upstream rebuilds its cache, the snapshot itself carries the rows.
+For current recovery, check the latest successful full cycle in Grafana or the mirror's sync status API.
+If a manual full sync is necessary, follow [Force a full sync](#5-force-a-full-sync).
+For SQL checks, use an [exported database copy](#incident-response-debug-shell).
+Never query the live LiteFS database with `sqlite3`.
 
 ## Operational failure modes quick-runbook
 
@@ -691,26 +609,31 @@ fly ssh console -a peeringdb-plus --pty -C 'sqlite3 /litefs/peeringdb-plus.db'
 
 ### 4) `/sync` auth misconfiguration
 
-- Symptoms: every `POST /sync` returns 401, and startup logs carry `PDBPLUS_SYNC_TOKEN not set — POST /sync is disabled`.
-  With no token configured the endpoint fail-closes — it rejects all requests rather than accepting them unauthenticated, so a missing token disables on-demand sync entirely (scheduled syncs are unaffected).
+- Symptoms: every `POST /sync` returns 401, and startup logs carry `PDBPLUS_SYNC_TOKEN not set -- POST /sync is disabled`.
+  With no token configured the endpoint fail-closes -- it rejects all requests rather than accepting them unauthenticated, so a missing token disables on-demand sync entirely (scheduled syncs are unaffected).
 - First checks: `PDBPLUS_SYNC_TOKEN` present in runtime env and deploy secrets.
-- Immediate action: set the token with `fly secrets set PDBPLUS_SYNC_TOKEN=...`.
+- Immediate action: import the token from a protected file as described in [Environment setup](#environment-setup).
   This command restarts the machines.
   Then send an authenticated `POST /sync`.
 
 ### 5) Force a full sync
 
+Obtain authorization for this production sync.
+Do not force more than one production sync per hour.
+Load `PDBPLUS_SYNC_TOKEN` through your secret manager, with shell tracing disabled.
+
 1. Send the request.
    A replica answers with a `fly-replay` header, and Fly Proxy then sends the request to the primary.
 
    ```bash
-   curl -X POST -H "X-Sync-Token: $PDBPLUS_SYNC_TOKEN" \
+   printf 'header = "X-Sync-Token: %s"\n' "$PDBPLUS_SYNC_TOKEN" | \
+     curl --config - --write-out '\n%{http_code}\n' -X POST \
      'https://peeringdb-plus.fly.dev/sync?mode=full'
    ```
 
 2. Make sure that the response is `202`.
    A `409` means that a cycle is running.
-   Wait until it ends, then send the request again.
+   Wait for that cycle to finish and check its result before requesting another authorized sync.
    A `401` means that the token is wrong or not set.
 
 The primary always traces this cycle, whatever `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` is.

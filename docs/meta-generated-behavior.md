@@ -31,7 +31,8 @@ Upstream slices the cached rows.
 ## Effect on the sync
 
 The sync does not use `meta.generated` for its cursor or for the start of any fetch.
-Incremental fetches send `?since=` and `?limit=250`, so they never get the value.
+`StreamAll` sends `depth` and `since` in one streamed request, without a `limit` parameter.
+A positive `since` bypasses the upstream cache, so incremental responses do not carry `meta.generated`.
 The sync cursor of each type is its stored watermark (`internal/sync/watermark.go`), which is never later than the newest `updated` value in the local table (`GetMaxUpdated`, `internal/sync/cursor.go`).
 See [ARCHITECTURE.md § Incremental cursor](ARCHITECTURE.md#incremental-cursor).
 

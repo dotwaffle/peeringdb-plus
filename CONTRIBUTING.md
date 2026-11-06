@@ -16,11 +16,10 @@ Please be respectful and constructive in issues, pull requests, and reviews.
 
 ## Reporting Security Issues
 
-No dedicated security reporting channel is documented in this repository at this time.
-For suspected security issues, please **do not open a public GitHub issue**.
-Instead, contact the repository owner directly via GitHub (see the owner account on the repo page).
-
-If you are reporting a vulnerability in a dependency rather than in PeeringDB Plus itself, an issue is fine — `govulncheck` runs in CI and dependency bumps are routine.
+Report suspected vulnerabilities through [GitHub private vulnerability reporting](https://github.com/dotwaffle/peeringdb-plus/security/advisories/new).
+Include reproduction steps and affected versions.
+Do not put credentials or undisclosed vulnerability details in public issues.
+This applies to dependency vulnerabilities that affect this service too.
 
 ## Filing an Issue
 
@@ -31,7 +30,7 @@ If you are reporting a vulnerability in a dependency rather than in PeeringDB Pl
   - Relevant log output or error messages.
   - Your Go version (`go version`) and OS if the issue is build- or runtime-related.
 
-There are no issue templates in this repository — free-form descriptions are fine.
+There are no issue templates in this repository -- free-form descriptions are fine.
 
 ## Proposing a Feature
 
@@ -60,7 +59,7 @@ sync: anchor the scheduler at last_success + interval, not process start
 docs: note /ui/ content negotiation and the ANSI smoke-test workaround
 ```
 
-This is **not** Conventional Commits — do not use `type(scope):` prefixes such as `feat(...)`, `fix(...)`, or `chore:`.
+This is **not** Conventional Commits -- do not use `type(scope):` prefixes such as `feat(...)`, `fix(...)`, or `chore:`.
 Separate the subject from the body with a blank line, wrap the body at about 74 columns, and explain what the patch solves and why rather than restating the diff.
 Prefer one logical change per commit so each commit builds and passes its tests on its own.
 The format is not enforced by CI, but matching it keeps history bisectable and readable.
@@ -74,21 +73,9 @@ mise install --locked
 mise run check
 ```
 
-If you changed one of these files, regenerate code and commit the result:
-
-- `schema/peeringdb.json`, or a hand-edited sibling file under `ent/schema/`
-- a `.proto` file under `proto/peeringdb/v1/` (`v1.proto`, `services.proto`, or `common.proto`)
-- `graph/custom.graphql` or `graph/gqlgen.yml`
-- a `.templ` file under `internal/web/templates/`, `internal/web/tailwind.input.css`, or `internal/web/static/ui.js`
-- a code generator or its configuration, for example `ent/entc.go`, `buf.gen.yaml`, `cmd/pdb-schema-generate/`, `cmd/pdb-compat-allowlist/`, or a generator version in `mise.toml`
-
-```bash
-mise run generate
-```
-
-This command runs `go generate ./...`.
-It updates `ent/`, `gen/`, `graph/`, `internal/web/templates/*_templ.go`, `internal/web/static/tailwind.css`, and `internal/pdbcompat/allowlist_gen.go`.
-CI rejects a PR in which these files are out of date (see below).
+Regenerate affected outputs when their sources change.
+Follow the [generation pipeline](docs/DEVELOPMENT.md#code-generation-pipeline) and commit generated files with their sources.
+For local startup, use the [fixture-backed workflow](docs/DEVELOPMENT.md#run-against-local-fixtures).
 
 ## Required CI Checks
 

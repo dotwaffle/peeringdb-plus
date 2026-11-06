@@ -457,41 +457,21 @@ deploy/                   # Deployment-adjacent assets (Grafana dashboards, aler
 
 ## Code generation pipeline
 
-`go generate ./...` runs the three steps below and converges in a **single pass**.
-`ent/generate.go` runs the schema producer ahead of its consumer (entc), and `internal/web/static.go` runs templ ahead of Tailwind.
+Generation must converge in one pass.
+The schema producer runs before entc, and templ runs before Tailwind.
+`go generate ./...` visits `ent/` before `schema/`, so `ent/generate.go` owns the schema producer directive.
+Tailwind scans generated templates and must read the current output.
 
-1. **`ent/generate.go`** runs four directives in order:
-   1. `pdb-schema-generate` (run first) regenerates `ent/schema/{type}.go` from `schema/peeringdb.json`.
-      This step is re-runnable.
-      Hand-written methods live in sibling files (for example `poc_policy.go` and `network_fold.go`) that the generator does not touch.
-      See [Sibling-file convention](DEVELOPMENT.md#sibling-file-convention-load-bearing) for the rules.
-      It is sequenced here, ahead of entc, rather than under `schema/`, because `go generate ./...` visits `ent/` before `schema/` and could not otherwise guarantee the producer runs before the consumer.
-   2. `go run entc.go` (`ent/entc.go`), which:
-      - Patches `go-openapi/inflect` and ent's internal inflect rules via `go:linkname` to fix `"campus"` -> `"campu"` mangling.
-      - Configures three ent extensions:
-        - `entgql` -- emits `graph/schema.graphqls` and `graph/gqlgen.yml` with Relay spec + where inputs.
-        - `entrest` -- emits an OpenAPI-compliant HTTP handler at `ent/rest/`, read-only operations (`OperationRead`, `OperationList`) by default.
-        - `entproto` — configured with `SkipGenFile`, but no ent schema carries an entproto annotation, so it writes nothing.
-          `proto/peeringdb/v1/v1.proto` is hand-maintained since v1.6.
-      - Enables the `sql/upsert`, `sql/execquery`, and `privacy` ent features (required by the sync worker's bulk upsert, per-connection `PRAGMA` execution, and the POC privacy policy respectively).
-   3. `cmd/pdb-compat-allowlist` regenerates `internal/pdbcompat/allowlist_gen.go` from `schema.PrepareQueryAllows` declared in `ent/schema/pdb_allowlists.go` (the cross-entity traversal allowlist).
-   4. `buf generate` at the repo root reads `buf.gen.yaml` and invokes `protoc-gen-go` + `protoc-gen-connect-go` to emit Go types and ConnectRPC service interfaces under `gen/peeringdb/v1/`.
+Hand-written schema methods stay in sibling files because generation replaces `ent/schema/{type}.go`.
+Both inflection patches preserve `campus` names in generated APIs.
+The entproto extension emits no files with the current annotations.
+Proto files remain hand-maintained contracts, and buf generates their Go and ConnectRPC outputs.
+The ent features `sql/upsert`, `sql/execquery`, and `privacy` support sync writes, connection setup, and contact privacy.
 
-2. **`graph/generate.go`** runs `gqlgen generate` to produce the GraphQL resolvers and models from `graph/schema.graphqls` + `graph/gqlgen.yml`.
-
-3. **`internal/web/static.go`** runs `templ generate -path templates` to produce the type-safe `*_templ.go` files from `.templ` sources, then `tailwindcss` to build `internal/web/static/tailwind.css` from `internal/web/tailwind.input.css`.
-
-Tailwind scans every file in `internal/web/templates`, which includes the generated `*_templ.go` files.
-The two directives are in one file, and `go generate` runs them in order, so Tailwind always reads the new `*_templ.go` files and one run converges.
-
-`schema/generate.go` carries no `go:generate` directive.
-`cmd/pdb-schema-extract <peeringdb-src>` is a manual drift check and is not part of `go generate ./...`.
-It extracts a schema from the upstream Django source and writes it to stdout.
-Compare that output with `schema/peeringdb.json` and apply real drift to `schema/peeringdb.json` by hand.
-Do not overwrite the curated file with the output.
-With `--validate`, the tool also compares the field names with sample responses from `beta.peeringdb.com`.
-
-Mise installs `buf`, `templ`, `gqlgen`, `tailwindcss`, `protoc-gen-go` and `protoc-gen-connect-go` from `mise.toml` and `mise.lock`.
+See [Development: Code generation pipeline](DEVELOPMENT.md#code-generation-pipeline) for commands, outputs, and producer order.
+See the [sibling-file convention](DEVELOPMENT.md#sibling-file-convention-load-bearing) and [campus inflection patch](DEVELOPMENT.md#the-campus-inflection-patch) before schema changes.
+Use the [schema drift procedure](DEVELOPMENT.md#check-for-upstream-schema-drift) to compare upstream with the curated schema.
+Schema extraction is a manual check, not a generator input that replaces the curated file.
 
 ## Middleware chain
 
@@ -1317,7 +1297,9 @@ A detail request with filter keys checks the row first (one primary-key query); 
 ### Telemetry
 
 - **OTel span attribute** `pdbplus.response.heap_delta_bytes` — process `runtime.MemStats.HeapInuse` delta, sampled once at handler entry and once via `defer` at exit.
-  `ReadMemStats` is STW (~µs at our heap size); the contract permits ONE sample per request but NEVER per row.
+  `ReadMemStats` stops the world briefly.
+  The contract permits two reads per request, at entry and deferred exit, and records one delta.
+  Never read it per row.
   The sampler lives in `internal/pdbcompat/telemetry.go` (`memStatsHeapInuseBytes` + `recordResponseHeapDelta`) and is called via `defer` in `dispatch` right after the Registry lookup, covering both the list and detail paths, so every terminal path (200 success, 400 bad-id/filter-error, 404, 413 budget-exceeded, 500 query-error, 503 pool-exhausted) fires exactly once.
   **Caveat:** `HeapInuse` is process-global, so under concurrent requests a single delta also reflects other in-flight requests' allocations and any intervening GC.
   Treat it as process-heap churn observed in aggregate (p50/p95/p99), NOT as one request's allocation — per-request attribution would need per-goroutine heap accounting the Go runtime does not provide.
@@ -1353,12 +1335,9 @@ If streaming/budget is ever extended to any of these surfaces, start from the pd
 
 ### Extending
 
-Adding a new entity type requires:
+An entity must use the same predicates for response counting and rendering.
+Its row-size estimate must cover the supported depth shapes.
+Both under-budget streaming and over-budget rejection need tests.
 
-1. `internal/pdbcompat/rowsize.go` — add a `typicalRowBytes` entry with `Depth0` + `Depth2` (run `go test -run=NONE -bench=BenchmarkRowSize ./internal/pdbcompat -benchtime=20x -count=3` against a seeded fixture, double the measured mean, round UP to the nearest 64 bytes).
-   Follow the procedure in the `typicalRowBytes` godoc.
-2. `internal/pdbcompat/registry_funcs.go` -- add a `wireEntity` entry to `init()` naming the entity's query constructor, serializer, and depth getter (the generic helper preserves the `applyStatusMatrix` and `EmptyResult` invariants and derives List and Count from one shared predicate builder).
-3. New row in the per-entity sizing table above.
-4. Extend `internal/pdbcompat/stream_integration_test.go` with an under-budget smoke case and an over-budget 413 assertion mirroring `TestServeList_UnderBudgetStreams` / `TestServeList_OverBudget413`.
-
+Follow [Adding a new pdbcompat entity](DEVELOPMENT.md#adding-a-new-pdbcompat-entity-response-memory-budget) for the implementation and measurement procedure.
 See `internal/pdbcompat/stream.go`, `rowsize.go`, `budget.go`, and `telemetry.go` for the reference implementation.

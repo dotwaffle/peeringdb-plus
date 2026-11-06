@@ -1,21 +1,21 @@
 # Getting Started
 
-This guide walks a new contributor or operator through their first 30 minutes with PeeringDB Plus: installing prerequisites, cloning and building the source, starting the binary, understanding what happens on first launch, and verifying the service is healthy across its API surfaces.
+This guide is for operators who want to run a mirror of upstream PeeringDB.
+The first run downloads real upstream data.
+For code changes and browser checks, use the [fixture-backed contributor setup](DEVELOPMENT.md#run-against-local-fixtures).
 
-For a quick-reference command list, see the [README](../README.md).
-For the full list of environment variables, see [CONFIGURATION.md](CONFIGURATION.md).
-For how the pieces fit together, see [ARCHITECTURE.md](ARCHITECTURE.md).
+See [Configuration](CONFIGURATION.md) for environment settings and [Deployment](DEPLOYMENT.md) for production operations.
 
 ## Prerequisites
 
 | Requirement | Version | Why |
 |-------------|---------|-----|
-| mise | `2026.7.12` or newer | Installs the exact project toolchain from `mise.lock` and runs contributor tasks. |
+| mise | `2026.10.22` or newer | Installs the exact project toolchain from `mise.lock` and runs contributor tasks. |
 | Git | any recent | Cloning the repo. |
 | Docker (optional) | any recent | Only if you want to run the container image instead of a local binary. |
 | `grpcurl` (optional) | any recent | Only needed to poke the ConnectRPC/gRPC endpoints manually. |
 | C compiler (gcc or clang) | any recent | Only for the race-detector tests in `mise run test` and `mise run check`. The server build does not use cgo. |
-| A few hundred MB of disk | — | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
+| A few hundred MB of disk | -- | The SQLite database sits around 90 MB after a full sync; keep headroom for growth and scratch space. |
 
 Mise installs Go 1.27.3 and every contributor tool, including `buf`, `templ`, `gqlgen`, Tailwind, gotestsum, golangci-lint, and govulncheck.
 The committed lockfile records exact tool versions and release checksums.
@@ -32,32 +32,21 @@ git clone https://github.com/dotwaffle/peeringdb-plus.git
 cd peeringdb-plus
 mise trust
 mise install --locked
-mise exec -- go build -o peeringdb-plus ./cmd/peeringdb-plus
+export PDBPLUS_RUN_DIR="${TMPDIR:-/tmp}/peeringdb-plus/operator-run"
+mkdir -p "$PDBPLUS_RUN_DIR"
+mise exec -- go build -o "$PDBPLUS_RUN_DIR/peeringdb-plus" ./cmd/peeringdb-plus
 ```
 
-The last command writes the `peeringdb-plus` binary that step 2 runs.
+The last command writes the binary outside the checkout.
+The next step uses that binary.
 `mise run build` compiles all packages, but it does not write a binary.
 
-If you intend to make changes, run the full verification suite once to confirm your toolchain is set up correctly:
-
-```bash
-mise run check
-```
-
-If you change `schema/peeringdb.json`, an `ent/schema/` sibling file, a `.proto` file, `graph/custom.graphql` or `graph/gqlgen.yml`, a `.templ` template, or `internal/web/tailwind.input.css`, run the code generators:
-
-```bash
-mise run generate
-```
-
-One pass updates all generated files, including `internal/web/static/tailwind.css`.
-CI runs the same command and fails if the result differs from the commit.
-See [DEVELOPMENT.md § Code generation pipeline](DEVELOPMENT.md#code-generation-pipeline).
+For code changes, use [Development](DEVELOPMENT.md) and the [pre-PR checklist](../CONTRIBUTING.md#pre-pr-checklist).
 
 ## 2. First run
 
 ```bash
-./peeringdb-plus
+"$PDBPLUS_RUN_DIR/peeringdb-plus"
 ```
 
 With no configuration, the binary uses the defaults from `internal/config/config.go`:
@@ -95,14 +84,14 @@ The HTTP listener accepts connections right away, but **`/readyz` will return 50
 A full sync against the public PeeringDB API typically takes **30–60 seconds** on a reasonable connection.
 The peak working set stays under the default 400 MB heap warning (`PDBPLUS_HEAP_WARN_MIB`) and the 400 MB sync memory guardrail (`PDBPLUS_SYNC_MEMORY_LIMIT`).
 
-To make the background sync less frequent while you experiment, set `PDBPLUS_SYNC_INTERVAL` to a long duration such as `24h`.
+To reduce the frequency of an operator-managed sync, set `PDBPLUS_SYNC_INTERVAL` to a long duration such as `24h`.
 On an empty database, the first sync still starts immediately.
 
-## 3. Verify it's working
+## 3. Verify the service
 
 Open a second terminal while the server is still running.
 
-### Liveness — does the process answer?
+### Liveness -- does the process answer?
 
 ```bash
 curl -s http://localhost:8080/healthz
@@ -112,7 +101,7 @@ curl -s http://localhost:8080/healthz
 `/healthz` is a pure liveness probe.
 It returns 200 as soon as the HTTP listener is up, even before the first sync.
 
-### Readiness — is the database populated?
+### Readiness -- is the database populated?
 
 ```bash
 curl -sI http://localhost:8080/readyz
@@ -162,14 +151,14 @@ Open `http://localhost:8080/graphql` in a browser to access the GraphiQL playgro
 ### ConnectRPC / gRPC
 
 ```bash
-# Reflection — list every registered service
+# Reflection -- list every registered service
 grpcurl -plaintext localhost:8080 list
 
 # Call a Get RPC against the Network service
 grpcurl -plaintext -d '{"id":1}' localhost:8080 peeringdb.v1.NetworkService/GetNetwork
 ```
 
-`buf curl` and `grpcui` work too — reflection is enabled and gRPC health checks are wired to sync readiness.
+`buf curl` and `grpcui` work too -- reflection is enabled and gRPC health checks are wired to sync readiness.
 
 ### MCP and Agent Skill
 
@@ -248,7 +237,7 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
 
 ## Common setup issues
 
-- **`go: go.mod requires go >= 1.27.3`** — Run `mise install --locked`.
+- **`go: go.mod requires go >= 1.27.3`** -- Run `mise install --locked`.
   `go.mod` pins Go 1.27.3; `mise.toml` tracks the 1.27 line and `mise.lock` holds the exact patch.
 - **`/readyz` stays 503.**
   Look for `sync failed, retrying` and `sync cycle failed` in the server log.
@@ -256,17 +245,19 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
   A rate limit (HTTP 429) or a WAF block stops these retries.
   When the retries end, the next attempt waits one `PDBPLUS_SYNC_INTERVAL` (default `1h`, or `15m` with an API key).
   To try again at once, correct the cause and restart the process.
+  Do not repeatedly restart after an upstream throttle.
+  Wait for its retry window.
   Common causes are no outbound access to `www.peeringdb.com`, a proxy that intercepts TLS, and upstream rate limits.
   With `PDBPLUS_PEERINGDB_API_KEY`, the upstream rate limit is higher.
-- **`PDBPLUS_PEERINGDB_URL uses http:// against a non-local host` on startup** — The URL validator only accepts `https://`, or `http://` against `localhost`/loopback IPs and RFC 1918 private ranges.
+- **`PDBPLUS_PEERINGDB_URL uses http:// against a non-local host` on startup** -- The URL validator only accepts `https://`, or `http://` against `localhost`/loopback IPs and RFC 1918 private ranges.
   Any other `http://` host is rejected.
   See [CONFIGURATION.md](CONFIGURATION.md) for the full rule.
-- **Port 8080 already in use** — Set `PDBPLUS_PORT=9090` (or any free port) before launching, or use `PDBPLUS_LISTEN_ADDR=:9090`.
+- **Port 8080 already in use** -- Set `PDBPLUS_PORT=9090` (or any free port) before launching, or use `PDBPLUS_LISTEN_ADDR=:9090`.
   `PDBPLUS_PORT` takes precedence over `PDBPLUS_LISTEN_ADDR` when both are set.
 - **`failed to seed initial object counts` with `no such table` at startup.**
   The process started as a replica with an empty database.
   A replica does not create the schema.
-  For a local run, unset `PDBPLUS_IS_PRIMARY` or set it to `true`.
+  For a standalone operator instance, unset `PDBPLUS_IS_PRIMARY` or set it to `true`.
   Make sure that no `/litefs/.primary` file exists.
   Then start the process again.
 - **`sync aborted: memory limit exceeded` in the log.**
@@ -274,7 +265,7 @@ The prod image runs `litefs mount` as its entrypoint and is intended for the Fly
   Increase the limit, or set it to `0` to turn off the check.
   `PDBPLUS_HEAP_WARN_MIB` (default `400`) and `PDBPLUS_RSS_WARN_MIB` (default `384`) control the heap and RSS warnings.
   These warnings do not stop a sync.
-- **`/api/...` list returns 413** — The pre-flight count multiplied by the per-row byte estimate exceeded `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MB`).
+- **`/api/...` list returns 413** -- The pre-flight count multiplied by the per-row byte estimate exceeded `PDBPLUS_RESPONSE_MEMORY_LIMIT` (default `128MB`).
   Narrow the filter, lower `limit`, or raise the budget.
   Bare numbers without a unit suffix are rejected; use `KB`/`MB`/`GB`/`TB`.
 - **Curl-ing `/ui/` gets ANSI escape codes.**

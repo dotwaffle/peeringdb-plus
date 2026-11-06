@@ -15,7 +15,7 @@ Key test locations:
 | Area | Location | Notes |
 |------|----------|-------|
 | Shared ent client helper | `internal/testutil/testutil.go` | `SetupClient`, `SetupClientWithDB` |
-| Seed fixtures for ent | `internal/testutil/seed/seed.go` | `Full(tb, client)` — all 13 entity types |
+| Seed fixtures for ent | `internal/testutil/seed/seed.go` | `Full(tb, client)` -- all 13 entity types |
 | PeeringDB API fixtures | `testdata/fixtures/` | 13 JSON files, one per object type |
 | Golden files (pdbcompat) | `internal/pdbcompat/testdata/golden/` | Per-type `list.json`, `detail.json`, `depth.json` |
 | Golden file (sync) | `internal/sync/testdata/refactor_parity.golden.json` | `TestSync_RefactorParity` |
@@ -159,11 +159,11 @@ Tests in `cmd/peeringdb-plus`, `graph`, `internal/pdbcompat`, and `internal/sync
 If you need a different shape, add a new helper.
 Do not change `Full`.
 The golden tests (`setupGoldenTestData`), the `internal/grpcserver` tests, and the `internal/web` tests seed their own rows.
-Parity tests deliberately do **not** use `seed.Full` — each sub-test seeds the clean rows it needs inline via the ent client to avoid cross-test contamination (see [Parity Tests](#parity-tests) below).
+Parity tests deliberately do **not** use `seed.Full` -- each sub-test seeds the clean rows it needs inline via the ent client to avoid cross-test contamination (see [Parity Tests](#parity-tests) below).
 
 ## Fixtures (`testdata/fixtures/`)
 
-The `testdata/fixtures/` directory contains 13 JSON files — one per PeeringDB object type — that match the actual PeeringDB API envelope (`{"meta": {...}, "data": [...]}`).
+The `testdata/fixtures/` directory contains 13 JSON files -- one per PeeringDB object type -- that match the actual PeeringDB API envelope (`{"meta": {...}, "data": [...]}`).
 The full list:
 
 ```text
@@ -207,7 +207,7 @@ The mock server returns the fixture data on the first page (`skip=0`) and an emp
 ## Conformance Tests (`internal/conformance`)
 
 `internal/conformance/` validates that PeeringDB Plus's JSON output is structurally compatible with the real PeeringDB API.
-`conformance.CompareResponses` (and the lower-level `CompareStructure`) compares field names, value types, null/array/object shapes, and nesting depth — not actual values.
+`conformance.CompareResponses` (and the lower-level `CompareStructure`) compares field names, value types, null/array/object shapes, and nesting depth -- not actual values.
 The per-object `meta` document on net and netixlan (PeeringDB 2.83.0) is opaque: the comparer checks only its JSON type, not its keys, because its keys differ per row.
 The top-level envelope `meta` is compared in full.
 `internal/conformance/compare_test.go` exercises the comparer itself; `live_test.go` compares a live fetch against the golden files in `internal/pdbcompat/testdata/golden/`.
@@ -251,16 +251,16 @@ The package is split into 10 category-specific test files plus shared infrastruc
 ### Seeding
 
 Each parity sub-test seeds the clean rows it needs inline via the ent client (`c.Network.Create()...`) and cites the upstream source line it mirrors in a comment.
-There is no generated fixtures package and no per-category seeder — the upstream test cases in `pdb_api_test.py` are transcribed directly into the relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
+There is no generated fixtures package and no per-category seeder -- the upstream test cases in `pdb_api_test.py` are transcribed directly into the relevant sub-test, citing `// upstream: pdb_api_test.py:<line>`.
 
 ### Conventions for parity tests
 
 - **Isolation**: every parity test calls `testutil.SetupClient(tb)` for a fresh in-memory ent client.
-  Do **not** reach into `internal/testutil/seed.Full` — it seeds a different shape and causes cross-test contamination.
+  Do **not** reach into `internal/testutil/seed.Full` -- it seeds a different shape and causes cross-test contamination.
 - **Seeding**: seed clean rows inline via the ent client (`c.Network.Create()...`), seeding only the rows a single sub-test needs.
 - **Parallelism**: every sub-test calls `t.Parallel()`.
 - **Citation comments**: every sub-test carries one of:
-  - `// upstream: pdb_api_test.py:<line>` — when the assertion mirrors an upstream test case.
+  - `// upstream: pdb_api_test.py:<line>` -- when the assertion mirrors an upstream test case.
     A case from another upstream test file names that file, for example `// upstream: tests/test_meta_registry.py:<line>`.
   - `// synthesised: <context>` marks a behavior that no upstream test covers (for example tombstones, folding, traversal, or budgets).
 - **Divergence prefix**: sub-tests whose names begin with `DIVERGENCE_` mark intentional non-parity outcomes.
@@ -343,7 +343,7 @@ Put `-peeringdb-live` after the package path:
 go test -race ./internal/conformance/ -run TestLiveConformance -peeringdb-live
 
 # 1 s between requests with an API key, 3 s without
-PDBPLUS_PEERINGDB_API_KEY=... go test -race ./internal/peeringdb/ -run TestMetaGeneratedLive -peeringdb-live
+go test -race ./internal/peeringdb/ -run TestMetaGeneratedLive -peeringdb-live
 ```
 
 These tests are intentionally excluded from CI because:
@@ -420,23 +420,7 @@ The testing package cancels this context just before it runs the cleanup functio
 
 ## CI Integration
 
-The `.github/workflows/ci.yml` workflow runs on every pull request and on every push to `main` or a `v*` tag.
-The `ci` job is a single cached Go job whose steps run in order, each reusing the prior compile.
-On a pull request, `docker-build` runs in parallel.
-On a push, `docker-publish` runs after `ci` passes, and `docker-build` does not run:
-
-| Job | Step (in order) | Command |
-|-----|------|---------|
-| `ci` | Install tools | `mise install --locked` via `jdx/mise-action` |
-| `ci` | Generated code drift check | `mise run generate`, then scoped tracked/untracked checks |
-| `ci` | `go.mod`/`go.sum` tidiness | `go mod tidy`, then `git diff --exit-code go.mod go.sum` |
-| `ci` | Compile check | `mise run build` |
-| `ci` | Tests with race detector | `mise run test` |
-| `ci` | Lint | `mise run lint` |
-| `ci` | Vulnerability scan (advisory, `continue-on-error`) | `mise run vulncheck` |
-| `docker-build` | Standalone and prod image builds (pull requests only) | `docker build` using `./Dockerfile` (amd64 and arm64) and `./Dockerfile.litefs` (amd64) |
-| `docker-publish` | Publish the standalone image (push events only) | `docker buildx build --push` of `./Dockerfile` to GHCR, then an artifact attestation |
-
-A failed drift check, tidiness check, build, test, race check, or lint run fails the workflow.
-`govulncheck` is advisory.
-A flagged vulnerability shows a warning but does not block the merge.
+See [Required CI Checks](../CONTRIBUTING.md#required-ci-checks) for job triggers, generated-code checks, and image publishing.
+Run `mise run check` before a PR.
+The vulnerability scan is advisory.
+Other failed checks block CI.

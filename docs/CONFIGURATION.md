@@ -1,5 +1,7 @@
 # Configuration
 
+<!-- rumdl-disable MD033 -->
+
 All PeeringDB Plus configuration is supplied via environment variables.
 The application follows a fail-fast initialization model: invalid or out-of-range values cause startup to abort with a descriptive error, and configuration is treated as immutable after `config.Load()` returns.
 
@@ -19,15 +21,15 @@ Their own sections below describe them.
 | `PDBPLUS_DB_PATH` | No | `./peeringdb-plus.db` | path | SQLite database file path. An empty value selects the default. In production, `fly.toml` sets `/litefs/peeringdb-plus.db`. |
 | `PDBPLUS_PEERINGDB_URL` | No | `https://www.peeringdb.com` | URL | PeeringDB origin URL, without `/api`. The client appends `/api/<type>`. Must use `https://`, or `http://` against loopback (`localhost`, `127.0.0.1`, `::1`) or RFC 1918 private ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`). Other `http://` hosts and any non-http(s) scheme are rejected at startup. An empty value selects the default. |
 | `PDBPLUS_PEERINGDB_API_KEY` | No | (empty) | secret | **Recommended.** Optional PeeringDB API key. Empty value means unauthenticated requests. Also read directly by the `pdbcompat-check` CLI and the live conformance / client tests. See [Privacy & Tiers](#privacy--tiers) for the operational implication. |
-| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. Accepted values are case-sensitive lowercase only: `public` (default — anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch — anonymous callers are treated as Users-tier and see `visible="Users"` rows too, but never `visible="Private"` rows; the application logs `slog.Warn("public tier override active", …)` at startup). Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup — the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier. See [Privacy & Tiers](#privacy--tiers). |
+| `PDBPLUS_PUBLIC_TIER` | No | `public` | enum | Effective privacy tier for anonymous callers. [Details](#pdbplus-public-tier-details). |
 | `PDBPLUS_PUBLIC_URL` | No | (empty) | URL | Optional external origin used in generated agent discovery documents and Agent Skill metadata. When empty, the server card, skill index, `llms.txt`, and skill archive use the request `Host` and protocol (`r.TLS`, then `X-Forwarded-Proto`). Set this only when a reverse proxy rewrites `Host`. The value must be an `http` or `https` origin with no userinfo, path, query, or fragment. |
 | `PDBPLUS_CORS_ORIGINS` | No | `*` | string | Comma-separated list of allowed CORS origins. An entry can contain one `*` wildcard, for example `https://*.example.net`. The `/mcp` endpoint uses the same list. It rejects a request with `403` when the `Origin` header does not match an entry. It does not check requests that have no `Origin` header. |
 | `PDBPLUS_CSP_ENFORCE` | No | `false` | bool | When `true`, serve the enforcing `Content-Security-Policy` header on `/ui/` and `/graphql`. Default `false` sends `Content-Security-Policy-Report-Only`. |
 | `PDBPLUS_MAP_TILE_URL` | No | `https://tile.openstreetmap.org/{z}/{x}/{y}.png` | URL template | Browser basemap tile URL. The value must be an absolute HTTP or HTTPS URL, or a root-relative URL. It must contain the `{z}`, `{x}`, and `{y}` placeholders. A custom URL also requires `PDBPLUS_MAP_TILE_ATTRIBUTION`. |
 | `PDBPLUS_MAP_TILE_ATTRIBUTION` | With a custom tile URL | `© OpenStreetMap contributors` | HTML string | Visible attribution for the configured map tile service. The browser receives this value and Leaflet shows it on each map. |
 | `PDBPLUS_DRAIN_TIMEOUT` | No | `10s` | duration | Graceful shutdown timeout. The HTTP server drain uses this timeout, and the final telemetry flush then uses it again. Keep two times this value below `kill_timeout` in `fly.toml` (30s). Must be greater than 0. |
-| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive a `413` error up-front before any row data is materialized. The same value also limits the total estimated bytes of all `/api` list and detail responses in progress on one machine. A request that would go over this total gets `503` with `Retry-After: 1`. The WARN log `pdbcompat: concurrent budget pool exhausted` records each rejection. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). The unit is not case-sensitive (`128mb` is valid). A bare number is rejected. Literal `0` disables the check (local development only). The guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production. Default sized against the 256 MB replica cap minus an 80 MB Go runtime baseline and 48 MB slack for other in-flight requests + GC overhead (sized from measured runtime+request overhead). Must be non-negative. |
-| `PDBPLUS_STREAM_TIMEOUT` | No | `60s` | duration | Maximum duration for a single streaming RPC. Must be greater than 0 — it is the only bound on stream lifetime (`WriteTimeout` is deliberately unset for gRPC streaming); startup fails otherwise. |
+| `PDBPLUS_RESPONSE_MEMORY_LIMIT` | No | `128MB` | byte size | Per-response memory budget (bytes). [Details](#pdbplus-response-memory-limit-details). |
+| `PDBPLUS_STREAM_TIMEOUT` | No | `60s` | duration | Maximum duration for a single streaming RPC. Must be greater than 0 -- it is the only bound on stream lifetime (`WriteTimeout` is deliberately unset for gRPC streaming); startup fails otherwise. |
 
 #### Map tiles
 
@@ -51,18 +53,18 @@ Apply provider-supported domain and usage restrictions to that key.
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_SYNC_TOKEN` | No | (empty) | secret | Shared secret for the `POST /sync` on-demand trigger. When empty, the endpoint rejects every request — on-demand sync is effectively disabled. Compared in constant time against the `X-Sync-Token` request header. |
+| `PDBPLUS_SYNC_TOKEN` | No | (empty) | secret | Shared secret for the `POST /sync` on-demand trigger. When empty, the endpoint rejects every request -- on-demand sync is effectively disabled. Compared in constant time against the `X-Sync-Token` request header. |
 | `PDBPLUS_SYNC_INTERVAL` | No | `1h` (unauthenticated) / `15m` (when `PDBPLUS_PEERINGDB_API_KEY` is set) | duration | Duration between automatic sync runs. Default is auth-conditional: `15m` when an API key is configured, `1h` otherwise. Explicit value overrides both defaults. Must be greater than 0. See [Sync cadence](#sync-cadence) for the rationale. |
-| `PDBPLUS_SYNC_MODE` | No | `incremental` | enum | Sync strategy. `incremental` fetches only the objects that changed since the last sync (`?since=<unix-ts>`). `full` fetches every type completely on every cycle. A first sync does not need `full`. A primary with no successful sync recorded runs a full sync at startup in both modes. In `incremental` mode, `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`) also forces a periodic full cycle. For one full sync, send `POST /sync?mode=full` (see [Force a full sync](DEPLOYMENT.md#5-force-a-full-sync)). Other values stop startup. |
+| `PDBPLUS_SYNC_MODE` | No | `incremental` | enum | Sync strategy. [Details](#pdbplus-sync-mode-details). |
 | `PDBPLUS_SYNC_STALE_THRESHOLD` | No | `24h` | duration | Maximum age of the newest successful sync. When the sync is older, `/readyz` returns 503. Must be greater than 0. |
-| `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`. The worker retries the sync after 30s, 2m, and 8m, and then waits for the next scheduled cycle. **Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases). The unit is not case-sensitive (`400mb` is valid). A bare number is rejected. Literal `0` disables the guardrail (local development only). Must be non-negative. |
-| `PDBPLUS_PEERINGDB_RPS` | No | `0.333` (1/3) | float (req/sec) | Sustained requests-per-second cap to the upstream PeeringDB API without an API key. The default is 20 requests per minute, the anonymous limit that PeeringDB documents (20 per minute per IP). Burst is hardcoded at 1 in the client. Authenticated requests (`PDBPLUS_PEERINGDB_API_KEY` set) ignore this variable and use 30 requests per minute: PeeringDB documents 40 per minute per user or organization and asks for at least two seconds between queries. Values ≤ 0, `NaN` and infinite values are rejected at startup. The transport (`internal/peeringdb/transport.go`) records per-request wait time on the `pdbplus.peeringdb.rate_limit_wait_ms` histogram for dashboard observability. Sync, FK backfill and the netixlan cascade verification share this budget. |
-| `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | No | `20` | non-negative integer | Maximum number of HTTP requests that FK backfill sends in one sync cycle. When a row refers to a parent that is not in the database, the worker fetches the missing parents with one `?since=1&id__in=<csv>` request for each parent type (up to 100 IDs per request). It also fetches missing grandparents. It does not fetch the same `(type, id)` two times in one cycle. After the cap, the worker drops the remaining orphan rows (or sets a nullable FK to `NULL`) and increments `pdbplus.sync.fk_backfill{result="ratelimited"}`. At 30 requests per minute (authenticated), the default adds at most about 40 seconds to a cycle. `0` disables backfill. The same value also caps the requests that verify netixlan cascade candidates, with a count of their own: at most the smaller of this value and 10 in each sync attempt (each retry is a new attempt) and at primary start, usually none. So at the default, one sync attempt sends at most 30 requests for backfill and verification together. `0` also turns that verification off; live connections of a network that was deleted before a sync then stay live. A network that the RIR reclaim deletes during a sync still has its live connections marked in that sync: that path sends no request, and no setting turns it off. To stop it, deploy the previous release. |
-| `PDBPLUS_FK_BACKFILL_TIMEOUT` | No | `5m` | Go duration | Per-cycle wall-clock budget for FK-backfill HTTP activity. Backfill calls happen inside the sync transaction; without a deadline a cascade of slow / rate-limited backfills could hold the tx open for tens of minutes, stalling LiteFS replication. After the deadline, `fkBackfillParent` short-circuits to drop-on-miss with the `pdbplus.sync.fk_backfill{result="deadline_exceeded"}` counter incremented; the rest of the sync (bulk fetches + upserts) commits cleanly and the next cycle picks up where we left off. Set to `0` (or any negative duration) to disable the deadline (only the cap applies). |
-| `PDBPLUS_SYNC_TIMEOUT` | No | `30m` | Go duration | Wall-clock bound on a single sync attempt (each retry in the 30s/2m/8m ladder gets its own budget). The upstream HTTP client deliberately carries no whole-request timeout — a full-sync body read is legitimately slow — so this watchdog is what stops an upstream body that stalls or trickles forever from wedging the cycle, and with it the worker's running latch, for the life of the process (every later trigger would return `ErrSyncAlreadyRunning` while data went silently stale fleet-wide). Cancellation propagates into in-flight HTTP body reads via the request context. Size it comfortably above the slowest observed full-sync cycle. The netixlan cascade verification adds at most 2 minutes to a cycle. Set to `0` to disable (dev/debug only). Must be non-negative. |
-| `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` | No | `15` | non-negative integer | Maximum number of history sweep requests in one incremental sync cycle. The sweep fetches, in id windows over many cycles, the tombstones that upstream made before the first sync (see [History sweep](ARCHITECTURE.md#history-sweep)). A full cycle does not run it. When the sweep has done every type, it sends no requests until `POST /sync?mode=history` starts it again. The requests use the upstream rate limit of the client (`PDBPLUS_PEERINGDB_RPS` without an API key, 30 per minute with one), and FK backfill of swept rows uses `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE`. `0` turns the sweep off. |
-| `PDBPLUS_FULL_SYNC_INTERVAL` | No | `24h` | Go duration | Maximum time between full sync cycles in `incremental` mode. When the newest successful full cycle is older than this value, the next cycle fetches every type completely. It also rewrites rows whose `updated` did not advance, but keeps a stored row whose `updated` is newer than the snapshot's version and not older than the snapshot's newest row, because upstream serves the bare list from an API cache that can be stale. This repairs data that incremental sync cannot see. [Daily full reconcile](ARCHITECTURE.md#daily-full-reconcile) lists these cases. A full cycle also fetches a `?since=` window per type, from the earlier of the cursor and the newest `updated` in the snapshot. The window captures tombstones (bare lists carry only live rows) and rows that changed after upstream built its API cache. `0` disables the forced cycle. The data then stays stale until an operator sends `POST /sync?mode=full`. |
-| `PDBPLUS_SCRATCH_DIR` | No | empty (`os.TempDir()`) | absolute path | Directory of the scratch SQLite database of each sync cycle. The cycle stages the fetched rows there before it writes them to the database. A full cycle writes about 100 MB. An empty value selects `os.TempDir()`. A set value must be an absolute path: a relative path stops startup. The worker creates a missing directory with mode `0700`. When the value is set, the primary removes the `pdbplus-sync-scratch-*` files in the directory at scheduler start, because a crashed process leaves its file and a persistent volume keeps it. When the start sweep does not run (a `POST /sync` cycle was running, or the process became the primary later), the first cycle of the process runs it. The sweep cannot tell the file of another live process from a stale file. Thus each process that stages a cycle in the directory holds a shared `flock` lock on the file `.pdbplus-scratch.lock` in the directory, and the sweep needs the exclusive lock. When another process holds a lock, the primary skips the sweep and logs a WARN. When a cycle cannot get the shared lock, it stages in `os.TempDir()` and logs a WARN. A process that stages in `os.TempDir()` takes no lock, so the directory must not be a shared temp dir such as `/tmp`. An empty value sweeps nothing, because other processes share `os.TempDir()`. Before each cycle, the worker also reads the free space of the directory. When it is less than 512 MiB, or the worker cannot read it, the cycle stages in `os.TempDir()` and logs a WARN, so the scratch file does not take the space that LiteFS needs on the same volume. The span attribute `pdbplus.sync.scratch_dir` of the cycle names the directory that the cycle used. The gauge `pdbplus.scratch.free` (Prometheus `pdbplus_scratch_free_bytes`) reports the free space of the directory at each metric collection; it has no value when the directory does not exist or the free space cannot be read. The lock, the sweep and the free-space check need Linux. On other systems, the primary does not sweep, and each cycle uses the directory without a lock and without a free-space check. `fly.toml` sets `/var/lib/litefs/scratch` on the primary volume (see [Asymmetric fleet](DEPLOYMENT.md#asymmetric-fleet)). |
+| `PDBPLUS_SYNC_MEMORY_LIMIT` | No | `400MB` | byte size | Peak Go heap ceiling checked after the sync worker's Phase A fetch pass. [Details](#pdbplus-sync-memory-limit-details). |
+| `PDBPLUS_PEERINGDB_RPS` | No | `0.333` (1/3) | float (req/sec) | Sustained requests-per-second cap to the upstream PeeringDB API without an API key. [Details](#pdbplus-peeringdb-rps-details). |
+| `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE` | No | `20` | non-negative integer | Maximum number of HTTP requests that FK backfill sends in one sync cycle. [Details](#pdbplus-fk-backfill-max-requests-per-cycle-details). |
+| `PDBPLUS_FK_BACKFILL_TIMEOUT` | No | `5m` | Go duration | Per-cycle wall-clock budget for FK-backfill HTTP activity. [Details](#pdbplus-fk-backfill-timeout-details). |
+| `PDBPLUS_SYNC_TIMEOUT` | No | `30m` | Go duration | Wall-clock bound on a single sync attempt (each retry in the 30s/2m/8m ladder gets its own budget). [Details](#pdbplus-sync-timeout-details). |
+| `PDBPLUS_HISTORY_MAX_REQUESTS_PER_CYCLE` | No | `15` | non-negative integer | Maximum number of history sweep requests in one incremental sync cycle. [Details](#pdbplus-history-max-requests-per-cycle-details). |
+| `PDBPLUS_FULL_SYNC_INTERVAL` | No | `24h` | Go duration | Maximum time between full sync cycles in `incremental` mode. [Details](#pdbplus-full-sync-interval-details). |
+| `PDBPLUS_SCRATCH_DIR` | No | empty (`os.TempDir()`) | absolute path | Directory of the scratch SQLite database of each sync cycle. [Details](#pdbplus-scratch-dir-details). |
 
 #### WAF behavior
 
@@ -72,14 +74,14 @@ Retrying within the same source IP is futile against an IP-level block.
 Non-WAF 403 responses fall through to the existing API-key auth-error path.
 
 The WARN log line is `WAF block detected on 403; not retrying`.
-The sync skips its retry ladder, and the next scheduled cycle tries again.
+The sync skips its retries, and the next scheduled cycle tries again.
 
 #### Rate limits (HTTP 429)
 
 When `Retry-After` is 60 seconds or less, the transport waits and tries again, up to 3 attempts.
 Each retry increments `pdbplus.peeringdb.retries{cause="429"}`.
 When `Retry-After` is missing or longer than 60 seconds, the fetch stops at once and logs `PeeringDB rate-limited, aborting (retry-after exceeds cap)`.
-The sync skips its retry ladder, and the next scheduled cycle tries again.
+The sync skips its retries, and the next scheduled cycle tries again.
 
 #### Sync cadence
 
@@ -89,30 +91,30 @@ Authenticated callers have twice the PeeringDB request budget (40 per minute per
 Override precedence is explicit-wins: setting `PDBPLUS_SYNC_INTERVAL=5m` forces 5-minute syncs regardless of whether an API key is configured.
 An unset or empty `PDBPLUS_SYNC_INTERVAL` selects the auth-conditional default.
 With an empty value (`PDBPLUS_SYNC_INTERVAL=`), the startup log still shows `explicit_override=true`.
-On startup the effective interval, authentication state, and whether the operator supplied an explicit override are announced in a single structured log line (`sync interval configured`) — the API key itself is never logged.
+On startup the effective interval, authentication state, and whether the operator supplied an explicit override are announced in a single structured log line (`sync interval configured`) -- the API key itself is never logged.
 
 ### Removed in v1.16
 
 | Variable | Removed in | Replacement | Migration |
 |----------|------------|-------------|-----------|
-| `PDBPLUS_INCLUDE_DELETED` | v1.16 | None — deleted rows are always persisted as tombstones (soft-delete) and exposed via `?since=N` per upstream 2.83.0 `rest.py:719-750` status × since matrix. | Remove from your environment. The variable is now rejected at startup if set. |
+| `PDBPLUS_INCLUDE_DELETED` | v1.16 | None -- deleted rows are always persisted as tombstones (soft-delete) and exposed via `?since=N` per upstream 2.83.0 `rest.py:719-750` status × since matrix. | Remove from your environment. The variable is now rejected at startup if set. |
 
 ### Observability
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
 | `PDBPLUS_OTEL_SAMPLE_RATE` | No | `1.0` | float | Trace sampling ratio for the known app surfaces (`/api/`, `/rest/v1/`, `/peeringdb.v1.`, `/graphql`). Unknown-path, scanner-bait, and health-probe ratios are hardcoded (see `docs/ARCHITECTURE.md` § Sampling Matrix). This variable does not change `/mcp`, which uses the 1% default for unknown paths, or `/ui/`, which uses 50%. Must be in the inclusive range `[0.0, 1.0]`. Values outside this range are rejected at startup. |
-| `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` | No | `1.0` | float | Trace sampling ratio for scheduled sync cycles. `1.0` traces every cycle. `0` traces no scheduled cycle. A traced cycle includes its step spans (`sync-fetch-<type>`, `sync-upsert-<type>`) and no DB spans (see `PDBPLUS_OTEL_SQL`). Without DB spans, the prod traces of 2026-09-24 have about 58 spans for a full cycle and about 44 for an incremental cycle: about 4.2k spans per day at the 15m interval. This ratio does not apply to a `POST /sync` cycle. The server always traces that cycle, or never traces it with `?trace=0`. Must be in the inclusive range `[0.0, 1.0]`. Values outside this range are rejected at startup. |
-| `PDBPLUS_OTEL_SQL` | No | `true` | bool | Emit a per-query OpenTelemetry DB span (via XSAM/otelsql) for every SQL statement on the shared `*sql.DB`: ent's queries and the raw `sync_status` statements alike. otelsql records no metrics. On by default; set `PDBPLUS_OTEL_SQL=false` to disable. DB spans are children of the active request span, so volume is bounded by the existing sampler: API-read spans inherit `PDBPLUS_OTEL_SAMPLE_RATE`. A sync cycle emits no DB spans: a full cycle runs thousands of statements, and with their spans its trace is larger than the 5 MB per-trace limit of Grafana Cloud Tempo. `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` sets which scheduled cycles are traced. The ETag watcher runs outside any request: its once-a-second `PRAGMA data_version` probe (nodes without LiteFS) emits no span, and its `sync_status` reads before the node's first successful sync have no parent, so each starts its own trace at the 1% default ratio. |
-| `PDBPLUS_LOG_LEVEL` | No | `INFO` | enum | Minimum severity of the log records that go to the OTel log pipeline (and from there to Loki). Values are not case-sensitive: `DEBUG`, `INFO`, `WARN`, `ERROR` (parsed by `slog.Level.UnmarshalText`). The stdout handler (Fly logs) always drops records below `INFO`. At the default, the application drops DEBUG records. With `DEBUG`, DEBUG records go to the OTel pipeline only. An invalid value selects `INFO` and does not stop startup. `internal/otel/logger.go` reads this variable, not `internal/config`. |
-| `PDBPLUS_HEAP_WARN_MIB` | No | `400` | integer (MiB) | Peak Go heap (MiB) threshold checked at end of every sync cycle. The compared value is the cycle's true `HeapInuse` high-water mark, sampled after the Phase A fetch and after each type's Phase B upsert, *before* the forced GC that follows a type of 1000 or more rows reclaims the spike. It is not the post-GC end-of-cycle floor. When that per-cycle peak exceeds this value, the worker emits `slog.Warn("heap threshold crossed", …)` with typed attrs (`peak_heap_bytes`, `heap_warn_bytes`, `heap_over`, etc.). The OTel span attribute `pdbplus.sync.peak_heap_bytes` (Prometheus gauge `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless. `0` disables the warn. Investigate a sustained breach across multiple cycles before the primary reaches its 512 MB limit. Default sits comfortably under the 512 MB Fly VM cap so the failure order is `log → app crash → Fly OOM-kill`. Observed baseline (2026-04-17): primary peak ~84 MiB, replicas 58–59 MiB, about 4.5× headroom. **Bare integer only**, with no unit suffix (the variable name encodes the unit). `400MB` is rejected. Negative values are rejected at startup. |
-| `PDBPLUS_RSS_WARN_MIB` | No | `384` | integer (MiB) | Peak OS RSS (MiB) threshold derived from `/proc/self/status` `VmHWM` (Linux only). Same warn semantics as `PDBPLUS_HEAP_WARN_MIB`. The worker resets `VmHWM` at the start of each sync cycle (write `5` to `/proc/self/clear_refs`), so the value is the peak during the cycle, including the API-serving load. When the reset fails, it is the peak since the process started. The OTel span attr `pdbplus.sync.peak_rss_bytes` (Prometheus gauge `pdbplus_sync_peak_rss_bytes`) is omitted on non-Linux platforms (RSS not available). `0` disables the warn. Bare integer only, no unit suffix. |
+| `PDBPLUS_OTEL_SYNC_SAMPLE_RATE` | No | `1.0` | float | Trace sampling ratio for scheduled sync cycles. [Details](#pdbplus-otel-sync-sample-rate-details). |
+| `PDBPLUS_OTEL_SQL` | No | `true` | bool | Emit a per-query OpenTelemetry DB span (via XSAM/otelsql) for every SQL statement on the shared `*sql.DB`: ent's queries and the raw `sync_status` statements alike. [Details](#pdbplus-otel-sql-details). |
+| `PDBPLUS_LOG_LEVEL` | No | `INFO` | enum | Minimum severity of the log records that go to the OTel log pipeline (and from there to Loki). [Details](#pdbplus-log-level-details). |
+| `PDBPLUS_HEAP_WARN_MIB` | No | `400` | integer (MiB) | Peak Go heap (MiB) threshold checked at end of every sync cycle. [Details](#pdbplus-heap-warn-mib-details). |
+| `PDBPLUS_RSS_WARN_MIB` | No | `384` | integer (MiB) | Peak OS RSS (MiB) threshold derived from `/proc/self/status` `VmHWM` (Linux only). [Details](#pdbplus-rss-warn-mib-details). |
 
 ### LiteFS / Primary Detection
 
 | Variable | Required | Default | Type | Description |
 |----------|----------|---------|------|-------------|
-| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. Consulted only when no LiteFS mount is present (local development). Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary, if the node is a lease candidate (`FLY_PROCESS_GROUP` is `primary`), else replica; (4) otherwise parse this variable (default `true` when unset). An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role. Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`. |
+| `PDBPLUS_IS_PRIMARY` | No | `true` | bool | Fallback primary-role flag. [Details](#pdbplus-is-primary-details). |
 
 ### Fly.io Resource Attribution (read-only)
 
@@ -183,9 +185,11 @@ Two environment variables control the resulting behavior.
 ### Default behavior: anonymous callers see Public only
 
 With `PDBPLUS_PUBLIC_TIER=public` (the default), anonymous callers receive only rows whose upstream visibility is `Public`.
-`Users`-tier rows are absent from the response, not present-with-redacted-fields — this matches upstream's own anonymous API shape.
+`Users`-tier rows are absent from the response, not present-with-redacted-fields -- this matches upstream's own anonymous API shape.
 
-### Authenticated sync — Users-tier rows present in DB, filtered on read
+<a id="authenticated-sync--users-tier-rows-present-in-db-filtered-on-read"></a>
+
+### Authenticated sync -- Users-tier rows present in DB, filtered on read
 
 When `PDBPLUS_PEERINGDB_API_KEY` is set, the sync worker fetches both `Public` and `Users`-tier rows from PeeringDB and writes them into the local database.
 If the key belongs to a member of an organization, upstream also sends that organization's `Private` contacts, and the sync worker writes them too.
@@ -193,7 +197,9 @@ The sync worker bypasses the privacy policy (via `privacy.DecisionContext(ctx, p
 On the read path the policy still filters `Users`-tier rows out of anonymous responses, so the anonymous API surface remains `Public`-only.
 This is the recommended production configuration (see [DEPLOYMENT.md](./DEPLOYMENT.md#authenticated-peeringdb-sync-recommended)).
 
-### `PDBPLUS_PUBLIC_TIER=users` — private-instance override
+<a id="pdbplus_public_tierusers--private-instance-override"></a>
+
+### `PDBPLUS_PUBLIC_TIER=users` -- private-instance override
 
 Setting `PDBPLUS_PUBLIC_TIER=users` elevates anonymous callers to Users-tier for private-instance deployments where the mirror is not reachable from the public internet.
 In this mode the privacy policy admits `Users`-tier rows for anonymous callers.
@@ -208,15 +214,15 @@ It does not change what the sync worker fetches or stores; that depends on `PDBP
 
 ## Configuration File Format
 
-PeeringDB Plus does not use a configuration file for application settings — every runtime option is an environment variable.
+PeeringDB Plus does not use a configuration file for application settings -- every runtime option is an environment variable.
 
 Two deployment-adjacent files exist in the repository:
 
 - `fly.toml`: the Fly.io deployment manifest.
   It sets `PDBPLUS_LISTEN_ADDR` (`:8080`), `PDBPLUS_DB_PATH` (`/litefs/peeringdb-plus.db`), and `PDBPLUS_SCRATCH_DIR` (`/var/lib/litefs/scratch`).
-  It defines the `primary` process group (`shared-cpu-2x`, 512 MB, `litefs_data` volume) and the `replica` process group (`shared-cpu-1x`, 256 MB, no volume).
+  It defines the `primary` process group (`shared-cpu-2x`, 512 MB, `litefs_data` volume) and the `replica` process group (`shared-cpu-2x`, 512 MB, no volume).
   It also sets the rolling deploy (`max_unavailable = 0.5`), `kill_timeout = 30`, the `always` restart policy, and the `/readyz` HTTP check.
-- `litefs.yml` — LiteFS FUSE and lease configuration.
+- `litefs.yml` -- LiteFS FUSE and lease configuration.
   Uses `${FLY_PROCESS_GROUP}`, `${FLY_APP_NAME}`, `${HOSTNAME}`, and `${FLY_CONSUL_URL}` substitutions supplied by the Fly.io runtime.
 
 ## Required vs Optional Settings
@@ -254,7 +260,7 @@ These validation errors stop startup:
 | `PDBPLUS_IS_PRIMARY` | Empty, or a value that `strconv.ParseBool` accepts | `PDBPLUS_IS_PRIMARY="<v>" is not a boolean (use true/false/1/0)` |
 | Any duration, bool, float, or integer variable | Must parse | `invalid duration "<v>" for <VAR>`, and the same form for `bool`, `float`, and `integer` |
 
-`PDBPLUS_LOG_LEVEL` is **not** in this table by design — invalid values fall back to `INFO` rather than aborting startup, because a malformed log-level string is operator-friendly and should not take production down (an explicit deviation from the fail-fast rule).
+`PDBPLUS_LOG_LEVEL` is **not** in this table by design -- invalid values fall back to `INFO` rather than aborting startup, because a malformed log-level string is operator-friendly and should not take production down (an explicit deviation from the fail-fast rule).
 
 Duration-typed variables accept any value parseable by [`time.ParseDuration`](https://pkg.go.dev/time#ParseDuration) (e.g., `500ms`, `90s`, `2h30m`).
 Bool-typed variables accept the values recognized by [`strconv.ParseBool`](https://pkg.go.dev/strconv#ParseBool) (`1`/`0`, `t`/`f`, `T`/`F`, `true`/`false`, `TRUE`/`FALSE`, `True`/`False`).
@@ -269,13 +275,13 @@ The following values have runtime fallbacks rather than startup validation:
   `litefs.IsPrimaryWithFallback()` reads the variable at each role check: at startup, on each `POST /sync`, at each scheduler wakeup, and once per second while a sync cycle runs (scheduled or on-demand).
   If a check cannot parse the value, the node acts as a replica.
   The startup check makes this branch unreachable in practice.
-- **`PDBPLUS_LOG_LEVEL`** — Parsed once at logger construction by `internal/otel/logger.go` `otelLevelFromEnv()`.
+- **`PDBPLUS_LOG_LEVEL`** -- Parsed once at logger construction by `internal/otel/logger.go` `otelLevelFromEnv()`.
   Invalid values silently default to `INFO` (operator-friendly fallback, intentional deviation from the fail-fast rule).
   Changes take effect only on next startup.
 - **`FLY_REGION` / `FLY_MACHINE_ID`**: read per request inside the `POST /sync` handler.
   Empty `FLY_REGION` indicates local development.
   On Fly.io a replica replays the request to the machine named in the LiteFS lease file (`/litefs/.primary`), and answers `503 no primary` when the file is absent or names the machine itself.
-- **OTel `autoexport` variables** — Changes take effect only on the next startup.
+- **OTel `autoexport` variables** -- Changes take effect only on the next startup.
   The SDK providers are constructed once and shut down on termination.
 
 ## Per-Environment Overrides
@@ -291,17 +297,18 @@ Environment values are supplied by:
 - **Fly.io production**: the `[env]` block of `fly.toml` sets `PDBPLUS_LISTEN_ADDR`, `PDBPLUS_DB_PATH`, and `PDBPLUS_SCRATCH_DIR`.
   The Fly.io runtime injects `FLY_REGION`, `FLY_PROCESS_GROUP`, `FLY_MACHINE_ID`, and `FLY_APP_NAME`.
   `fly consul attach` sets `FLY_CONSUL_URL` as an app secret.
-  Set other secrets, such as `PDBPLUS_SYNC_TOKEN` and `PDBPLUS_PEERINGDB_API_KEY`, with `fly secrets set`.
+  Import other secrets through stdin.
+  See [Environment setup](DEPLOYMENT.md#environment-setup).
   To see the configured secret names, run `fly secrets list --app peeringdb-plus`.
-- **OpenTelemetry collector endpoint**: set at deploy time with `fly secrets set OTEL_EXPORTER_OTLP_ENDPOINT=...` (or the individual signal endpoints).
+- **OpenTelemetry collector endpoint**: import at deploy time from a protected secret file (or use the individual signal endpoints).
   The endpoint is a deployment value and is not in the repository.
 
 ## Related Documentation
 
-- `internal/config/config.go` — authoritative loader and validator.
+- `internal/config/config.go` -- authoritative loader and validator.
 - `internal/otel/provider.go` -- OTel pipeline setup, resource attribute mapping, and metric views.
 - `internal/otel/logger.go` -- `PDBPLUS_LOG_LEVEL` parser and OTel log handler filter.
-- `internal/litefs/primary.go` — primary detection and env fallback.
+- `internal/litefs/primary.go` -- primary detection and env fallback.
 - `fly.toml`, `litefs.yml`, `Dockerfile.litefs`: deployment manifests.
 
 ## Upstream sync threat model and mitigations
@@ -318,7 +325,7 @@ This section lists the risks of upstream fetches, the signal for each risk, and 
   - Action: keep the key only in a Fly secret.
     The application does not log the key.
     The startup logs show only whether a key is set.
-    To rotate the key, run `fly secrets set PDBPLUS_PEERINGDB_API_KEY=<key>`.
+    To rotate the key, use the stdin import in [Environment setup](DEPLOYMENT.md#environment-setup).
     This command restarts the machines.
 - **Unset sync token (fail-closed):** an empty `PDBPLUS_SYNC_TOKEN` does not leave `/sync` open.
   The handler rejects every request with 401, so on-demand sync is disabled.
@@ -326,3 +333,228 @@ This section lists the risks of upstream fetches, the signal for each risk, and 
   The risk is availability: operators cannot start a recovery sync until a token is set.
   - Signal: the startup WARN log that starts with `PDBPLUS_SYNC_TOKEN not set`.
   - Action: set `PDBPLUS_SYNC_TOKEN` in every persistent environment where on-demand sync is wanted.
+
+## Detailed setting behavior
+
+The tables above list defaults.
+These sections retain operational limits and design rationale.
+
+### PDBPLUS-PUBLIC-TIER details
+
+Effective privacy tier for anonymous callers.
+Accepted values are case-sensitive lowercase only: `public` (default -- anonymous callers see only rows with `visible="Public"`) or `users` (private-instance escape hatch -- anonymous callers are treated as Users-tier and see `visible="Users"` rows too, but never `visible="Private"` rows; the application logs `slog.Warn("public tier override active", …)` at startup).
+Any other value (including case variants like `Users` / `PUBLIC` and whitespace-padded forms) is rejected at startup -- the strict switch is a fail-safe-closed choice so a typo cannot silently default to either tier.
+See [Privacy & Tiers](#privacy--tiers).
+
+### PDBPLUS-RESPONSE-MEMORY-LIMIT details
+
+Per-response memory budget (bytes).
+pdbcompat list handlers run a pre-flight `SELECT COUNT(*) × typical_row_bytes` heuristic; requests whose estimated response size exceeds this budget receive a `413` error up-front before any row data is materialized.
+The same value also limits the total estimated bytes of all `/api` list and detail responses in progress on one machine.
+A request that would go over this total gets `503` with `Retry-After: 1`.
+The WARN log `pdbcompat: concurrent budget pool exhausted` records each rejection.
+
+**Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases).
+The unit is not case-sensitive (`128mb` is valid).
+A bare number is rejected.
+Literal `0` disables the check (local development only).
+The guardrail is the reason the `limit=0` unlimited semantic is safe to expose in production.
+
+The 128 MB default originally targeted 256 MB replicas, with an 80 MB runtime baseline and 48 MB for other requests and GC.
+The current manifest uses 512 MB replicas.
+The conservative budget remains unchanged.
+Must be non-negative.
+
+### PDBPLUS-SYNC-MODE details
+
+Sync strategy.
+`incremental` fetches only the objects that changed since the last sync (`?since=<unix-ts>`).
+`full` fetches every type completely on every cycle.
+A first sync does not need `full`.
+A primary with no successful sync recorded runs a full sync at startup in both modes.
+
+In `incremental` mode, `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`) also forces a periodic full cycle.
+For one full sync, send `POST /sync?mode=full` (see [Force a full sync](DEPLOYMENT.md#5-force-a-full-sync)).
+Other values stop startup.
+
+### PDBPLUS-SYNC-MEMORY-LIMIT details
+
+Peak Go heap ceiling checked after the sync worker's Phase A fetch pass.
+If `runtime.ReadMemStats` reports `HeapAlloc` above this value, the sync aborts with a WARN log and returns `sync.ErrSyncMemoryLimitExceeded`.
+The worker retries the sync after 30s, 2m, and 8m, and then waits for the next scheduled cycle.
+**Unit suffix is mandatory** (`KB`/`MB`/`GB`/`TB`, base 1024; `K`/`M`/`G`/`T` are accepted as aliases).
+The unit is not case-sensitive (`400mb` is valid).
+
+A bare number is rejected.
+Literal `0` disables the guardrail (local development only).
+Must be non-negative.
+
+### PDBPLUS-PEERINGDB-RPS details
+
+Sustained requests-per-second cap to the upstream PeeringDB API without an API key.
+The default is 20 requests per minute, the anonymous limit that PeeringDB documents (20 per minute per IP).
+Burst is hardcoded at 1 in the client.
+Authenticated requests (`PDBPLUS_PEERINGDB_API_KEY` set) ignore this variable and use 30 requests per minute: PeeringDB documents 40 per minute per user or organization and asks for at least two seconds between queries.
+Values ≤ 0, `NaN` and infinite values are rejected at startup.
+
+The transport (`internal/peeringdb/transport.go`) records per-request wait time on the `pdbplus.peeringdb.rate_limit_wait_ms` histogram for dashboard observability.
+Sync, FK backfill and the netixlan cascade verification share this budget.
+
+### PDBPLUS-FK-BACKFILL-MAX-REQUESTS-PER-CYCLE details
+
+Maximum number of HTTP requests that FK backfill sends in one sync cycle.
+When a row refers to a parent that is not in the database, the worker fetches the missing parents with one `?since=1&id__in=<csv>` request for each parent type (up to 100 IDs per request).
+It also fetches missing grandparents.
+It does not fetch the same `(type, id)` two times in one cycle.
+After the cap, the worker drops the remaining orphan rows (or sets a nullable FK to `NULL`) and increments `pdbplus.sync.fk_backfill{result="ratelimited"}`.
+
+At 30 requests per minute (authenticated), the default adds at most about 40 seconds to a cycle.
+`0` disables backfill.
+The same value also caps the requests that verify netixlan cascade candidates, with a count of their own: at most the smaller of this value and 10 in each sync attempt (each retry is a new attempt) and at primary start, usually none.
+So at the default, one sync attempt sends at most 30 requests for backfill and verification together.
+`0` also turns that verification off; live connections of a network that was deleted before a sync then stay live.
+
+A network that the RIR reclaim deletes during a sync still has its live connections marked in that sync: that path sends no request, and no setting turns it off.
+To stop it, deploy the previous release.
+
+### PDBPLUS-FK-BACKFILL-TIMEOUT details
+
+Per-cycle wall-clock budget for FK-backfill HTTP activity.
+Backfill calls happen inside the sync transaction; without a deadline a cascade of slow / rate-limited backfills could hold the tx open for tens of minutes, stalling LiteFS replication.
+After the deadline, `fkBackfillParent` short-circuits to drop-on-miss with the `pdbplus.sync.fk_backfill{result="deadline_exceeded"}` counter incremented; the rest of the sync (bulk fetches + upserts) commits cleanly and the next cycle picks up where we left off.
+Set to `0` (or any negative duration) to disable the deadline (only the cap applies).
+
+### PDBPLUS-SYNC-TIMEOUT details
+
+Wall-clock bound on a single sync attempt (each retry in the 30s/2m/8m ladder gets its own budget).
+The upstream HTTP client has no whole-request timeout because full-sync bodies can take a long time to read.
+This watchdog stops stalled reads and releases the worker's running latch.
+Without it, later triggers could return `ErrSyncAlreadyRunning` indefinitely while fleet data becomes stale.
+Cancellation propagates into in-flight HTTP body reads via the request context.
+Size it comfortably above the slowest observed full-sync cycle.
+The netixlan cascade verification adds at most 2 minutes to a cycle.
+
+Set to `0` to disable (dev/debug only).
+Must be non-negative.
+
+### PDBPLUS-HISTORY-MAX-REQUESTS-PER-CYCLE details
+
+Maximum number of history sweep requests in one incremental sync cycle.
+The sweep fetches, in id windows over many cycles, the tombstones that upstream made before the first sync (see [History sweep](ARCHITECTURE.md#history-sweep)).
+A full cycle does not run it.
+When the sweep has done every type, it sends no requests until `POST /sync?mode=history` starts it again.
+The requests use the upstream rate limit of the client (`PDBPLUS_PEERINGDB_RPS` without an API key, 30 per minute with one), and FK backfill of swept rows uses `PDBPLUS_FK_BACKFILL_MAX_REQUESTS_PER_CYCLE`.
+
+`0` turns the sweep off.
+
+### PDBPLUS-FULL-SYNC-INTERVAL details
+
+Maximum time between full sync cycles in `incremental` mode.
+When the newest successful full cycle is older than this value, the next cycle fetches every type completely.
+It also rewrites rows whose `updated` did not advance, but keeps a stored row whose `updated` is newer than the snapshot's version and not older than the snapshot's newest row, because upstream serves the bare list from an API cache that can be stale.
+This repairs data that incremental sync cannot see.
+[Daily full reconcile](ARCHITECTURE.md#daily-full-reconcile) lists these cases.
+
+A full cycle also fetches a `?since=` window per type, from the earlier of the cursor and the newest `updated` in the snapshot.
+The window captures tombstones (bare lists carry only live rows) and rows that changed after upstream built its API cache.
+`0` disables the forced cycle.
+The data then stays stale until an operator sends `POST /sync?mode=full`.
+
+### PDBPLUS-SCRATCH-DIR details
+
+Directory of the scratch SQLite database of each sync cycle.
+The cycle stages the fetched rows there before it writes them to the database.
+A full cycle writes about 100 MB.
+An empty value selects `os.TempDir()`.
+A set value must be an absolute path: a relative path stops startup.
+
+The worker creates a missing directory with mode `0700`.
+When the value is set, the primary removes the `pdbplus-sync-scratch-*` files in the directory at scheduler start, because a crashed process leaves its file and a persistent volume keeps it.
+When the start sweep does not run (a `POST /sync` cycle was running, or the process became the primary later), the first cycle of the process runs it.
+The sweep cannot tell the file of another live process from a stale file.
+Thus each process that stages a cycle in the directory holds a shared `flock` lock on the file `.pdbplus-scratch.lock` in the directory, and the sweep needs the exclusive lock.
+
+When another process holds a lock, the primary skips the sweep and logs a WARN.
+When a cycle cannot get the shared lock, it stages in `os.TempDir()` and logs a WARN.
+A process that stages in `os.TempDir()` takes no lock, so the directory must not be a shared temp dir such as `/tmp`.
+An empty value sweeps nothing, because other processes share `os.TempDir()`.
+Before each cycle, the worker also reads the free space of the directory.
+
+When it is less than 512 MiB, or the worker cannot read it, the cycle stages in `os.TempDir()` and logs a WARN, so the scratch file does not take the space that LiteFS needs on the same volume.
+The span attribute `pdbplus.sync.scratch_dir` of the cycle names the directory that the cycle used.
+The gauge `pdbplus.scratch.free` (Prometheus `pdbplus_scratch_free_bytes`) reports the free space of the directory at each metric collection; it has no value when the directory does not exist or the free space cannot be read.
+The lock, the sweep and the free-space check need Linux.
+On other systems, the primary does not sweep, and each cycle uses the directory without a lock and without a free-space check.
+
+`fly.toml` sets `/var/lib/litefs/scratch` on the primary volume (see [Asymmetric fleet](DEPLOYMENT.md#asymmetric-fleet)).
+
+### PDBPLUS-OTEL-SYNC-SAMPLE-RATE details
+
+Trace sampling ratio for scheduled sync cycles.
+`1.0` traces every cycle.
+`0` traces no scheduled cycle.
+A traced cycle includes its step spans (`sync-fetch-<type>`, `sync-upsert-<type>`) and no DB spans (see `PDBPLUS_OTEL_SQL`).
+Without DB spans, the prod traces of 2026-09-24 have about 58 spans for a full cycle and about 44 for an incremental cycle: about 4.2k spans per day at the 15m interval.
+
+This ratio does not apply to a `POST /sync` cycle.
+The server always traces that cycle, or never traces it with `?trace=0`.
+Must be in the inclusive range `[0.0, 1.0]`.
+Values outside this range are rejected at startup.
+
+### PDBPLUS-OTEL-SQL details
+
+Emit a per-query OpenTelemetry DB span (via XSAM/otelsql) for every SQL statement on the shared `*sql.DB`: ent's queries and the raw `sync_status` statements alike.
+otelsql records no metrics.
+On by default; set `PDBPLUS_OTEL_SQL=false` to disable.
+DB spans are children of the active request span, so volume is bounded by the existing sampler: API-read spans inherit `PDBPLUS_OTEL_SAMPLE_RATE`.
+A sync cycle emits no DB spans: a full cycle runs thousands of statements, and with their spans its trace is larger than the 5 MB per-trace limit of Grafana Cloud Tempo.
+
+`PDBPLUS_OTEL_SYNC_SAMPLE_RATE` sets which scheduled cycles are traced.
+The ETag watcher runs outside any request: its once-a-second `PRAGMA data_version` probe (nodes without LiteFS) emits no span, and its `sync_status` reads before the node's first successful sync have no parent, so each starts its own trace at the 1% default ratio.
+
+### PDBPLUS-LOG-LEVEL details
+
+Minimum severity of the log records that go to the OTel log pipeline (and from there to Loki).
+Values are not case-sensitive: `DEBUG`, `INFO`, `WARN`, `ERROR` (parsed by `slog.Level.UnmarshalText`).
+The stdout handler (Fly logs) always drops records below `INFO`.
+At the default, the application drops DEBUG records.
+With `DEBUG`, DEBUG records go to the OTel pipeline only.
+
+An invalid value selects `INFO` and does not stop startup.
+`internal/otel/logger.go` reads this variable, not `internal/config`.
+
+### PDBPLUS-HEAP-WARN-MIB details
+
+Peak Go heap (MiB) threshold checked at end of every sync cycle.
+The compared value is the cycle's true `HeapInuse` high-water mark, sampled after the Phase A fetch and after each type's Phase B upsert, *before* the forced GC that follows a type of 1000 or more rows reclaims the spike.
+It is not the post-GC end-of-cycle floor.
+When that per-cycle peak exceeds this value, the worker emits `slog.Warn("heap threshold crossed", …)` with typed attrs (`peak_heap_bytes`, `heap_warn_bytes`, `heap_over`, etc.).
+The OTel span attribute `pdbplus.sync.peak_heap_bytes` (Prometheus gauge `pdbplus_sync_peak_heap_bytes`) emits on every cycle regardless.
+
+`0` disables the warn.
+Investigate a sustained breach across multiple cycles before the primary reaches its 512 MB limit.
+The default is below the 512 MB Fly VM cap, but does not guarantee a warning before an OOM kill.
+Historical baseline (2026-04-17, not a current capacity guarantee): primary peak ~84 MiB, replicas 58–59 MiB, a historical measurement only.
+**Bare integer only**, with no unit suffix (the variable name encodes the unit).
+
+`400MB` is rejected.
+Negative values are rejected at startup.
+
+### PDBPLUS-RSS-WARN-MIB details
+
+Peak OS RSS (MiB) threshold derived from `/proc/self/status` `VmHWM` (Linux only).
+Same warn semantics as `PDBPLUS_HEAP_WARN_MIB`.
+The worker resets `VmHWM` at the start of each sync cycle (write `5` to `/proc/self/clear_refs`), so the value is the peak during the cycle, including the API-serving load.
+When the reset fails, it is the peak since the process started.
+The OTel span attr `pdbplus.sync.peak_rss_bytes` (Prometheus gauge `pdbplus_sync_peak_rss_bytes`) is omitted on non-Linux platforms (RSS not available).
+
+`0` disables the warn.
+Bare integer only, no unit suffix.
+
+### PDBPLUS-IS-PRIMARY details
+
+Fallback primary-role flag.
+Consulted only when no LiteFS mount is present (local development).
+Detection order is: (1) lease file `/litefs/.primary` present → replica; (2) the check of `/litefs/.primary` returns an error other than "not found" → replica; (3) `/litefs/` directory present but no `.primary` file → primary, if the node is a lease candidate (`FLY_PROCESS_GROUP` is `primary`), else replica; (4) otherwise parse this variable (default `true` when unset).
+An unparseable value stops startup, also on Fly.io, so a typo cannot select a cluster role.
+Consumed by `internal/litefs/primary.go`, not parsed by `internal/config`.
