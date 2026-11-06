@@ -140,10 +140,9 @@ groups:
           summary: "PeeringDB Plus peak Go heap >400 MiB sustained 30m"
           description: |
             max(pdbplus_sync_peak_heap_bytes) has been above 419430400 bytes
-            (400 MiB) for 30m. Sustained high heap should re-open the
-            incremental-sync evaluation — surface at next milestone planning.
-            Observed baseline 2026-04-17 was 83.8 MiB primary, 58-59 MiB
-            replicas.
+            (400 MiB) for 30m. Check sync batch sizes and the Sync Memory
+            panels before the primary reaches its 512 MB VM limit.
+            Full sync cycles can use more memory than incremental cycles.
 
       - alert: PdbPlusRssHigh
         expr: max(pdbplus_sync_peak_rss_bytes) > 402653184
@@ -169,7 +168,7 @@ groups:
           description: |
             The Go runtime memory of the replica in {{ $labels.cloud_region }}
             has been above 188743680 bytes (180 MiB) for 15m. Replicas run
-            on 256 MB VMs and do not sync, so the heap and RSS rules (which
+            on 512 MB VMs and do not sync, so the heap and RSS rules (which
             read the sync-cycle gauges of the primary) do not cover them.
             Baseline in the week to 2026-09-25: about 20 MB at rest, peaks
             near 105 MB. A sustained rise points at large API responses
@@ -199,7 +198,7 @@ groups:
             fly status -a peeringdb-plus.
 
       - alert: PdbPlusPrimaryVolumeLow
-        expr: min by (cloud_region) (pdbplus_scratch_free_bytes{service_name="peeringdb-plus", service_namespace="primary"}) < 536870912
+        expr: (min by (cloud_region) (pdbplus_scratch_free_bytes{service_name="peeringdb-plus", service_namespace="primary"}) < 536870912) * 0 + 1
         for: 30m
         labels:
           severity: warning
@@ -273,14 +272,14 @@ groups:
             The cgroup of the machine in {{ $labels.region }} was throttled
             for more than 1% of the time in each 5m window, for 15m
             (fly_instance_cpu_throttle, in centiseconds). A shared-CPU machine
-            that has spent its burst balance runs at its baseline (1/16 of a
-            vCPU on a replica, 1/8 on the primary), and requests wait for
-            CPU. Check the CPU panels of the Fly Platform row of the
+            that has spent its burst balance runs at its baseline CPU
+            allocation, and requests wait for CPU. Both process groups use
+            shared-cpu-2x machines. Check the CPU panels of the Fly Platform row of the
             dashboard. A machine that stays throttled needs a larger CPU kind
             (fly.toml [[vm]]).
 
       - alert: PdbPlusLeaseHolderAbsent
-        expr: max(max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])) < 1
+        expr: (max(max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])) < 1) * 0 + 1
         for: 10m
         labels:
           severity: critical
@@ -322,9 +321,11 @@ groups:
 
       - alert: PdbPlusLiteFSMetricsAbsent
         expr: |
-          max by (region, instance) (fly_instance_memory_mem_available{app="peeringdb-plus"})
-            unless on (instance)
-          max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])
+          (
+            max by (region, instance) (fly_instance_memory_mem_available{app="peeringdb-plus"})
+              unless on (instance)
+            max_over_time(litefs_is_primary{app="peeringdb-plus"}[2m])
+          ) * 0 + 1
         for: 10m
         labels:
           severity: warning

@@ -1,0 +1,157 @@
+rule_files:
+- rules.yaml
+evaluation_interval: 1m
+tests:
+- name: no lease, pending, firing, recovery, and lag suppression
+  interval: 1m
+  input_series:
+  - series: litefs_is_primary{app="peeringdb-plus",region="fra",instance="primary"}
+    values: 0x11 1x5
+  - series: litefs_lag_seconds{app="peeringdb-plus",region="iad",instance="replica"}
+    values: 900x17
+  alert_rule_test:
+  - eval_time: 9m
+    alertname: PdbPlusLeaseHolderAbsent
+    exp_alerts: []
+  - eval_time: 10m
+    alertname: PdbPlusLeaseHolderAbsent
+    exp_alerts:
+    - exp_labels:
+        severity: critical
+  - eval_time: 12m
+    alertname: PdbPlusLeaseHolderAbsent
+    exp_alerts: []
+  - eval_time: 11m
+    alertname: PdbPlusReplicaLagHigh
+    exp_alerts: []
+- name: healthy lease
+  interval: 1m
+  input_series:
+  - series: litefs_is_primary{app="peeringdb-plus",region="fra",instance="primary"}
+    values: 1x35
+  alert_rule_test:
+  - eval_time: 30m
+    alertname: PdbPlusLeaseHolderAbsent
+    exp_alerts: []
+- name: low volume 0
+  interval: 1m
+  input_series:
+  - series: pdbplus_scratch_free_bytes{service_name="peeringdb-plus",service_namespace="primary",cloud_region="fra"}
+    values: 0x30 536870912x5
+  alert_rule_test:
+  - eval_time: 29m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts: []
+  - eval_time: 30m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        cloud_region: fra
+  - eval_time: 31m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts: []
+- name: low volume 536870911
+  interval: 1m
+  input_series:
+  - series: pdbplus_scratch_free_bytes{service_name="peeringdb-plus",service_namespace="primary",cloud_region="fra"}
+    values: 536870911x30 536870912x5
+  alert_rule_test:
+  - eval_time: 29m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts: []
+  - eval_time: 30m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        cloud_region: fra
+  - eval_time: 31m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts: []
+- name: volume at threshold is healthy
+  interval: 1m
+  input_series:
+  - series: pdbplus_scratch_free_bytes{service_name="peeringdb-plus",service_namespace="primary",cloud_region="fra"}
+    values: 536870912x35
+  alert_rule_test:
+  - eval_time: 30m
+    alertname: PdbPlusPrimaryVolumeLow
+    exp_alerts: []
+- name: missing LiteFS metrics even with zero available memory
+  interval: 1m
+  input_series:
+  - series: fly_instance_memory_mem_available{app="peeringdb-plus",region="iad",instance="replica"}
+    values: '0x16'
+  - series: litefs_is_primary{app="peeringdb-plus",region="iad",instance="replica"}
+    values: _x11 0x5
+  alert_rule_test:
+  - eval_time: 9m
+    alertname: PdbPlusLiteFSMetricsAbsent
+    exp_alerts: []
+  - eval_time: 10m
+    alertname: PdbPlusLiteFSMetricsAbsent
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        region: iad
+        instance: replica
+  - eval_time: 11m
+    alertname: PdbPlusLiteFSMetricsAbsent
+    exp_alerts: []
+- name: present LiteFS metrics with zero available memory
+  interval: 1m
+  input_series:
+  - series: fly_instance_memory_mem_available{app="peeringdb-plus",region="iad",instance="replica"}
+    values: '0x16'
+  - series: litefs_is_primary{app="peeringdb-plus",region="iad",instance="replica"}
+    values: '0x16'
+  alert_rule_test:
+  - eval_time: 15m
+    alertname: PdbPlusLiteFSMetricsAbsent
+    exp_alerts: []
+- name: replica lag with a lease holder
+  interval: 1m
+  input_series:
+  - series: litefs_is_primary{app="peeringdb-plus",region="fra",instance="primary"}
+    values: 1x16
+  - series: litefs_lag_seconds{app="peeringdb-plus",region="iad",instance="replica"}
+    values: 900x10 0x5
+  alert_rule_test:
+  - eval_time: 9m
+    alertname: PdbPlusReplicaLagHigh
+    exp_alerts: []
+  - eval_time: 10m
+    alertname: PdbPlusReplicaLagHigh
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        region: iad
+  - eval_time: 11m
+    alertname: PdbPlusReplicaLagHigh
+    exp_alerts: []
+- name: real OOM is immediate and expires
+  interval: 1m
+  input_series:
+  - series: fly_instance_exit_oom{app="peeringdb-plus",region="iad",instance="replica"}
+    values: 1 _x16
+  alert_rule_test:
+  - eval_time: 0m
+    alertname: PdbPlusMachineOOMKilled
+    exp_alerts:
+    - exp_labels:
+        severity: warning
+        region: iad
+        instance: replica
+  - eval_time: 16m
+    alertname: PdbPlusMachineOOMKilled
+    exp_alerts: []
+- name: normal exit is not OOM
+  interval: 1m
+  input_series:
+  - series: fly_instance_exit_oom{app="peeringdb-plus",region="iad",instance="replica"}
+    values: 0 _x16
+  alert_rule_test:
+  - eval_time: 0m
+    alertname: PdbPlusMachineOOMKilled
+    exp_alerts: []

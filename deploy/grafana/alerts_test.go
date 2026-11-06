@@ -30,11 +30,12 @@ type alertGroup struct {
 }
 
 type alertRule struct {
-	Alert       string            `yaml:"alert"`
-	Expr        string            `yaml:"expr"`
-	For         string            `yaml:"for"`
-	Labels      map[string]string `yaml:"labels"`
-	Annotations map[string]string `yaml:"annotations"`
+	Alert         string            `yaml:"alert"`
+	Expr          string            `yaml:"expr"`
+	For           string            `yaml:"for"`
+	KeepFiringFor string            `yaml:"keep_firing_for,omitempty"`
+	Labels        map[string]string `yaml:"labels"`
+	Annotations   map[string]string `yaml:"annotations"`
 }
 
 const (
