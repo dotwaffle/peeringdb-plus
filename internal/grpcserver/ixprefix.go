@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixprefix"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // IxPrefixService implements the peeringdb.v1.IxPrefixService ConnectRPC
@@ -61,7 +62,7 @@ func (s *IxPrefixService) GetIxPrefix(ctx context.Context, req *pb.GetIxPrefixRe
 	ixp, err := s.Client.IxPrefix.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity ixprefix %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity ixprefix %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get ixprefix %d", req.GetId()), err)
 	}
@@ -107,7 +108,7 @@ func (s *IxPrefixService) ListIxPrefixes(ctx context.Context, req *pb.ListIxPref
 
 // StreamIxPrefixes streams all matching IX prefixes via compound (updated, id)
 // keyset pagination under the (-updated, -created, -id) default order.
-func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIxPrefixesRequest, stream *connect.ServerStream[pb.IxPrefix]) error {
+func (s *IxPrefixService) StreamIxPrefixes(ctx context.Context, req *pb.StreamIxPrefixesRequest, stream peeringdbv1connect.IxPrefixServiceStreamIxPrefixesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.IxPrefix, pb.IxPrefix]{
 		EntityName:   "ix prefixes",
 		Timeout:      s.StreamTimeout,

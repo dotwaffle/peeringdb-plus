@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"google.golang.org/protobuf/proto"

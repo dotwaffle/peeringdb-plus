@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/execution/mapAsyncIterable */
+import{isPromise as u}from"./a199619a4472f30d.mjs";import{withConcurrentAbruptClose as l}from"./6bb2faf875ddef64.mjs";function p(n,r){let t=n[Symbol.asyncIterator](),o=t.return?.bind(t),c=t.throw?.bind(t),e=o?()=>i(o):()=>Promise.resolve(),s=c?a=>i(()=>c(a)):e;return l(m(n,r),e,s)}async function i(n){try{await n()}catch{}}async function*m(n,r){for await(let t of n){let o=r(t);if(u(o)){yield await o;continue}yield o}}export{p as mapAsyncIterable};

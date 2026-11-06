@@ -10,7 +10,7 @@ GOFLAGS = "-trimpath"
 [tool_alias]
 govulncheck = "go:golang.org/x/vuln/cmd/govulncheck"
 gqlgen = "go:github.com/99designs/gqlgen"
-protoc-gen-connect-go = "go:connectrpc.com/connect/cmd/protoc-gen-connect-go"
+protoc-gen-connect-go = "go:connectrpc.com/connect/v2/cmd/protoc-gen-connect-go"
 protoc-gen-go = "go:google.golang.org/protobuf/cmd/protoc-gen-go"
 tailwindcss = "github:tailwindlabs/tailwindcss"
 templ = "go:github.com/a-h/templ/cmd/templ"
@@ -27,7 +27,7 @@ rumdl = "latest"
 # version as their module in go.mod. Bump both in one commit, then run
 # `mise run generate`.
 gqlgen = "0.17.98"
-protoc-gen-connect-go = "1.21.1"
+protoc-gen-connect-go = "2.0.2"
 protoc-gen-go = "1.36.12"
 tailwindcss = { version = "latest", bin = "tailwindcss" }
 templ = "0.3.1100"

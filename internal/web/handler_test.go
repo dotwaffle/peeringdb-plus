@@ -138,8 +138,8 @@ func TestStaticAssets_HtmxJS(t *testing.T) {
 	if !strings.Contains(body, "htmx") {
 		t.Error("response body does not contain 'htmx'")
 	}
-	if !strings.Contains(body, `this.version="4.0.0"`) {
-		t.Error("response body does not contain htmx 4.0.0")
+	if !strings.Contains(body, `this.version="4.0.1"`) {
+		t.Error("response body does not contain htmx 4.0.1")
 	}
 }
 

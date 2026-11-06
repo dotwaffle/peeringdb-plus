@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	"entgo.io/ent/dialect"
 
@@ -28,17 +30,15 @@ func TestConnectHandlerOpts_ReadMaxBytes(t *testing.T) {
 		"file:connect_readmaxbytes?mode=memory&cache=shared&_pragma=foreign_keys(1)")
 	t.Cleanup(func() { _ = client.Close() })
 
-	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
+	otelInterceptor, err := otelconnect.NewServerInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}
 
 	mux := http.NewServeMux()
-	netPath, netHandler := peeringdbv1connect.NewNetworkServiceHandler(
-		&grpcserver.NetworkService{Client: client, StreamTimeout: 30 * time.Second},
-		connectHandlerOpts(otelInterceptor),
-	)
-	mux.Handle(netPath, netHandler)
+	rpcServer := connect.NewServer(otelInterceptor)
+	peeringdbv1connect.RegisterNetworkServiceHandler(rpcServer, &grpcserver.NetworkService{Client: client, StreamTimeout: 30 * time.Second})
+	connecthttp.Mount(mux, rpcServer, connectHandlerOpts())
 
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)

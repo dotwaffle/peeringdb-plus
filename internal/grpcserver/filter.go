@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 )
 
@@ -60,7 +60,7 @@ func validatingFilter[REQ, V any](
 		}
 		if err := validate(*v); err != nil {
 			return nil, connect.NewError(connect.CodeInvalidArgument,
-				fmt.Errorf("invalid filter: %s %w", name, err))
+				fmt.Errorf("invalid filter: %s %w", name, err).Error())
 		}
 		return pred(*v), nil
 	}

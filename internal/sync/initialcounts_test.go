@@ -17,7 +17,7 @@ import (
 
 // TestInitialObjectCounts_AllThirteenTypes asserts that on a seeded DB
 // the helper returns exactly 13 keys, every value non-zero. seed.Full
-// inserts at least one row of every entity type per CLAUDE.md § Testing.
+// inserts at least one row of every entity type.
 func TestInitialObjectCounts_AllThirteenTypes(t *testing.T) {
 	t.Parallel()
 	client, db := testutil.SetupClientWithDB(t)

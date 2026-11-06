@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -13,6 +13,7 @@ import (
 	"github.com/dotwaffle/peeringdb-plus/ent/ixlan"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/internal/privfield"
 )
 
@@ -87,7 +88,7 @@ func (s *IxLanService) GetIxLan(ctx context.Context, req *pb.GetIxLanRequest) (*
 	il, err := s.Client.IxLan.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity ixlan %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity ixlan %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get ixlan %d", req.GetId()), err)
 	}
@@ -140,7 +141,7 @@ func (s *IxLanService) ListIxLans(ctx context.Context, req *pb.ListIxLansRequest
 
 // StreamIxLans streams all matching IX LANs via compound (updated, id) keyset
 // pagination under the (-updated, -created, -id) default order.
-func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansRequest, stream *connect.ServerStream[pb.IxLan]) error {
+func (s *IxLanService) StreamIxLans(ctx context.Context, req *pb.StreamIxLansRequest, stream peeringdbv1connect.IxLanServiceStreamIxLansServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.IxLan, pb.IxLan]{
 		EntityName:   "ixlans",
 		Timeout:      s.StreamTimeout,

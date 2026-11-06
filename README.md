@@ -29,7 +29,7 @@ All six surfaces are mounted on the same HTTP server and read from the same SQLi
 | Web UI | `/ui/` | templ + htmx search, detail pages, ASN comparison; content-negotiates terminal vs browser |
 | GraphQL | `/graphql` | gqlgen via entgql; interactive playground on `GET`, queries on `POST` |
 | REST | `/rest/v1/` | OpenAPI-compliant (entrest); spec at [`/rest/v1/openapi.json`](https://peeringdb-plus.fly.dev/rest/v1/openapi.json) |
-| PeeringDB Compat | `/api/` | Drop-in replacement for `api.peeringdb.com` — same paths, same envelope |
+| PeeringDB Compat | `/api/` | Drop-in replacement for `www.peeringdb.com/api` — same paths, same envelope |
 | ConnectRPC / gRPC | `/peeringdb.v1.*/` | Get / List / Stream RPCs for all 13 entity types; reflection + health checks enabled |
 | MCP | `/mcp` | Read-only tools, resources, and prompts for network research agents |
 
@@ -55,7 +55,7 @@ git clone https://github.com/dotwaffle/peeringdb-plus.git
 cd peeringdb-plus
 go build -o peeringdb-plus ./cmd/peeringdb-plus
 ./peeringdb-plus
-# Listening on :8080, syncing from api.peeringdb.com every hour
+# Listening on :8080, syncing from www.peeringdb.com every hour
 ```
 
 The first sync takes 30-60 seconds against the public PeeringDB API.
@@ -172,7 +172,7 @@ Operationally-relevant defaults:
 |---|---|---|
 | `PDBPLUS_LISTEN_ADDR` | `:8080` | HTTP listen address |
 | `PDBPLUS_DB_PATH` | `./peeringdb-plus.db` | SQLite database file path |
-| `PDBPLUS_PEERINGDB_URL` | `https://api.peeringdb.com` | Upstream PeeringDB API |
+| `PDBPLUS_PEERINGDB_URL` | `https://www.peeringdb.com` | Upstream PeeringDB API |
 | `PDBPLUS_PEERINGDB_API_KEY` | _(unset)_ | Optional — raises rate limit and shortens default sync interval |
 | `PDBPLUS_SYNC_MODE` | `incremental` | `incremental` (delta) or `full` (re-fetch); `full` is the operator escape-hatch |
 | `PDBPLUS_SYNC_INTERVAL` | `1h` (15m if API key set) | Time between sync cycles |

@@ -8,6 +8,33 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.45.0] - 2026-11-06
+
+### Fixed
+
+- Match PeeringDB 2.84.1 read permissions for pending records on supported direct `/api/` GET and HEAD requests.
+  Non-campus records return 404 because the mirror cannot grant upstream update permission.
+  Pending campuses and nested parent rendering retain their existing behavior.
+- Sync freshness continues to report the last successful sync while a newer sync runs or has failed.
+  Failed attempts no longer remove the freshness sample from monitoring.
+
+### Changed
+
+- Use `https://www.peeringdb.com/api/` as the default upstream API location.
+  Custom upstream origins remain supported.
+- Upgrade the GraphQL playground to GraphiQL 6.0, GraphQL 17.1, Monaco 0.57, and monaco-graphql 2.0.1.
+  Refresh embedded workers, integrity metadata, and license records.
+- Upgrade ConnectRPC runtime and generators to v2, with matching health and reflection services.
+  Existing protobuf messages and RPC routes remain unchanged.
+- Refresh Go dependencies and contributor tools, including SQLite 1.61.1 with its required libc 1.79.0.
+- Upgrade htmx to 4.0.1 and Tailwind CSS to 4.3.4.
+- Replace `CLAUDE.md` with an audited `AGENTS.md` and consolidate contributor instructions.
+
+### Added
+
+- Response-contract tests that detect drift between Ent fields, protobuf messages, and converter mappings.
+  Existing omissions and legacy fields are explicit exceptions.
+
 ## [1.44.0] - 2026-10-29
 
 ### Added
@@ -1511,7 +1538,11 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.0...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.0...HEAD
+[1.45.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.44.0...v1.45.0
+[1.44.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.2...v1.44.0
+[1.43.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.1...v1.43.2
+[1.43.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.0...v1.43.1
 [1.43.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.42.1...v1.43.0
 [1.42.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.42.0...v1.42.1
 [1.42.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.41.0...v1.42.0

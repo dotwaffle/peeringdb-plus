@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/campus"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // CampusService implements the peeringdb.v1.CampusService ConnectRPC handler
@@ -98,7 +99,7 @@ func (s *CampusService) GetCampus(ctx context.Context, req *pb.GetCampusRequest)
 	c, err := s.Client.Campus.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity campus %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity campus %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get campus %d", req.GetId()), err)
 	}
@@ -146,7 +147,7 @@ func (s *CampusService) ListCampuses(ctx context.Context, req *pb.ListCampusesRe
 
 // StreamCampuses streams all matching campuses via compound (updated, id)
 // keyset pagination under the (-updated, -created, -id) default order.
-func (s *CampusService) StreamCampuses(ctx context.Context, req *pb.StreamCampusesRequest, stream *connect.ServerStream[pb.Campus]) error {
+func (s *CampusService) StreamCampuses(ctx context.Context, req *pb.StreamCampusesRequest, stream peeringdbv1connect.CampusServiceStreamCampusesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.Campus, pb.Campus]{
 		EntityName:   "campuses",
 		Timeout:      s.StreamTimeout,

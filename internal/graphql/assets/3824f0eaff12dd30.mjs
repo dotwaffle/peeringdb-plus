@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/validation/rules/NoUndefinedVariablesRule */
+import{GraphQLError as f}from"./3f07b35bd75fe31a.mjs";function l(i){return{OperationDefinition(e){let r=new Set(e.variableDefinitions?.map(a=>a.variable.name.value)),o=i.getRecursiveVariableUsages(e);for(let{node:a,fragmentVariableDefinition:s}of o){if(s)continue;let n=a.name.value;r.has(n)||i.reportError(new f(e.name?`Variable "$${n}" is not defined by operation "${e.name.value}".`:`Variable "$${n}" is not defined.`,{nodes:[a,e]}))}}}}export{l as NoUndefinedVariablesRule};

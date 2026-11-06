@@ -22,9 +22,3 @@ reflow-mode = "sentence-per-line"
 # A large limit turns off wrapping at a column width. Only sentence ends
 # break lines, and a long sentence stays on one line.
 line-length = 100000
-
-[per-file-ignores]
-# CLAUDE.md is Claude's own project memory, not user-facing prose: it
-# has no top-level heading (MD041) and opens with an emphasis line used
-# as a de facto title (MD036) by convention.
-"CLAUDE.md" = ["MD041", "MD036"]

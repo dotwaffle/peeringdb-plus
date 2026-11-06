@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/utilities/valueFromASTUntyped */
+import{keyValMap as s}from"./ab8ab0a32a60674c.mjs";import{Kind as r}from"./374bb6ac2eb6f198.mjs";function t(e,a){switch(e.kind){case r.NULL:return null;case r.INT:return parseInt(e.value,10);case r.FLOAT:return parseFloat(e.value);case r.STRING:case r.ENUM:case r.BOOLEAN:return e.value;case r.LIST:return e.values.map(n=>t(n,a));case r.OBJECT:return s(e.fields,n=>n.name.value,n=>t(n.value,a));case r.VARIABLE:return a?.[e.name.value]}}export{t as valueFromASTUntyped};

@@ -2,7 +2,9 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -12,7 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"entgo.io/ent/dialect"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -1731,15 +1734,18 @@ func setupStreamTestServer(t *testing.T, client *ent.Client) peeringdbv1connect.
 	t.Helper()
 	svc := &NetworkService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewNetworkServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterNetworkServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewNetworkServiceClient(
+	return peeringdbv1connect.NewNetworkServiceClient(connect.NewClient(connecthttp.NewTransport(
 		srv.Client(),
 		srv.URL,
-	)
+		connecthttp.WithReadMaxBytes(0),
+	)))
 }
 
 // seedStreamNetworks creates 3 test networks for streaming tests. Returns them
@@ -1887,9 +1893,18 @@ func TestStreamNetworks(t *testing.T) {
 					return
 				}
 				// Drain the stream; error should appear.
-				for stream.Receive() {
+				var streamErr2 error
+				for {
+					_, err := stream.Receive()
+					if err != nil {
+						streamErr2 = err
+						break
+					}
 				}
-				if streamErr := stream.Err(); streamErr == nil {
+				if errors.Is(streamErr2, io.EOF) {
+					streamErr2 = nil
+				}
+				if streamErr := streamErr2; streamErr == nil {
 					t.Fatal("expected error from stream, got nil")
 				} else if code := connect.CodeOf(streamErr); code != tt.wantErr {
 					t.Errorf("error code = %v, want %v", code, tt.wantErr)
@@ -1901,16 +1916,21 @@ func TestStreamNetworks(t *testing.T) {
 			}
 
 			var count int
-			for stream.Receive() {
-				msg := stream.Msg()
+			for {
+				msg2, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				msg := msg2
 				if msg == nil {
 					t.Fatal("received nil message from stream")
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -1947,7 +1967,7 @@ func TestStreamNetworksTotalCount(t *testing.T) {
 			ec := testutil.SetupClient(t)
 			seedStreamNetworks(t, ec)
 			rpcClient := setupStreamTestServer(t, ec)
-			ctx := t.Context()
+			ctx, info := connect.NewClientContext(t.Context())
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if err != nil {
@@ -1955,22 +1975,26 @@ func TestStreamNetworksTotalCount(t *testing.T) {
 			}
 
 			// Drain stream to completion.
-			for stream.Receive() {
-			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 			}
 
 			// Check response header for total count. Get is
 			// case-insensitive (textproto canonicalisation).
-			got := stream.ResponseHeader().Get("pdbplus-total-count")
+			got := info.ResponseHeader().Get("pdbplus-total-count")
 			if got != tt.wantCount {
 				t.Errorf("pdbplus-total-count = %q, want %q", got, tt.wantCount)
 			}
 
 			// Deprecated grpc-total-count alias dual-emits during the
 			// migration window and must carry the same value.
-			if legacy := stream.ResponseHeader().Get("grpc-total-count"); legacy != tt.wantCount {
+			if legacy := info.ResponseHeader().Get("grpc-total-count"); legacy != tt.wantCount {
 				t.Errorf("grpc-total-count (deprecated alias) = %q, want %q", legacy, tt.wantCount)
 			}
 
@@ -1996,7 +2020,7 @@ func TestStreamNetworksCancellation(t *testing.T) {
 	}
 
 	// Receive the first message, then cancel the context.
-	if !stream.Receive() {
+	if _, err := stream.Receive(); err != nil {
 		t.Fatal("expected at least one message, got none")
 	}
 	cancel()
@@ -2004,11 +2028,20 @@ func TestStreamNetworksCancellation(t *testing.T) {
 	// Drain remaining -- the stream should terminate with an error or no more
 	// messages. The key property is that this test does not hang (test timeout
 	// protects against that).
-	for stream.Receive() {
+	var streamErr2 error
+	for {
+		_, err := stream.Receive()
+		if err != nil {
+			streamErr2 = err
+			break
+		}
+	}
+	if errors.Is(streamErr2, io.EOF) {
+		streamErr2 = nil
 	}
 
 	// After cancellation the stream error should be non-nil.
-	if streamErr := stream.Err(); streamErr == nil {
+	if streamErr := streamErr2; streamErr == nil {
 		// It is acceptable for small data sets where all records were already
 		// sent before the cancel propagated. Log but do not fail.
 		t.Log("stream completed without error after cancel -- data was small enough to send before cancellation propagated")
@@ -2064,7 +2097,7 @@ func TestStreamNetworksSinceId(t *testing.T) {
 			entClient := testutil.SetupClient(t)
 			seedStreamNetworks(t, entClient)
 			rpcClient := setupStreamTestServer(t, entClient)
-			ctx := t.Context()
+			ctx, info := connect.NewClientContext(t.Context())
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if err != nil {
@@ -2072,15 +2105,20 @@ func TestStreamNetworksSinceId(t *testing.T) {
 			}
 
 			var count int
-			for stream.Receive() {
-				if stream.Msg() == nil {
+			for {
+				msg, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				if msg == nil {
 					t.Fatal("received nil message from stream")
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -2088,10 +2126,10 @@ func TestStreamNetworksSinceId(t *testing.T) {
 			// Check response headers for total count. Delta streams
 			// must omit BOTH header names entirely — wantCount is "" for
 			// every case in this test, asserting absence.
-			if got := stream.ResponseHeader().Get("pdbplus-total-count"); got != tt.wantCount {
+			if got := info.ResponseHeader().Get("pdbplus-total-count"); got != tt.wantCount {
 				t.Errorf("pdbplus-total-count = %q, want absent (delta stream)", got)
 			}
-			if got := stream.ResponseHeader().Get("grpc-total-count"); got != tt.wantCount {
+			if got := info.ResponseHeader().Get("grpc-total-count"); got != tt.wantCount {
 				t.Errorf("grpc-total-count (deprecated alias) = %q, want absent (delta stream)", got)
 			}
 		})
@@ -2153,7 +2191,7 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 			entClient := testutil.SetupClient(t)
 			seedStreamNetworks(t, entClient)
 			rpcClient := setupStreamTestServer(t, entClient)
-			ctx := t.Context()
+			ctx, info := connect.NewClientContext(t.Context())
 
 			stream, err := rpcClient.StreamNetworks(ctx, tt.req)
 			if err != nil {
@@ -2161,15 +2199,20 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 			}
 
 			var count int
-			for stream.Receive() {
-				if stream.Msg() == nil {
+			for {
+				msg, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				if msg == nil {
 					t.Fatal("received nil message from stream")
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -2177,10 +2220,10 @@ func TestStreamNetworksUpdatedSince(t *testing.T) {
 			// Check response headers for total count. Delta streams
 			// must omit BOTH header names entirely — wantCount is "" for
 			// every case in this test, asserting absence.
-			if got := stream.ResponseHeader().Get("pdbplus-total-count"); got != tt.wantCount {
+			if got := info.ResponseHeader().Get("pdbplus-total-count"); got != tt.wantCount {
 				t.Errorf("pdbplus-total-count = %q, want absent (delta stream)", got)
 			}
-			if got := stream.ResponseHeader().Get("grpc-total-count"); got != tt.wantCount {
+			if got := info.ResponseHeader().Get("grpc-total-count"); got != tt.wantCount {
 				t.Errorf("grpc-total-count (deprecated alias) = %q, want absent (delta stream)", got)
 			}
 		})
@@ -2235,7 +2278,7 @@ func TestStream_SkipCountOnDelta(t *testing.T) {
 	mu.Unlock()
 
 	rpcClient := setupStreamTestServer(t, entClient)
-	ctx := t.Context()
+	ctx, info := connect.NewClientContext(t.Context())
 
 	stream, err := rpcClient.StreamNetworks(ctx, &pb.StreamNetworksRequest{
 		SinceId: proto.Int64(1),
@@ -2246,14 +2289,18 @@ func TestStream_SkipCountOnDelta(t *testing.T) {
 
 	// Drain the stream fully so every driver op is captured before asserting.
 	var got int
-	for stream.Receive() {
-		if stream.Msg() == nil {
+	for {
+		msg, streamErr := stream.Receive()
+		if streamErr != nil {
+			if errors.Is(streamErr, io.EOF) {
+				break
+			}
+			t.Fatalf("stream error: %v", streamErr)
+		}
+		if msg == nil {
 			t.Fatal("received nil message from stream")
 		}
 		got++
-	}
-	if streamErr := stream.Err(); streamErr != nil {
-		t.Fatalf("stream error: %v", streamErr)
 	}
 
 	// Snapshot the captured slice under the mutex.
@@ -2271,10 +2318,10 @@ func TestStream_SkipCountOnDelta(t *testing.T) {
 
 	// Assertion 2: the total-count header is absent under both the
 	// current name and the deprecated alias.
-	if h := stream.ResponseHeader().Get("pdbplus-total-count"); h != "" {
+	if h := info.ResponseHeader().Get("pdbplus-total-count"); h != "" {
 		t.Errorf("pdbplus-total-count = %q, want absent on delta stream", h)
 	}
-	if h := stream.ResponseHeader().Get("grpc-total-count"); h != "" {
+	if h := info.ResponseHeader().Get("grpc-total-count"); h != "" {
 		t.Errorf("grpc-total-count = %q, want absent on delta stream", h)
 	}
 
@@ -3910,12 +3957,14 @@ func setupFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1conn
 	t.Helper()
 	svc := &FacilityService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewFacilityServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterFacilityServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewFacilityServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewFacilityServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamFacilities(t *testing.T) {
@@ -4011,15 +4060,20 @@ func TestStreamFacilities(t *testing.T) {
 				t.Fatalf("StreamFacilities returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
-				if stream.Msg() == nil {
+			for {
+				msg, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				if msg == nil {
 					t.Fatal("received nil message")
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4031,12 +4085,14 @@ func setupOrganizationStreamServer(t *testing.T, client *ent.Client) peeringdbv1
 	t.Helper()
 	svc := &OrganizationService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewOrganizationServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterOrganizationServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewOrganizationServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewOrganizationServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamOrganizations(t *testing.T) {
@@ -4112,12 +4168,17 @@ func TestStreamOrganizations(t *testing.T) {
 				t.Fatalf("StreamOrganizations returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4129,12 +4190,14 @@ func setupCampusStreamServer(t *testing.T, client *ent.Client) peeringdbv1connec
 	t.Helper()
 	svc := &CampusService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewCampusServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterCampusServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewCampusServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewCampusServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamCampuses(t *testing.T) {
@@ -4194,12 +4257,17 @@ func TestStreamCampuses(t *testing.T) {
 				t.Fatalf("StreamCampuses returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4211,12 +4279,14 @@ func setupCarrierStreamServer(t *testing.T, client *ent.Client) peeringdbv1conne
 	t.Helper()
 	svc := &CarrierService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewCarrierServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterCarrierServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewCarrierServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewCarrierServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamCarriers(t *testing.T) {
@@ -4276,12 +4346,17 @@ func TestStreamCarriers(t *testing.T) {
 				t.Fatalf("StreamCarriers returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4293,12 +4368,14 @@ func setupInternetExchangeStreamServer(t *testing.T, client *ent.Client) peering
 	t.Helper()
 	svc := &InternetExchangeService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewInternetExchangeServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterInternetExchangeServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewInternetExchangeServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewInternetExchangeServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamInternetExchanges(t *testing.T) {
@@ -4403,12 +4480,17 @@ func TestStreamInternetExchanges(t *testing.T) {
 				t.Fatalf("StreamInternetExchanges returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4420,12 +4502,14 @@ func setupIxLanStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect
 	t.Helper()
 	svc := &IxLanService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewIxLanServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterIxLanServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewIxLanServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamIxLans(t *testing.T) {
@@ -4489,12 +4573,17 @@ func TestStreamIxLans(t *testing.T) {
 				t.Fatalf("StreamIxLans returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4506,12 +4595,14 @@ func setupIxFacilityStreamServer(t *testing.T, client *ent.Client) peeringdbv1co
 	t.Helper()
 	svc := &IxFacilityService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewIxFacilityServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterIxFacilityServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewIxFacilityServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewIxFacilityServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamIxFacilities(t *testing.T) {
@@ -4584,12 +4675,17 @@ func TestStreamIxFacilities(t *testing.T) {
 				t.Fatalf("StreamIxFacilities returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4601,12 +4697,14 @@ func setupNetworkFacilityStreamServer(t *testing.T, client *ent.Client) peeringd
 	t.Helper()
 	svc := &NetworkFacilityService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewNetworkFacilityServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterNetworkFacilityServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewNetworkFacilityServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewNetworkFacilityServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamNetworkFacilities(t *testing.T) {
@@ -4693,12 +4791,17 @@ func TestStreamNetworkFacilities(t *testing.T) {
 				t.Fatalf("StreamNetworkFacilities returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
+			for {
+				_, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4710,12 +4813,14 @@ func setupCarrierFacilityStreamServer(t *testing.T, client *ent.Client) peeringd
 	t.Helper()
 	svc := &CarrierFacilityService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewCarrierFacilityServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterCarrierFacilityServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewCarrierFacilityServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewCarrierFacilityServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamCarrierFacilities(t *testing.T) {
@@ -4774,8 +4879,15 @@ func TestStreamCarrierFacilities(t *testing.T) {
 				t.Fatalf("StreamCarrierFacilities returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
-				msg := stream.Msg()
+			for {
+				msg2, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				msg := msg2
 				if msg == nil {
 					t.Fatal("received nil message")
 				}
@@ -4786,9 +4898,7 @@ func TestStreamCarrierFacilities(t *testing.T) {
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4800,12 +4910,14 @@ func setupIxPrefixStreamServer(t *testing.T, client *ent.Client) peeringdbv1conn
 	t.Helper()
 	svc := &IxPrefixService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewIxPrefixServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterIxPrefixServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewIxPrefixServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewIxPrefixServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamIxPrefixes(t *testing.T) {
@@ -4867,8 +4979,15 @@ func TestStreamIxPrefixes(t *testing.T) {
 				t.Fatalf("StreamIxPrefixes returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
-				msg := stream.Msg()
+			for {
+				msg2, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				msg := msg2
 				if msg == nil {
 					t.Fatal("received nil message")
 				}
@@ -4879,9 +4998,7 @@ func TestStreamIxPrefixes(t *testing.T) {
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -4893,12 +5010,14 @@ func setupNetworkIxLanStreamServer(t *testing.T, client *ent.Client) peeringdbv1
 	t.Helper()
 	svc := &NetworkIxLanService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewNetworkIxLanServiceHandler(svc))
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterNetworkIxLanServiceHandler(server, svc)
+	connecthttp.Mount(mux, server, connecthttp.WithReadMaxBytes(0))
 	srv := httptest.NewUnstartedServer(mux)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewNetworkIxLanServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewNetworkIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 func TestStreamNetworkIxLans(t *testing.T) {
@@ -4996,8 +5115,15 @@ func TestStreamNetworkIxLans(t *testing.T) {
 				t.Fatalf("StreamNetworkIxLans returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
-				msg := stream.Msg()
+			for {
+				msg2, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				msg := msg2
 				if msg == nil {
 					t.Fatal("received nil message")
 				}
@@ -5008,9 +5134,7 @@ func TestStreamNetworkIxLans(t *testing.T) {
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -5022,18 +5146,22 @@ func setupPocStreamServer(t *testing.T, client *ent.Client) peeringdbv1connect.P
 	t.Helper()
 	svc := &PocService{Client: client, StreamTimeout: 30 * time.Second}
 	mux := http.NewServeMux()
-	mux.Handle(peeringdbv1connect.NewPocServiceHandler(svc))
-	// Stamp TierUsers so the handler's ent queries admit
-	// the Users-visibility POC rows seeded by TestStreamPocs. Real
-	// deployments do this via the PDBPLUS_PUBLIC_TIER=users middleware
-	// (internal/middleware.PrivacyTier); tests opt-in directly.
+	server := connect.NewServer()
+	peeringdbv1connect.RegisterPocServiceHandler(server, svc)
+	connecthttp.
+		// Stamp TierUsers so the handler's ent queries admit
+		// the Users-visibility POC rows seeded by TestStreamPocs. Real
+		// deployments do this via the PDBPLUS_PUBLIC_TIER=users middleware
+		// (internal/middleware.PrivacyTier); tests opt-in directly.
+		Mount(mux, server, connecthttp.WithReadMaxBytes(0))
+
 	handler := http.Handler(mux)
 	handler = elevatePrivacyTierHandler(handler)
 	srv := httptest.NewUnstartedServer(handler)
 	srv.EnableHTTP2 = true
 	srv.StartTLS()
 	t.Cleanup(srv.Close)
-	return peeringdbv1connect.NewPocServiceClient(srv.Client(), srv.URL)
+	return peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(srv.Client(), srv.URL, connecthttp.WithReadMaxBytes(0))))
 }
 
 // elevatePrivacyTierHandler wraps h so every inbound request's context
@@ -5134,8 +5262,15 @@ func TestStreamPocs(t *testing.T) {
 				t.Fatalf("StreamPocs returned error: %v", err)
 			}
 			var count int
-			for stream.Receive() {
-				msg := stream.Msg()
+			for {
+				msg2, streamErr := stream.Receive()
+				if streamErr != nil {
+					if errors.Is(streamErr, io.EOF) {
+						break
+					}
+					t.Fatalf("stream error: %v", streamErr)
+				}
+				msg := msg2
 				if msg == nil {
 					t.Fatal("received nil message")
 				}
@@ -5146,9 +5281,7 @@ func TestStreamPocs(t *testing.T) {
 				}
 				count++
 			}
-			if streamErr := stream.Err(); streamErr != nil {
-				t.Fatalf("stream error: %v", streamErr)
-			}
+
 			if count != tt.wantLen {
 				t.Errorf("got %d messages, want %d", count, tt.wantLen)
 			}
@@ -5185,15 +5318,20 @@ func TestStreamNetworksInfoTypeFilter(t *testing.T) {
 	}
 
 	var count int
-	for stream.Receive() {
-		if stream.Msg() == nil {
+	for {
+		msg, streamErr := stream.Receive()
+		if streamErr != nil {
+			if errors.Is(streamErr, io.EOF) {
+				break
+			}
+			t.Fatalf("stream error: %v", streamErr)
+		}
+		if msg == nil {
 			t.Fatal("received nil message")
 		}
 		count++
 	}
-	if streamErr := stream.Err(); streamErr != nil {
-		t.Fatalf("stream error: %v", streamErr)
-	}
+
 	if count != 1 {
 		t.Errorf("got %d messages, want 1", count)
 	}
@@ -5350,14 +5488,18 @@ func TestCursorResume_CompoundKeyset(t *testing.T) {
 		t.Fatalf("StreamNetworks unbounded: %v", err)
 	}
 	var allIDs []int64
-	for stream.Receive() {
-		if stream.Msg() == nil {
+	for {
+		msg, sErr := stream.Receive()
+		if sErr != nil {
+			if errors.Is(sErr, io.EOF) {
+				break
+			}
+			t.Fatalf("unbounded stream error: %v", sErr)
+		}
+		if msg == nil {
 			t.Fatal("received nil message from unbounded stream")
 		}
-		allIDs = append(allIDs, stream.Msg().GetId())
-	}
-	if sErr := stream.Err(); sErr != nil {
-		t.Fatalf("unbounded stream error: %v", sErr)
+		allIDs = append(allIDs, msg.GetId())
 	}
 
 	// Expected compound (-updated, -created, -id) ordering on the 10-row seed:

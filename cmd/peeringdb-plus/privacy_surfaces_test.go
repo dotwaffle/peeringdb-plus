@@ -42,7 +42,8 @@ import (
 	"testing"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/otelconnect"
 	"entgo.io/ent/dialect"
 
@@ -154,16 +155,13 @@ func buildPrivacySurfacesFixture(t *testing.T) *surfacesFixture {
 	// ConnectRPC PocService. Only the Poc service — the scope here
 	// is POCs; bringing up the other 12 services would pad setup without
 	// adding coverage.
-	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
+	otelInterceptor, err := otelconnect.NewServerInterceptor(connectOTelOpts()...)
 	if err != nil {
 		t.Fatalf("create otel interceptor: %v", err)
 	}
-	handlerOpts := connect.WithInterceptors(otelInterceptor)
-	pocPath, pocHandler := peeringdbv1connect.NewPocServiceHandler(
-		&grpcserver.PocService{Client: client, StreamTimeout: 60 * time.Second},
-		handlerOpts,
-	)
-	mux.Handle(pocPath, pocHandler)
+	rpcServer := connect.NewServer(otelInterceptor)
+	peeringdbv1connect.RegisterPocServiceHandler(rpcServer, &grpcserver.PocService{Client: client, StreamTimeout: 60 * time.Second})
+	connecthttp.Mount(mux, rpcServer, connectHandlerOpts())
 
 	// Wrap the mux in the full production middleware chain with
 	// DefaultTier=TierPublic. This is the assertion centre: flipping
@@ -206,9 +204,8 @@ func surfacesGet(t *testing.T, url string) ([]byte, int) {
 	if err != nil {
 		t.Fatalf("build GET %s: %v", url, err)
 	}
-	// Force HTML content negotiation on /ui/ so the browser path renders
-	// (the default would yield ANSI terminal output per CLAUDE.md §"/ui/
-	// content negotiation").
+	// Request HTML on /ui/ to test the browser response.
+	// The default user agent receives ANSI terminal output.
 	req.Header.Set("User-Agent", "Mozilla/5.0 (privacy_surfaces_test)")
 	req.Header.Set("Accept", "text/html,application/json")
 	resp, err := http.DefaultClient.Do(req)
@@ -441,7 +438,7 @@ func TestPrivacySurfaces(t *testing.T) {
 	// --------------------------------------------------------------------
 	t.Run("grpc_list_count", func(t *testing.T) {
 		t.Parallel()
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.ListPocs(t.Context(), &pbv1.ListPocsRequest{PageSize: 100})
 		if err != nil {
 			t.Fatalf("ListPocs: %v", err)
@@ -463,7 +460,7 @@ func TestPrivacySurfaces(t *testing.T) {
 
 	t.Run("grpc_detail_notfound", func(t *testing.T) {
 		t.Parallel()
-		cl := peeringdbv1connect.NewPocServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewPocServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		_, err := cl.GetPoc(t.Context(), &pbv1.GetPocRequest{Id: int64(usersPocID)})
 		if err == nil {
 			t.Fatalf("GetPoc(%d): expected error (CodeNotFound), got nil", usersPocID)

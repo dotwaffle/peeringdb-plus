@@ -28,9 +28,10 @@ import (
 	"syscall"
 	"time"
 
-	"connectrpc.com/connect"
-	"connectrpc.com/grpchealth"
-	"connectrpc.com/grpcreflect"
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/grpchealth/v2"
+	"connectrpc.com/grpcreflect/v2"
 	"connectrpc.com/otelconnect"
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -67,17 +68,14 @@ const maxRequestBodySize = 1 << 20
 const graphQLCSPPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://esm.sh; style-src 'self' 'unsafe-inline' https://esm.sh; img-src 'self' data:; connect-src 'self'; font-src 'self' data:; worker-src 'self'"
 
 // connectHandlerOpts builds the handler options shared by all 13 ConnectRPC
-// service registrations: OTel tracing plus an inbound message-size cap.
+// service registrations to cap inbound message size.
 // WithReadMaxBytes bounds each received message (raw AND decompressed) at the
 // connect protocol layer. The HTTP-level MaxBytesBody middleware skips
 // ConnectRPC paths so server-to-client streaming is not truncated, which
 // would otherwise leave unary request bodies unbounded (gzip-bomb OOM).
 // Request messages here are small filter/pagination structs; 1 MB is ample.
-func connectHandlerOpts(interceptor connect.Interceptor) connect.HandlerOption {
-	return connect.WithHandlerOptions(
-		connect.WithInterceptors(interceptor),
-		connect.WithReadMaxBytes(maxRequestBodySize),
-	)
+func connectHandlerOpts() connecthttp.Option {
+	return connecthttp.WithReadMaxBytes(maxRequestBodySize)
 }
 
 // connectOTelOpts returns the options for the otelconnect interceptor that
@@ -579,12 +577,12 @@ func main() {
 	logger.Info("MCP server mounted", slog.String("path", "/mcp"))
 
 	// Create OTel interceptor for ConnectRPC services.
-	otelInterceptor, err := otelconnect.NewInterceptor(connectOTelOpts()...)
+	otelInterceptor, err := otelconnect.NewServerInterceptor(connectOTelOpts()...)
 	if err != nil {
 		logger.Error("failed to create otel interceptor", slog.Any("error", err))
 		os.Exit(1)
 	}
-	handlerOpts := connectHandlerOpts(otelInterceptor)
+	rpcServer := connect.NewServer(otelInterceptor)
 
 	// Service names for reflection and health checking.
 	serviceNames := []string{
@@ -603,41 +601,29 @@ func main() {
 		peeringdbv1connect.PocServiceName,
 	}
 
-	// Register all 13 ConnectRPC services on the mux.
-	registerService := func(path string, handler http.Handler) {
-		mux.Handle(path, handler)
-	}
-	registerService(peeringdbv1connect.NewCampusServiceHandler(&grpcserver.CampusService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewCarrierServiceHandler(&grpcserver.CarrierService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewCarrierFacilityServiceHandler(&grpcserver.CarrierFacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewFacilityServiceHandler(&grpcserver.FacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewInternetExchangeServiceHandler(&grpcserver.InternetExchangeService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewIxFacilityServiceHandler(&grpcserver.IxFacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewIxLanServiceHandler(&grpcserver.IxLanService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewIxPrefixServiceHandler(&grpcserver.IxPrefixService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewNetworkServiceHandler(&grpcserver.NetworkService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewNetworkFacilityServiceHandler(&grpcserver.NetworkFacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewNetworkIxLanServiceHandler(&grpcserver.NetworkIxLanService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewOrganizationServiceHandler(&grpcserver.OrganizationService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
-	registerService(peeringdbv1connect.NewPocServiceHandler(&grpcserver.PocService{Client: entClient, StreamTimeout: cfg.StreamTimeout}, handlerOpts))
+	// Register all 13 ConnectRPC services on the server.
+	peeringdbv1connect.RegisterCampusServiceHandler(rpcServer, &grpcserver.CampusService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterCarrierServiceHandler(rpcServer, &grpcserver.CarrierService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterCarrierFacilityServiceHandler(rpcServer, &grpcserver.CarrierFacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterFacilityServiceHandler(rpcServer, &grpcserver.FacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterInternetExchangeServiceHandler(rpcServer, &grpcserver.InternetExchangeService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterIxFacilityServiceHandler(rpcServer, &grpcserver.IxFacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterIxLanServiceHandler(rpcServer, &grpcserver.IxLanService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterIxPrefixServiceHandler(rpcServer, &grpcserver.IxPrefixService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterNetworkServiceHandler(rpcServer, &grpcserver.NetworkService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterNetworkFacilityServiceHandler(rpcServer, &grpcserver.NetworkFacilityService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterNetworkIxLanServiceHandler(rpcServer, &grpcserver.NetworkIxLanService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterOrganizationServiceHandler(rpcServer, &grpcserver.OrganizationService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
+	peeringdbv1connect.RegisterPocServiceHandler(rpcServer, &grpcserver.PocService{Client: entClient, StreamTimeout: cfg.StreamTimeout})
 	logger.Info("ConnectRPC services mounted", slog.Int("count", len(serviceNames)))
 
 	// gRPC server reflection for grpcurl/grpcui discovery.
-	reflector := grpcreflect.NewStaticReflector(serviceNames...)
-	mux.Handle(grpcreflect.NewHandlerV1(reflector, handlerOpts))
-	mux.Handle(grpcreflect.NewHandlerV1Alpha(reflector, handlerOpts))
+	grpcreflect.Register(rpcServer, grpcreflect.WithNamer(grpcreflect.NamerFunc(func() []string { return serviceNames })))
 	logger.Info("gRPC reflection enabled")
 
-	// gRPC health check tied to sync readiness. syncHealthChecker
-	// evaluates the worker's live sync state on every Check RPC — the
-	// same source /readyz's middleware gate reads — so health flips to
-	// SERVING the instant the first sync lands (primary) or replicated
-	// sync history is observed (replica heartbeat), with no polling
-	// goroutine, and tracks any future state transition symmetrically.
-	// This replaced a StaticChecker fed by a one-shot 1s ticker, which
-	// burned a goroutine until first sync and could never return to
-	// NOT_SERVING once flipped.
-	mux.Handle(grpchealth.NewHandler(newSyncHealthChecker(syncWorker, serviceNames), handlerOpts))
+	// Check live sync readiness on each health request.
+	grpchealth.Register(rpcServer, newSyncHealthChecker(syncWorker, serviceNames))
+	connecthttp.Mount(mux, rpcServer, connectHandlerOpts())
 	logger.Info("gRPC health check enabled")
 
 	// GET /: content negotiation for terminal, browser, and API clients.

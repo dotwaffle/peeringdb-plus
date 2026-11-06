@@ -5,20 +5,11 @@
 package peeringdbv1connect
 
 import (
-	connect "connectrpc.com/connect"
+	connect "connectrpc.com/connect/v2"
 	context "context"
-	errors "errors"
 	v1 "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
-	http "net/http"
-	strings "strings"
+	sync "sync"
 )
-
-// This is a compile-time assertion to ensure that this generated file and the connect package are
-// compatible. If you get a compiler error that this constant is not defined, this code was
-// generated with a version of connect newer than the one compiled into your binary. You can fix the
-// problem by either regenerating this code with an older version of connect or updating the connect
-// version compiled into your binary.
-const _ = connect.IsAtLeastVersion1_13_0
 
 const (
 	// CampusServiceName is the fully-qualified name of the CampusService service.
@@ -49,125 +40,145 @@ const (
 	PocServiceName = "peeringdb.v1.PocService"
 )
 
-// These constants are the fully-qualified names of the RPCs defined in this package. They're
-// exposed at runtime as Spec.Procedure and as the final two segments of the HTTP route.
+// These constants are the procedure names of the RPCs defined in this package. They're exposed at
+// runtime as Spec.Procedure and as the final two segments of the HTTP route.
 //
 // Note that these are different from the fully-qualified method names used by
 // google.golang.org/protobuf/reflect/protoreflect. To convert from these constants to
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
-	// CampusServiceGetCampusProcedure is the fully-qualified name of the CampusService's GetCampus RPC.
+	// CampusServiceGetCampusProcedure is the procedure name of the CampusService's GetCampus RPC.
 	CampusServiceGetCampusProcedure = "/peeringdb.v1.CampusService/GetCampus"
-	// CampusServiceListCampusesProcedure is the fully-qualified name of the CampusService's
-	// ListCampuses RPC.
+	// CampusServiceListCampusesProcedure is the procedure name of the CampusService's ListCampuses RPC.
 	CampusServiceListCampusesProcedure = "/peeringdb.v1.CampusService/ListCampuses"
-	// CampusServiceStreamCampusesProcedure is the fully-qualified name of the CampusService's
-	// StreamCampuses RPC.
-	CampusServiceStreamCampusesProcedure = "/peeringdb.v1.CampusService/StreamCampuses"
-	// CarrierServiceGetCarrierProcedure is the fully-qualified name of the CarrierService's GetCarrier
+	// CampusServiceStreamCampusesProcedure is the procedure name of the CampusService's StreamCampuses
 	// RPC.
+	CampusServiceStreamCampusesProcedure = "/peeringdb.v1.CampusService/StreamCampuses"
+	// CarrierServiceGetCarrierProcedure is the procedure name of the CarrierService's GetCarrier RPC.
 	CarrierServiceGetCarrierProcedure = "/peeringdb.v1.CarrierService/GetCarrier"
-	// CarrierServiceListCarriersProcedure is the fully-qualified name of the CarrierService's
-	// ListCarriers RPC.
+	// CarrierServiceListCarriersProcedure is the procedure name of the CarrierService's ListCarriers
+	// RPC.
 	CarrierServiceListCarriersProcedure = "/peeringdb.v1.CarrierService/ListCarriers"
-	// CarrierServiceStreamCarriersProcedure is the fully-qualified name of the CarrierService's
+	// CarrierServiceStreamCarriersProcedure is the procedure name of the CarrierService's
 	// StreamCarriers RPC.
 	CarrierServiceStreamCarriersProcedure = "/peeringdb.v1.CarrierService/StreamCarriers"
-	// CarrierFacilityServiceGetCarrierFacilityProcedure is the fully-qualified name of the
+	// CarrierFacilityServiceGetCarrierFacilityProcedure is the procedure name of the
 	// CarrierFacilityService's GetCarrierFacility RPC.
 	CarrierFacilityServiceGetCarrierFacilityProcedure = "/peeringdb.v1.CarrierFacilityService/GetCarrierFacility"
-	// CarrierFacilityServiceListCarrierFacilitiesProcedure is the fully-qualified name of the
+	// CarrierFacilityServiceListCarrierFacilitiesProcedure is the procedure name of the
 	// CarrierFacilityService's ListCarrierFacilities RPC.
 	CarrierFacilityServiceListCarrierFacilitiesProcedure = "/peeringdb.v1.CarrierFacilityService/ListCarrierFacilities"
-	// CarrierFacilityServiceStreamCarrierFacilitiesProcedure is the fully-qualified name of the
+	// CarrierFacilityServiceStreamCarrierFacilitiesProcedure is the procedure name of the
 	// CarrierFacilityService's StreamCarrierFacilities RPC.
 	CarrierFacilityServiceStreamCarrierFacilitiesProcedure = "/peeringdb.v1.CarrierFacilityService/StreamCarrierFacilities"
-	// FacilityServiceGetFacilityProcedure is the fully-qualified name of the FacilityService's
-	// GetFacility RPC.
+	// FacilityServiceGetFacilityProcedure is the procedure name of the FacilityService's GetFacility
+	// RPC.
 	FacilityServiceGetFacilityProcedure = "/peeringdb.v1.FacilityService/GetFacility"
-	// FacilityServiceListFacilitiesProcedure is the fully-qualified name of the FacilityService's
+	// FacilityServiceListFacilitiesProcedure is the procedure name of the FacilityService's
 	// ListFacilities RPC.
 	FacilityServiceListFacilitiesProcedure = "/peeringdb.v1.FacilityService/ListFacilities"
-	// FacilityServiceStreamFacilitiesProcedure is the fully-qualified name of the FacilityService's
+	// FacilityServiceStreamFacilitiesProcedure is the procedure name of the FacilityService's
 	// StreamFacilities RPC.
 	FacilityServiceStreamFacilitiesProcedure = "/peeringdb.v1.FacilityService/StreamFacilities"
-	// InternetExchangeServiceGetInternetExchangeProcedure is the fully-qualified name of the
+	// InternetExchangeServiceGetInternetExchangeProcedure is the procedure name of the
 	// InternetExchangeService's GetInternetExchange RPC.
 	InternetExchangeServiceGetInternetExchangeProcedure = "/peeringdb.v1.InternetExchangeService/GetInternetExchange"
-	// InternetExchangeServiceListInternetExchangesProcedure is the fully-qualified name of the
+	// InternetExchangeServiceListInternetExchangesProcedure is the procedure name of the
 	// InternetExchangeService's ListInternetExchanges RPC.
 	InternetExchangeServiceListInternetExchangesProcedure = "/peeringdb.v1.InternetExchangeService/ListInternetExchanges"
-	// InternetExchangeServiceStreamInternetExchangesProcedure is the fully-qualified name of the
+	// InternetExchangeServiceStreamInternetExchangesProcedure is the procedure name of the
 	// InternetExchangeService's StreamInternetExchanges RPC.
 	InternetExchangeServiceStreamInternetExchangesProcedure = "/peeringdb.v1.InternetExchangeService/StreamInternetExchanges"
-	// IxFacilityServiceGetIxFacilityProcedure is the fully-qualified name of the IxFacilityService's
+	// IxFacilityServiceGetIxFacilityProcedure is the procedure name of the IxFacilityService's
 	// GetIxFacility RPC.
 	IxFacilityServiceGetIxFacilityProcedure = "/peeringdb.v1.IxFacilityService/GetIxFacility"
-	// IxFacilityServiceListIxFacilitiesProcedure is the fully-qualified name of the IxFacilityService's
+	// IxFacilityServiceListIxFacilitiesProcedure is the procedure name of the IxFacilityService's
 	// ListIxFacilities RPC.
 	IxFacilityServiceListIxFacilitiesProcedure = "/peeringdb.v1.IxFacilityService/ListIxFacilities"
-	// IxFacilityServiceStreamIxFacilitiesProcedure is the fully-qualified name of the
-	// IxFacilityService's StreamIxFacilities RPC.
+	// IxFacilityServiceStreamIxFacilitiesProcedure is the procedure name of the IxFacilityService's
+	// StreamIxFacilities RPC.
 	IxFacilityServiceStreamIxFacilitiesProcedure = "/peeringdb.v1.IxFacilityService/StreamIxFacilities"
-	// IxLanServiceGetIxLanProcedure is the fully-qualified name of the IxLanService's GetIxLan RPC.
+	// IxLanServiceGetIxLanProcedure is the procedure name of the IxLanService's GetIxLan RPC.
 	IxLanServiceGetIxLanProcedure = "/peeringdb.v1.IxLanService/GetIxLan"
-	// IxLanServiceListIxLansProcedure is the fully-qualified name of the IxLanService's ListIxLans RPC.
+	// IxLanServiceListIxLansProcedure is the procedure name of the IxLanService's ListIxLans RPC.
 	IxLanServiceListIxLansProcedure = "/peeringdb.v1.IxLanService/ListIxLans"
-	// IxLanServiceStreamIxLansProcedure is the fully-qualified name of the IxLanService's StreamIxLans
-	// RPC.
+	// IxLanServiceStreamIxLansProcedure is the procedure name of the IxLanService's StreamIxLans RPC.
 	IxLanServiceStreamIxLansProcedure = "/peeringdb.v1.IxLanService/StreamIxLans"
-	// IxPrefixServiceGetIxPrefixProcedure is the fully-qualified name of the IxPrefixService's
-	// GetIxPrefix RPC.
+	// IxPrefixServiceGetIxPrefixProcedure is the procedure name of the IxPrefixService's GetIxPrefix
+	// RPC.
 	IxPrefixServiceGetIxPrefixProcedure = "/peeringdb.v1.IxPrefixService/GetIxPrefix"
-	// IxPrefixServiceListIxPrefixesProcedure is the fully-qualified name of the IxPrefixService's
+	// IxPrefixServiceListIxPrefixesProcedure is the procedure name of the IxPrefixService's
 	// ListIxPrefixes RPC.
 	IxPrefixServiceListIxPrefixesProcedure = "/peeringdb.v1.IxPrefixService/ListIxPrefixes"
-	// IxPrefixServiceStreamIxPrefixesProcedure is the fully-qualified name of the IxPrefixService's
+	// IxPrefixServiceStreamIxPrefixesProcedure is the procedure name of the IxPrefixService's
 	// StreamIxPrefixes RPC.
 	IxPrefixServiceStreamIxPrefixesProcedure = "/peeringdb.v1.IxPrefixService/StreamIxPrefixes"
-	// NetworkServiceGetNetworkProcedure is the fully-qualified name of the NetworkService's GetNetwork
-	// RPC.
+	// NetworkServiceGetNetworkProcedure is the procedure name of the NetworkService's GetNetwork RPC.
 	NetworkServiceGetNetworkProcedure = "/peeringdb.v1.NetworkService/GetNetwork"
-	// NetworkServiceListNetworksProcedure is the fully-qualified name of the NetworkService's
-	// ListNetworks RPC.
+	// NetworkServiceListNetworksProcedure is the procedure name of the NetworkService's ListNetworks
+	// RPC.
 	NetworkServiceListNetworksProcedure = "/peeringdb.v1.NetworkService/ListNetworks"
-	// NetworkServiceStreamNetworksProcedure is the fully-qualified name of the NetworkService's
+	// NetworkServiceStreamNetworksProcedure is the procedure name of the NetworkService's
 	// StreamNetworks RPC.
 	NetworkServiceStreamNetworksProcedure = "/peeringdb.v1.NetworkService/StreamNetworks"
-	// NetworkFacilityServiceGetNetworkFacilityProcedure is the fully-qualified name of the
+	// NetworkFacilityServiceGetNetworkFacilityProcedure is the procedure name of the
 	// NetworkFacilityService's GetNetworkFacility RPC.
 	NetworkFacilityServiceGetNetworkFacilityProcedure = "/peeringdb.v1.NetworkFacilityService/GetNetworkFacility"
-	// NetworkFacilityServiceListNetworkFacilitiesProcedure is the fully-qualified name of the
+	// NetworkFacilityServiceListNetworkFacilitiesProcedure is the procedure name of the
 	// NetworkFacilityService's ListNetworkFacilities RPC.
 	NetworkFacilityServiceListNetworkFacilitiesProcedure = "/peeringdb.v1.NetworkFacilityService/ListNetworkFacilities"
-	// NetworkFacilityServiceStreamNetworkFacilitiesProcedure is the fully-qualified name of the
+	// NetworkFacilityServiceStreamNetworkFacilitiesProcedure is the procedure name of the
 	// NetworkFacilityService's StreamNetworkFacilities RPC.
 	NetworkFacilityServiceStreamNetworkFacilitiesProcedure = "/peeringdb.v1.NetworkFacilityService/StreamNetworkFacilities"
-	// NetworkIxLanServiceGetNetworkIxLanProcedure is the fully-qualified name of the
-	// NetworkIxLanService's GetNetworkIxLan RPC.
+	// NetworkIxLanServiceGetNetworkIxLanProcedure is the procedure name of the NetworkIxLanService's
+	// GetNetworkIxLan RPC.
 	NetworkIxLanServiceGetNetworkIxLanProcedure = "/peeringdb.v1.NetworkIxLanService/GetNetworkIxLan"
-	// NetworkIxLanServiceListNetworkIxLansProcedure is the fully-qualified name of the
-	// NetworkIxLanService's ListNetworkIxLans RPC.
+	// NetworkIxLanServiceListNetworkIxLansProcedure is the procedure name of the NetworkIxLanService's
+	// ListNetworkIxLans RPC.
 	NetworkIxLanServiceListNetworkIxLansProcedure = "/peeringdb.v1.NetworkIxLanService/ListNetworkIxLans"
-	// NetworkIxLanServiceStreamNetworkIxLansProcedure is the fully-qualified name of the
+	// NetworkIxLanServiceStreamNetworkIxLansProcedure is the procedure name of the
 	// NetworkIxLanService's StreamNetworkIxLans RPC.
 	NetworkIxLanServiceStreamNetworkIxLansProcedure = "/peeringdb.v1.NetworkIxLanService/StreamNetworkIxLans"
-	// OrganizationServiceGetOrganizationProcedure is the fully-qualified name of the
-	// OrganizationService's GetOrganization RPC.
+	// OrganizationServiceGetOrganizationProcedure is the procedure name of the OrganizationService's
+	// GetOrganization RPC.
 	OrganizationServiceGetOrganizationProcedure = "/peeringdb.v1.OrganizationService/GetOrganization"
-	// OrganizationServiceListOrganizationsProcedure is the fully-qualified name of the
-	// OrganizationService's ListOrganizations RPC.
+	// OrganizationServiceListOrganizationsProcedure is the procedure name of the OrganizationService's
+	// ListOrganizations RPC.
 	OrganizationServiceListOrganizationsProcedure = "/peeringdb.v1.OrganizationService/ListOrganizations"
-	// OrganizationServiceStreamOrganizationsProcedure is the fully-qualified name of the
+	// OrganizationServiceStreamOrganizationsProcedure is the procedure name of the
 	// OrganizationService's StreamOrganizations RPC.
 	OrganizationServiceStreamOrganizationsProcedure = "/peeringdb.v1.OrganizationService/StreamOrganizations"
-	// PocServiceGetPocProcedure is the fully-qualified name of the PocService's GetPoc RPC.
+	// PocServiceGetPocProcedure is the procedure name of the PocService's GetPoc RPC.
 	PocServiceGetPocProcedure = "/peeringdb.v1.PocService/GetPoc"
-	// PocServiceListPocsProcedure is the fully-qualified name of the PocService's ListPocs RPC.
+	// PocServiceListPocsProcedure is the procedure name of the PocService's ListPocs RPC.
 	PocServiceListPocsProcedure = "/peeringdb.v1.PocService/ListPocs"
-	// PocServiceStreamPocsProcedure is the fully-qualified name of the PocService's StreamPocs RPC.
+	// PocServiceStreamPocsProcedure is the procedure name of the PocService's StreamPocs RPC.
 	PocServiceStreamPocsProcedure = "/peeringdb.v1.PocService/StreamPocs"
+)
+
+var (
+	campusServiceGetCampusSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CampusService").Methods().ByName("GetCampus"),
+			Procedure:  CampusServiceGetCampusProcedure,
+		}
+	})
+	campusServiceListCampusesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CampusService").Methods().ByName("ListCampuses"),
+			Procedure:  CampusServiceListCampusesProcedure,
+		}
+	})
+	campusServiceStreamCampusesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CampusService").Methods().ByName("StreamCampuses"),
+			Procedure:  CampusServiceStreamCampusesProcedure,
+		}
+	})
 )
 
 // CampusServiceClient is a client for the peeringdb.v1.CampusService service.
@@ -180,69 +191,34 @@ type CampusServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamCampuses(context.Context, *v1.StreamCampusesRequest) (*connect.ServerStreamForClient[v1.Campus], error)
+	StreamCampuses(context.Context, *v1.StreamCampusesRequest) (CampusServiceStreamCampusesClientStream, error)
 }
 
-// NewCampusServiceClient constructs a client for the peeringdb.v1.CampusService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewCampusServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CampusServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	campusServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("CampusService").Methods()
-	return &campusServiceClient{
-		getCampus: connect.NewClient[v1.GetCampusRequest, v1.GetCampusResponse](
-			httpClient,
-			baseURL+CampusServiceGetCampusProcedure,
-			connect.WithSchema(campusServiceMethods.ByName("GetCampus")),
-			connect.WithClientOptions(opts...),
-		),
-		listCampuses: connect.NewClient[v1.ListCampusesRequest, v1.ListCampusesResponse](
-			httpClient,
-			baseURL+CampusServiceListCampusesProcedure,
-			connect.WithSchema(campusServiceMethods.ByName("ListCampuses")),
-			connect.WithClientOptions(opts...),
-		),
-		streamCampuses: connect.NewClient[v1.StreamCampusesRequest, v1.Campus](
-			httpClient,
-			baseURL+CampusServiceStreamCampusesProcedure,
-			connect.WithSchema(campusServiceMethods.ByName("StreamCampuses")),
-			connect.WithClientOptions(opts...),
-		),
+// NewCampusServiceClient constructs a client for the peeringdb.v1.CampusService service. Multiple
+// service clients may share a single connect.Client.
+func NewCampusServiceClient(client *connect.Client) CampusServiceClient {
+	return &campusServiceClient{client: client}
+}
+
+// CampusServiceStreamCampusesClientStream is the client stream for the CampusService's
+// StreamCampuses RPC.
+type CampusServiceStreamCampusesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s CampusServiceStreamCampusesClientStream) Receive() (*v1.Campus, error) {
+	var res v1.Campus
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// campusServiceClient implements CampusServiceClient.
-type campusServiceClient struct {
-	getCampus      *connect.Client[v1.GetCampusRequest, v1.GetCampusResponse]
-	listCampuses   *connect.Client[v1.ListCampusesRequest, v1.ListCampusesResponse]
-	streamCampuses *connect.Client[v1.StreamCampusesRequest, v1.Campus]
-}
-
-// GetCampus calls peeringdb.v1.CampusService.GetCampus.
-func (c *campusServiceClient) GetCampus(ctx context.Context, req *v1.GetCampusRequest) (*v1.GetCampusResponse, error) {
-	response, err := c.getCampus.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListCampuses calls peeringdb.v1.CampusService.ListCampuses.
-func (c *campusServiceClient) ListCampuses(ctx context.Context, req *v1.ListCampusesRequest) (*v1.ListCampusesResponse, error) {
-	response, err := c.listCampuses.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamCampuses calls peeringdb.v1.CampusService.StreamCampuses.
-func (c *campusServiceClient) StreamCampuses(ctx context.Context, req *v1.StreamCampusesRequest) (*connect.ServerStreamForClient[v1.Campus], error) {
-	return c.streamCampuses.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s CampusServiceStreamCampusesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // CampusServiceHandler is an implementation of the peeringdb.v1.CampusService service.
@@ -255,62 +231,136 @@ type CampusServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamCampuses(context.Context, *v1.StreamCampusesRequest, *connect.ServerStream[v1.Campus]) error
+	StreamCampuses(context.Context, *v1.StreamCampusesRequest, CampusServiceStreamCampusesServerStream) error
 }
 
-// NewCampusServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewCampusServiceHandler(svc CampusServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	campusServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("CampusService").Methods()
-	campusServiceGetCampusHandler := connect.NewUnaryHandlerSimple(
-		CampusServiceGetCampusProcedure,
-		svc.GetCampus,
-		connect.WithSchema(campusServiceMethods.ByName("GetCampus")),
-		connect.WithHandlerOptions(opts...),
+// RegisterCampusServiceHandler registers svc as the peeringdb.v1.CampusService implementation on
+// server.
+func RegisterCampusServiceHandler(server *connect.Server, svc CampusServiceHandler) {
+	adapter := campusServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: campusServiceGetCampusSpec(), Handler: adapter.getCampus},
+		connect.Method{Spec: campusServiceListCampusesSpec(), Handler: adapter.listCampuses},
+		connect.Method{Spec: campusServiceStreamCampusesSpec(), Handler: adapter.streamCampuses},
 	)
-	campusServiceListCampusesHandler := connect.NewUnaryHandlerSimple(
-		CampusServiceListCampusesProcedure,
-		svc.ListCampuses,
-		connect.WithSchema(campusServiceMethods.ByName("ListCampuses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	campusServiceStreamCampusesHandler := connect.NewServerStreamHandlerSimple(
-		CampusServiceStreamCampusesProcedure,
-		svc.StreamCampuses,
-		connect.WithSchema(campusServiceMethods.ByName("StreamCampuses")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.CampusService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case CampusServiceGetCampusProcedure:
-			campusServiceGetCampusHandler.ServeHTTP(w, r)
-		case CampusServiceListCampusesProcedure:
-			campusServiceListCampusesHandler.ServeHTTP(w, r)
-		case CampusServiceStreamCampusesProcedure:
-			campusServiceStreamCampusesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// CampusServiceStreamCampusesServerStream is the server stream for the CampusService's
+// StreamCampuses RPC.
+type CampusServiceStreamCampusesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s CampusServiceStreamCampusesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s CampusServiceStreamCampusesServerStream) Send(res *v1.Campus) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedCampusServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedCampusServiceHandler struct{}
 
 func (UnimplementedCampusServiceHandler) GetCampus(context.Context, *v1.GetCampusRequest) (*v1.GetCampusResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CampusService.GetCampus is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CampusService.GetCampus is not implemented")
 }
 
 func (UnimplementedCampusServiceHandler) ListCampuses(context.Context, *v1.ListCampusesRequest) (*v1.ListCampusesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CampusService.ListCampuses is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CampusService.ListCampuses is not implemented")
 }
 
-func (UnimplementedCampusServiceHandler) StreamCampuses(context.Context, *v1.StreamCampusesRequest, *connect.ServerStream[v1.Campus]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CampusService.StreamCampuses is not implemented"))
+func (UnimplementedCampusServiceHandler) StreamCampuses(context.Context, *v1.StreamCampusesRequest, CampusServiceStreamCampusesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CampusService.StreamCampuses is not implemented")
 }
+
+type campusServiceClient struct {
+	client *connect.Client
+}
+
+func (c *campusServiceClient) GetCampus(ctx context.Context, req *v1.GetCampusRequest) (*v1.GetCampusResponse, error) {
+	var res v1.GetCampusResponse
+	if err := c.client.CallUnary(ctx, campusServiceGetCampusSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *campusServiceClient) ListCampuses(ctx context.Context, req *v1.ListCampusesRequest) (*v1.ListCampusesResponse, error) {
+	var res v1.ListCampusesResponse
+	if err := c.client.CallUnary(ctx, campusServiceListCampusesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *campusServiceClient) StreamCampuses(ctx context.Context, req *v1.StreamCampusesRequest) (CampusServiceStreamCampusesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, campusServiceStreamCampusesSpec(), req)
+	if err != nil {
+		return CampusServiceStreamCampusesClientStream{}, err
+	}
+	return CampusServiceStreamCampusesClientStream{stream: stream}, nil
+}
+
+type campusServiceHandler struct{ svc CampusServiceHandler }
+
+func (h campusServiceHandler) getCampus(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetCampusRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCampus(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h campusServiceHandler) listCampuses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListCampusesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCampuses(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h campusServiceHandler) streamCampuses(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamCampusesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamCampuses(ctx, &req, CampusServiceStreamCampusesServerStream{stream: stream})
+}
+
+var (
+	carrierServiceGetCarrierSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierService").Methods().ByName("GetCarrier"),
+			Procedure:  CarrierServiceGetCarrierProcedure,
+		}
+	})
+	carrierServiceListCarriersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierService").Methods().ByName("ListCarriers"),
+			Procedure:  CarrierServiceListCarriersProcedure,
+		}
+	})
+	carrierServiceStreamCarriersSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierService").Methods().ByName("StreamCarriers"),
+			Procedure:  CarrierServiceStreamCarriersProcedure,
+		}
+	})
+)
 
 // CarrierServiceClient is a client for the peeringdb.v1.CarrierService service.
 type CarrierServiceClient interface {
@@ -322,69 +372,34 @@ type CarrierServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamCarriers(context.Context, *v1.StreamCarriersRequest) (*connect.ServerStreamForClient[v1.Carrier], error)
+	StreamCarriers(context.Context, *v1.StreamCarriersRequest) (CarrierServiceStreamCarriersClientStream, error)
 }
 
-// NewCarrierServiceClient constructs a client for the peeringdb.v1.CarrierService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewCarrierServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CarrierServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	carrierServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierService").Methods()
-	return &carrierServiceClient{
-		getCarrier: connect.NewClient[v1.GetCarrierRequest, v1.GetCarrierResponse](
-			httpClient,
-			baseURL+CarrierServiceGetCarrierProcedure,
-			connect.WithSchema(carrierServiceMethods.ByName("GetCarrier")),
-			connect.WithClientOptions(opts...),
-		),
-		listCarriers: connect.NewClient[v1.ListCarriersRequest, v1.ListCarriersResponse](
-			httpClient,
-			baseURL+CarrierServiceListCarriersProcedure,
-			connect.WithSchema(carrierServiceMethods.ByName("ListCarriers")),
-			connect.WithClientOptions(opts...),
-		),
-		streamCarriers: connect.NewClient[v1.StreamCarriersRequest, v1.Carrier](
-			httpClient,
-			baseURL+CarrierServiceStreamCarriersProcedure,
-			connect.WithSchema(carrierServiceMethods.ByName("StreamCarriers")),
-			connect.WithClientOptions(opts...),
-		),
+// NewCarrierServiceClient constructs a client for the peeringdb.v1.CarrierService service. Multiple
+// service clients may share a single connect.Client.
+func NewCarrierServiceClient(client *connect.Client) CarrierServiceClient {
+	return &carrierServiceClient{client: client}
+}
+
+// CarrierServiceStreamCarriersClientStream is the client stream for the CarrierService's
+// StreamCarriers RPC.
+type CarrierServiceStreamCarriersClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s CarrierServiceStreamCarriersClientStream) Receive() (*v1.Carrier, error) {
+	var res v1.Carrier
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// carrierServiceClient implements CarrierServiceClient.
-type carrierServiceClient struct {
-	getCarrier     *connect.Client[v1.GetCarrierRequest, v1.GetCarrierResponse]
-	listCarriers   *connect.Client[v1.ListCarriersRequest, v1.ListCarriersResponse]
-	streamCarriers *connect.Client[v1.StreamCarriersRequest, v1.Carrier]
-}
-
-// GetCarrier calls peeringdb.v1.CarrierService.GetCarrier.
-func (c *carrierServiceClient) GetCarrier(ctx context.Context, req *v1.GetCarrierRequest) (*v1.GetCarrierResponse, error) {
-	response, err := c.getCarrier.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListCarriers calls peeringdb.v1.CarrierService.ListCarriers.
-func (c *carrierServiceClient) ListCarriers(ctx context.Context, req *v1.ListCarriersRequest) (*v1.ListCarriersResponse, error) {
-	response, err := c.listCarriers.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamCarriers calls peeringdb.v1.CarrierService.StreamCarriers.
-func (c *carrierServiceClient) StreamCarriers(ctx context.Context, req *v1.StreamCarriersRequest) (*connect.ServerStreamForClient[v1.Carrier], error) {
-	return c.streamCarriers.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s CarrierServiceStreamCarriersClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // CarrierServiceHandler is an implementation of the peeringdb.v1.CarrierService service.
@@ -397,62 +412,136 @@ type CarrierServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamCarriers(context.Context, *v1.StreamCarriersRequest, *connect.ServerStream[v1.Carrier]) error
+	StreamCarriers(context.Context, *v1.StreamCarriersRequest, CarrierServiceStreamCarriersServerStream) error
 }
 
-// NewCarrierServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewCarrierServiceHandler(svc CarrierServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	carrierServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierService").Methods()
-	carrierServiceGetCarrierHandler := connect.NewUnaryHandlerSimple(
-		CarrierServiceGetCarrierProcedure,
-		svc.GetCarrier,
-		connect.WithSchema(carrierServiceMethods.ByName("GetCarrier")),
-		connect.WithHandlerOptions(opts...),
+// RegisterCarrierServiceHandler registers svc as the peeringdb.v1.CarrierService implementation on
+// server.
+func RegisterCarrierServiceHandler(server *connect.Server, svc CarrierServiceHandler) {
+	adapter := carrierServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: carrierServiceGetCarrierSpec(), Handler: adapter.getCarrier},
+		connect.Method{Spec: carrierServiceListCarriersSpec(), Handler: adapter.listCarriers},
+		connect.Method{Spec: carrierServiceStreamCarriersSpec(), Handler: adapter.streamCarriers},
 	)
-	carrierServiceListCarriersHandler := connect.NewUnaryHandlerSimple(
-		CarrierServiceListCarriersProcedure,
-		svc.ListCarriers,
-		connect.WithSchema(carrierServiceMethods.ByName("ListCarriers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	carrierServiceStreamCarriersHandler := connect.NewServerStreamHandlerSimple(
-		CarrierServiceStreamCarriersProcedure,
-		svc.StreamCarriers,
-		connect.WithSchema(carrierServiceMethods.ByName("StreamCarriers")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.CarrierService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case CarrierServiceGetCarrierProcedure:
-			carrierServiceGetCarrierHandler.ServeHTTP(w, r)
-		case CarrierServiceListCarriersProcedure:
-			carrierServiceListCarriersHandler.ServeHTTP(w, r)
-		case CarrierServiceStreamCarriersProcedure:
-			carrierServiceStreamCarriersHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// CarrierServiceStreamCarriersServerStream is the server stream for the CarrierService's
+// StreamCarriers RPC.
+type CarrierServiceStreamCarriersServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s CarrierServiceStreamCarriersServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s CarrierServiceStreamCarriersServerStream) Send(res *v1.Carrier) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedCarrierServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedCarrierServiceHandler struct{}
 
 func (UnimplementedCarrierServiceHandler) GetCarrier(context.Context, *v1.GetCarrierRequest) (*v1.GetCarrierResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CarrierService.GetCarrier is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CarrierService.GetCarrier is not implemented")
 }
 
 func (UnimplementedCarrierServiceHandler) ListCarriers(context.Context, *v1.ListCarriersRequest) (*v1.ListCarriersResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CarrierService.ListCarriers is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CarrierService.ListCarriers is not implemented")
 }
 
-func (UnimplementedCarrierServiceHandler) StreamCarriers(context.Context, *v1.StreamCarriersRequest, *connect.ServerStream[v1.Carrier]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CarrierService.StreamCarriers is not implemented"))
+func (UnimplementedCarrierServiceHandler) StreamCarriers(context.Context, *v1.StreamCarriersRequest, CarrierServiceStreamCarriersServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CarrierService.StreamCarriers is not implemented")
 }
+
+type carrierServiceClient struct {
+	client *connect.Client
+}
+
+func (c *carrierServiceClient) GetCarrier(ctx context.Context, req *v1.GetCarrierRequest) (*v1.GetCarrierResponse, error) {
+	var res v1.GetCarrierResponse
+	if err := c.client.CallUnary(ctx, carrierServiceGetCarrierSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *carrierServiceClient) ListCarriers(ctx context.Context, req *v1.ListCarriersRequest) (*v1.ListCarriersResponse, error) {
+	var res v1.ListCarriersResponse
+	if err := c.client.CallUnary(ctx, carrierServiceListCarriersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *carrierServiceClient) StreamCarriers(ctx context.Context, req *v1.StreamCarriersRequest) (CarrierServiceStreamCarriersClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, carrierServiceStreamCarriersSpec(), req)
+	if err != nil {
+		return CarrierServiceStreamCarriersClientStream{}, err
+	}
+	return CarrierServiceStreamCarriersClientStream{stream: stream}, nil
+}
+
+type carrierServiceHandler struct{ svc CarrierServiceHandler }
+
+func (h carrierServiceHandler) getCarrier(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetCarrierRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCarrier(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h carrierServiceHandler) listCarriers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListCarriersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCarriers(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h carrierServiceHandler) streamCarriers(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamCarriersRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamCarriers(ctx, &req, CarrierServiceStreamCarriersServerStream{stream: stream})
+}
+
+var (
+	carrierFacilityServiceGetCarrierFacilitySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierFacilityService").Methods().ByName("GetCarrierFacility"),
+			Procedure:  CarrierFacilityServiceGetCarrierFacilityProcedure,
+		}
+	})
+	carrierFacilityServiceListCarrierFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierFacilityService").Methods().ByName("ListCarrierFacilities"),
+			Procedure:  CarrierFacilityServiceListCarrierFacilitiesProcedure,
+		}
+	})
+	carrierFacilityServiceStreamCarrierFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierFacilityService").Methods().ByName("StreamCarrierFacilities"),
+			Procedure:  CarrierFacilityServiceStreamCarrierFacilitiesProcedure,
+		}
+	})
+)
 
 // CarrierFacilityServiceClient is a client for the peeringdb.v1.CarrierFacilityService service.
 type CarrierFacilityServiceClient interface {
@@ -464,69 +553,34 @@ type CarrierFacilityServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest) (*connect.ServerStreamForClient[v1.CarrierFacility], error)
+	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest) (CarrierFacilityServiceStreamCarrierFacilitiesClientStream, error)
 }
 
 // NewCarrierFacilityServiceClient constructs a client for the peeringdb.v1.CarrierFacilityService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewCarrierFacilityServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) CarrierFacilityServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	carrierFacilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierFacilityService").Methods()
-	return &carrierFacilityServiceClient{
-		getCarrierFacility: connect.NewClient[v1.GetCarrierFacilityRequest, v1.GetCarrierFacilityResponse](
-			httpClient,
-			baseURL+CarrierFacilityServiceGetCarrierFacilityProcedure,
-			connect.WithSchema(carrierFacilityServiceMethods.ByName("GetCarrierFacility")),
-			connect.WithClientOptions(opts...),
-		),
-		listCarrierFacilities: connect.NewClient[v1.ListCarrierFacilitiesRequest, v1.ListCarrierFacilitiesResponse](
-			httpClient,
-			baseURL+CarrierFacilityServiceListCarrierFacilitiesProcedure,
-			connect.WithSchema(carrierFacilityServiceMethods.ByName("ListCarrierFacilities")),
-			connect.WithClientOptions(opts...),
-		),
-		streamCarrierFacilities: connect.NewClient[v1.StreamCarrierFacilitiesRequest, v1.CarrierFacility](
-			httpClient,
-			baseURL+CarrierFacilityServiceStreamCarrierFacilitiesProcedure,
-			connect.WithSchema(carrierFacilityServiceMethods.ByName("StreamCarrierFacilities")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewCarrierFacilityServiceClient(client *connect.Client) CarrierFacilityServiceClient {
+	return &carrierFacilityServiceClient{client: client}
+}
+
+// CarrierFacilityServiceStreamCarrierFacilitiesClientStream is the client stream for the
+// CarrierFacilityService's StreamCarrierFacilities RPC.
+type CarrierFacilityServiceStreamCarrierFacilitiesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s CarrierFacilityServiceStreamCarrierFacilitiesClientStream) Receive() (*v1.CarrierFacility, error) {
+	var res v1.CarrierFacility
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// carrierFacilityServiceClient implements CarrierFacilityServiceClient.
-type carrierFacilityServiceClient struct {
-	getCarrierFacility      *connect.Client[v1.GetCarrierFacilityRequest, v1.GetCarrierFacilityResponse]
-	listCarrierFacilities   *connect.Client[v1.ListCarrierFacilitiesRequest, v1.ListCarrierFacilitiesResponse]
-	streamCarrierFacilities *connect.Client[v1.StreamCarrierFacilitiesRequest, v1.CarrierFacility]
-}
-
-// GetCarrierFacility calls peeringdb.v1.CarrierFacilityService.GetCarrierFacility.
-func (c *carrierFacilityServiceClient) GetCarrierFacility(ctx context.Context, req *v1.GetCarrierFacilityRequest) (*v1.GetCarrierFacilityResponse, error) {
-	response, err := c.getCarrierFacility.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListCarrierFacilities calls peeringdb.v1.CarrierFacilityService.ListCarrierFacilities.
-func (c *carrierFacilityServiceClient) ListCarrierFacilities(ctx context.Context, req *v1.ListCarrierFacilitiesRequest) (*v1.ListCarrierFacilitiesResponse, error) {
-	response, err := c.listCarrierFacilities.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamCarrierFacilities calls peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities.
-func (c *carrierFacilityServiceClient) StreamCarrierFacilities(ctx context.Context, req *v1.StreamCarrierFacilitiesRequest) (*connect.ServerStreamForClient[v1.CarrierFacility], error) {
-	return c.streamCarrierFacilities.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s CarrierFacilityServiceStreamCarrierFacilitiesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // CarrierFacilityServiceHandler is an implementation of the peeringdb.v1.CarrierFacilityService
@@ -540,62 +594,136 @@ type CarrierFacilityServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest, *connect.ServerStream[v1.CarrierFacility]) error
+	StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest, CarrierFacilityServiceStreamCarrierFacilitiesServerStream) error
 }
 
-// NewCarrierFacilityServiceHandler builds an HTTP handler from the service implementation. It
-// returns the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewCarrierFacilityServiceHandler(svc CarrierFacilityServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	carrierFacilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("CarrierFacilityService").Methods()
-	carrierFacilityServiceGetCarrierFacilityHandler := connect.NewUnaryHandlerSimple(
-		CarrierFacilityServiceGetCarrierFacilityProcedure,
-		svc.GetCarrierFacility,
-		connect.WithSchema(carrierFacilityServiceMethods.ByName("GetCarrierFacility")),
-		connect.WithHandlerOptions(opts...),
+// RegisterCarrierFacilityServiceHandler registers svc as the peeringdb.v1.CarrierFacilityService
+// implementation on server.
+func RegisterCarrierFacilityServiceHandler(server *connect.Server, svc CarrierFacilityServiceHandler) {
+	adapter := carrierFacilityServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: carrierFacilityServiceGetCarrierFacilitySpec(), Handler: adapter.getCarrierFacility},
+		connect.Method{Spec: carrierFacilityServiceListCarrierFacilitiesSpec(), Handler: adapter.listCarrierFacilities},
+		connect.Method{Spec: carrierFacilityServiceStreamCarrierFacilitiesSpec(), Handler: adapter.streamCarrierFacilities},
 	)
-	carrierFacilityServiceListCarrierFacilitiesHandler := connect.NewUnaryHandlerSimple(
-		CarrierFacilityServiceListCarrierFacilitiesProcedure,
-		svc.ListCarrierFacilities,
-		connect.WithSchema(carrierFacilityServiceMethods.ByName("ListCarrierFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	carrierFacilityServiceStreamCarrierFacilitiesHandler := connect.NewServerStreamHandlerSimple(
-		CarrierFacilityServiceStreamCarrierFacilitiesProcedure,
-		svc.StreamCarrierFacilities,
-		connect.WithSchema(carrierFacilityServiceMethods.ByName("StreamCarrierFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.CarrierFacilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case CarrierFacilityServiceGetCarrierFacilityProcedure:
-			carrierFacilityServiceGetCarrierFacilityHandler.ServeHTTP(w, r)
-		case CarrierFacilityServiceListCarrierFacilitiesProcedure:
-			carrierFacilityServiceListCarrierFacilitiesHandler.ServeHTTP(w, r)
-		case CarrierFacilityServiceStreamCarrierFacilitiesProcedure:
-			carrierFacilityServiceStreamCarrierFacilitiesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// CarrierFacilityServiceStreamCarrierFacilitiesServerStream is the server stream for the
+// CarrierFacilityService's StreamCarrierFacilities RPC.
+type CarrierFacilityServiceStreamCarrierFacilitiesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s CarrierFacilityServiceStreamCarrierFacilitiesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s CarrierFacilityServiceStreamCarrierFacilitiesServerStream) Send(res *v1.CarrierFacility) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedCarrierFacilityServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedCarrierFacilityServiceHandler struct{}
 
 func (UnimplementedCarrierFacilityServiceHandler) GetCarrierFacility(context.Context, *v1.GetCarrierFacilityRequest) (*v1.GetCarrierFacilityResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CarrierFacilityService.GetCarrierFacility is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CarrierFacilityService.GetCarrierFacility is not implemented")
 }
 
 func (UnimplementedCarrierFacilityServiceHandler) ListCarrierFacilities(context.Context, *v1.ListCarrierFacilitiesRequest) (*v1.ListCarrierFacilitiesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CarrierFacilityService.ListCarrierFacilities is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CarrierFacilityService.ListCarrierFacilities is not implemented")
 }
 
-func (UnimplementedCarrierFacilityServiceHandler) StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest, *connect.ServerStream[v1.CarrierFacility]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities is not implemented"))
+func (UnimplementedCarrierFacilityServiceHandler) StreamCarrierFacilities(context.Context, *v1.StreamCarrierFacilitiesRequest, CarrierFacilityServiceStreamCarrierFacilitiesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.CarrierFacilityService.StreamCarrierFacilities is not implemented")
 }
+
+type carrierFacilityServiceClient struct {
+	client *connect.Client
+}
+
+func (c *carrierFacilityServiceClient) GetCarrierFacility(ctx context.Context, req *v1.GetCarrierFacilityRequest) (*v1.GetCarrierFacilityResponse, error) {
+	var res v1.GetCarrierFacilityResponse
+	if err := c.client.CallUnary(ctx, carrierFacilityServiceGetCarrierFacilitySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *carrierFacilityServiceClient) ListCarrierFacilities(ctx context.Context, req *v1.ListCarrierFacilitiesRequest) (*v1.ListCarrierFacilitiesResponse, error) {
+	var res v1.ListCarrierFacilitiesResponse
+	if err := c.client.CallUnary(ctx, carrierFacilityServiceListCarrierFacilitiesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *carrierFacilityServiceClient) StreamCarrierFacilities(ctx context.Context, req *v1.StreamCarrierFacilitiesRequest) (CarrierFacilityServiceStreamCarrierFacilitiesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, carrierFacilityServiceStreamCarrierFacilitiesSpec(), req)
+	if err != nil {
+		return CarrierFacilityServiceStreamCarrierFacilitiesClientStream{}, err
+	}
+	return CarrierFacilityServiceStreamCarrierFacilitiesClientStream{stream: stream}, nil
+}
+
+type carrierFacilityServiceHandler struct{ svc CarrierFacilityServiceHandler }
+
+func (h carrierFacilityServiceHandler) getCarrierFacility(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetCarrierFacilityRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCarrierFacility(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h carrierFacilityServiceHandler) listCarrierFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListCarrierFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCarrierFacilities(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h carrierFacilityServiceHandler) streamCarrierFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamCarrierFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamCarrierFacilities(ctx, &req, CarrierFacilityServiceStreamCarrierFacilitiesServerStream{stream: stream})
+}
+
+var (
+	facilityServiceGetFacilitySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("FacilityService").Methods().ByName("GetFacility"),
+			Procedure:  FacilityServiceGetFacilityProcedure,
+		}
+	})
+	facilityServiceListFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("FacilityService").Methods().ByName("ListFacilities"),
+			Procedure:  FacilityServiceListFacilitiesProcedure,
+		}
+	})
+	facilityServiceStreamFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("FacilityService").Methods().ByName("StreamFacilities"),
+			Procedure:  FacilityServiceStreamFacilitiesProcedure,
+		}
+	})
+)
 
 // FacilityServiceClient is a client for the peeringdb.v1.FacilityService service.
 type FacilityServiceClient interface {
@@ -607,69 +735,34 @@ type FacilityServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest) (*connect.ServerStreamForClient[v1.Facility], error)
+	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest) (FacilityServiceStreamFacilitiesClientStream, error)
 }
 
-// NewFacilityServiceClient constructs a client for the peeringdb.v1.FacilityService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewFacilityServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) FacilityServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	facilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("FacilityService").Methods()
-	return &facilityServiceClient{
-		getFacility: connect.NewClient[v1.GetFacilityRequest, v1.GetFacilityResponse](
-			httpClient,
-			baseURL+FacilityServiceGetFacilityProcedure,
-			connect.WithSchema(facilityServiceMethods.ByName("GetFacility")),
-			connect.WithClientOptions(opts...),
-		),
-		listFacilities: connect.NewClient[v1.ListFacilitiesRequest, v1.ListFacilitiesResponse](
-			httpClient,
-			baseURL+FacilityServiceListFacilitiesProcedure,
-			connect.WithSchema(facilityServiceMethods.ByName("ListFacilities")),
-			connect.WithClientOptions(opts...),
-		),
-		streamFacilities: connect.NewClient[v1.StreamFacilitiesRequest, v1.Facility](
-			httpClient,
-			baseURL+FacilityServiceStreamFacilitiesProcedure,
-			connect.WithSchema(facilityServiceMethods.ByName("StreamFacilities")),
-			connect.WithClientOptions(opts...),
-		),
+// NewFacilityServiceClient constructs a client for the peeringdb.v1.FacilityService service.
+// Multiple service clients may share a single connect.Client.
+func NewFacilityServiceClient(client *connect.Client) FacilityServiceClient {
+	return &facilityServiceClient{client: client}
+}
+
+// FacilityServiceStreamFacilitiesClientStream is the client stream for the FacilityService's
+// StreamFacilities RPC.
+type FacilityServiceStreamFacilitiesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s FacilityServiceStreamFacilitiesClientStream) Receive() (*v1.Facility, error) {
+	var res v1.Facility
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// facilityServiceClient implements FacilityServiceClient.
-type facilityServiceClient struct {
-	getFacility      *connect.Client[v1.GetFacilityRequest, v1.GetFacilityResponse]
-	listFacilities   *connect.Client[v1.ListFacilitiesRequest, v1.ListFacilitiesResponse]
-	streamFacilities *connect.Client[v1.StreamFacilitiesRequest, v1.Facility]
-}
-
-// GetFacility calls peeringdb.v1.FacilityService.GetFacility.
-func (c *facilityServiceClient) GetFacility(ctx context.Context, req *v1.GetFacilityRequest) (*v1.GetFacilityResponse, error) {
-	response, err := c.getFacility.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListFacilities calls peeringdb.v1.FacilityService.ListFacilities.
-func (c *facilityServiceClient) ListFacilities(ctx context.Context, req *v1.ListFacilitiesRequest) (*v1.ListFacilitiesResponse, error) {
-	response, err := c.listFacilities.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamFacilities calls peeringdb.v1.FacilityService.StreamFacilities.
-func (c *facilityServiceClient) StreamFacilities(ctx context.Context, req *v1.StreamFacilitiesRequest) (*connect.ServerStreamForClient[v1.Facility], error) {
-	return c.streamFacilities.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s FacilityServiceStreamFacilitiesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // FacilityServiceHandler is an implementation of the peeringdb.v1.FacilityService service.
@@ -682,62 +775,136 @@ type FacilityServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest, *connect.ServerStream[v1.Facility]) error
+	StreamFacilities(context.Context, *v1.StreamFacilitiesRequest, FacilityServiceStreamFacilitiesServerStream) error
 }
 
-// NewFacilityServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewFacilityServiceHandler(svc FacilityServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	facilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("FacilityService").Methods()
-	facilityServiceGetFacilityHandler := connect.NewUnaryHandlerSimple(
-		FacilityServiceGetFacilityProcedure,
-		svc.GetFacility,
-		connect.WithSchema(facilityServiceMethods.ByName("GetFacility")),
-		connect.WithHandlerOptions(opts...),
+// RegisterFacilityServiceHandler registers svc as the peeringdb.v1.FacilityService implementation
+// on server.
+func RegisterFacilityServiceHandler(server *connect.Server, svc FacilityServiceHandler) {
+	adapter := facilityServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: facilityServiceGetFacilitySpec(), Handler: adapter.getFacility},
+		connect.Method{Spec: facilityServiceListFacilitiesSpec(), Handler: adapter.listFacilities},
+		connect.Method{Spec: facilityServiceStreamFacilitiesSpec(), Handler: adapter.streamFacilities},
 	)
-	facilityServiceListFacilitiesHandler := connect.NewUnaryHandlerSimple(
-		FacilityServiceListFacilitiesProcedure,
-		svc.ListFacilities,
-		connect.WithSchema(facilityServiceMethods.ByName("ListFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	facilityServiceStreamFacilitiesHandler := connect.NewServerStreamHandlerSimple(
-		FacilityServiceStreamFacilitiesProcedure,
-		svc.StreamFacilities,
-		connect.WithSchema(facilityServiceMethods.ByName("StreamFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.FacilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case FacilityServiceGetFacilityProcedure:
-			facilityServiceGetFacilityHandler.ServeHTTP(w, r)
-		case FacilityServiceListFacilitiesProcedure:
-			facilityServiceListFacilitiesHandler.ServeHTTP(w, r)
-		case FacilityServiceStreamFacilitiesProcedure:
-			facilityServiceStreamFacilitiesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// FacilityServiceStreamFacilitiesServerStream is the server stream for the FacilityService's
+// StreamFacilities RPC.
+type FacilityServiceStreamFacilitiesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s FacilityServiceStreamFacilitiesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s FacilityServiceStreamFacilitiesServerStream) Send(res *v1.Facility) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedFacilityServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedFacilityServiceHandler struct{}
 
 func (UnimplementedFacilityServiceHandler) GetFacility(context.Context, *v1.GetFacilityRequest) (*v1.GetFacilityResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.FacilityService.GetFacility is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.FacilityService.GetFacility is not implemented")
 }
 
 func (UnimplementedFacilityServiceHandler) ListFacilities(context.Context, *v1.ListFacilitiesRequest) (*v1.ListFacilitiesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.FacilityService.ListFacilities is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.FacilityService.ListFacilities is not implemented")
 }
 
-func (UnimplementedFacilityServiceHandler) StreamFacilities(context.Context, *v1.StreamFacilitiesRequest, *connect.ServerStream[v1.Facility]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.FacilityService.StreamFacilities is not implemented"))
+func (UnimplementedFacilityServiceHandler) StreamFacilities(context.Context, *v1.StreamFacilitiesRequest, FacilityServiceStreamFacilitiesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.FacilityService.StreamFacilities is not implemented")
 }
+
+type facilityServiceClient struct {
+	client *connect.Client
+}
+
+func (c *facilityServiceClient) GetFacility(ctx context.Context, req *v1.GetFacilityRequest) (*v1.GetFacilityResponse, error) {
+	var res v1.GetFacilityResponse
+	if err := c.client.CallUnary(ctx, facilityServiceGetFacilitySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *facilityServiceClient) ListFacilities(ctx context.Context, req *v1.ListFacilitiesRequest) (*v1.ListFacilitiesResponse, error) {
+	var res v1.ListFacilitiesResponse
+	if err := c.client.CallUnary(ctx, facilityServiceListFacilitiesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *facilityServiceClient) StreamFacilities(ctx context.Context, req *v1.StreamFacilitiesRequest) (FacilityServiceStreamFacilitiesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, facilityServiceStreamFacilitiesSpec(), req)
+	if err != nil {
+		return FacilityServiceStreamFacilitiesClientStream{}, err
+	}
+	return FacilityServiceStreamFacilitiesClientStream{stream: stream}, nil
+}
+
+type facilityServiceHandler struct{ svc FacilityServiceHandler }
+
+func (h facilityServiceHandler) getFacility(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetFacilityRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetFacility(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h facilityServiceHandler) listFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListFacilities(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h facilityServiceHandler) streamFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamFacilities(ctx, &req, FacilityServiceStreamFacilitiesServerStream{stream: stream})
+}
+
+var (
+	internetExchangeServiceGetInternetExchangeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("InternetExchangeService").Methods().ByName("GetInternetExchange"),
+			Procedure:  InternetExchangeServiceGetInternetExchangeProcedure,
+		}
+	})
+	internetExchangeServiceListInternetExchangesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("InternetExchangeService").Methods().ByName("ListInternetExchanges"),
+			Procedure:  InternetExchangeServiceListInternetExchangesProcedure,
+		}
+	})
+	internetExchangeServiceStreamInternetExchangesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("InternetExchangeService").Methods().ByName("StreamInternetExchanges"),
+			Procedure:  InternetExchangeServiceStreamInternetExchangesProcedure,
+		}
+	})
+)
 
 // InternetExchangeServiceClient is a client for the peeringdb.v1.InternetExchangeService service.
 type InternetExchangeServiceClient interface {
@@ -749,69 +916,34 @@ type InternetExchangeServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest) (*connect.ServerStreamForClient[v1.InternetExchange], error)
+	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest) (InternetExchangeServiceStreamInternetExchangesClientStream, error)
 }
 
 // NewInternetExchangeServiceClient constructs a client for the peeringdb.v1.InternetExchangeService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewInternetExchangeServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) InternetExchangeServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	internetExchangeServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("InternetExchangeService").Methods()
-	return &internetExchangeServiceClient{
-		getInternetExchange: connect.NewClient[v1.GetInternetExchangeRequest, v1.GetInternetExchangeResponse](
-			httpClient,
-			baseURL+InternetExchangeServiceGetInternetExchangeProcedure,
-			connect.WithSchema(internetExchangeServiceMethods.ByName("GetInternetExchange")),
-			connect.WithClientOptions(opts...),
-		),
-		listInternetExchanges: connect.NewClient[v1.ListInternetExchangesRequest, v1.ListInternetExchangesResponse](
-			httpClient,
-			baseURL+InternetExchangeServiceListInternetExchangesProcedure,
-			connect.WithSchema(internetExchangeServiceMethods.ByName("ListInternetExchanges")),
-			connect.WithClientOptions(opts...),
-		),
-		streamInternetExchanges: connect.NewClient[v1.StreamInternetExchangesRequest, v1.InternetExchange](
-			httpClient,
-			baseURL+InternetExchangeServiceStreamInternetExchangesProcedure,
-			connect.WithSchema(internetExchangeServiceMethods.ByName("StreamInternetExchanges")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewInternetExchangeServiceClient(client *connect.Client) InternetExchangeServiceClient {
+	return &internetExchangeServiceClient{client: client}
+}
+
+// InternetExchangeServiceStreamInternetExchangesClientStream is the client stream for the
+// InternetExchangeService's StreamInternetExchanges RPC.
+type InternetExchangeServiceStreamInternetExchangesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s InternetExchangeServiceStreamInternetExchangesClientStream) Receive() (*v1.InternetExchange, error) {
+	var res v1.InternetExchange
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// internetExchangeServiceClient implements InternetExchangeServiceClient.
-type internetExchangeServiceClient struct {
-	getInternetExchange     *connect.Client[v1.GetInternetExchangeRequest, v1.GetInternetExchangeResponse]
-	listInternetExchanges   *connect.Client[v1.ListInternetExchangesRequest, v1.ListInternetExchangesResponse]
-	streamInternetExchanges *connect.Client[v1.StreamInternetExchangesRequest, v1.InternetExchange]
-}
-
-// GetInternetExchange calls peeringdb.v1.InternetExchangeService.GetInternetExchange.
-func (c *internetExchangeServiceClient) GetInternetExchange(ctx context.Context, req *v1.GetInternetExchangeRequest) (*v1.GetInternetExchangeResponse, error) {
-	response, err := c.getInternetExchange.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListInternetExchanges calls peeringdb.v1.InternetExchangeService.ListInternetExchanges.
-func (c *internetExchangeServiceClient) ListInternetExchanges(ctx context.Context, req *v1.ListInternetExchangesRequest) (*v1.ListInternetExchangesResponse, error) {
-	response, err := c.listInternetExchanges.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamInternetExchanges calls peeringdb.v1.InternetExchangeService.StreamInternetExchanges.
-func (c *internetExchangeServiceClient) StreamInternetExchanges(ctx context.Context, req *v1.StreamInternetExchangesRequest) (*connect.ServerStreamForClient[v1.InternetExchange], error) {
-	return c.streamInternetExchanges.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s InternetExchangeServiceStreamInternetExchangesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // InternetExchangeServiceHandler is an implementation of the peeringdb.v1.InternetExchangeService
@@ -825,62 +957,138 @@ type InternetExchangeServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest, *connect.ServerStream[v1.InternetExchange]) error
+	StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest, InternetExchangeServiceStreamInternetExchangesServerStream) error
 }
 
-// NewInternetExchangeServiceHandler builds an HTTP handler from the service implementation. It
-// returns the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewInternetExchangeServiceHandler(svc InternetExchangeServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	internetExchangeServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("InternetExchangeService").Methods()
-	internetExchangeServiceGetInternetExchangeHandler := connect.NewUnaryHandlerSimple(
-		InternetExchangeServiceGetInternetExchangeProcedure,
-		svc.GetInternetExchange,
-		connect.WithSchema(internetExchangeServiceMethods.ByName("GetInternetExchange")),
-		connect.WithHandlerOptions(opts...),
+// RegisterInternetExchangeServiceHandler registers svc as the peeringdb.v1.InternetExchangeService
+// implementation on server.
+func RegisterInternetExchangeServiceHandler(server *connect.Server, svc InternetExchangeServiceHandler) {
+	adapter := internetExchangeServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: internetExchangeServiceGetInternetExchangeSpec(), Handler: adapter.getInternetExchange},
+		connect.Method{Spec: internetExchangeServiceListInternetExchangesSpec(), Handler: adapter.listInternetExchanges},
+		connect.Method{Spec: internetExchangeServiceStreamInternetExchangesSpec(), Handler: adapter.streamInternetExchanges},
 	)
-	internetExchangeServiceListInternetExchangesHandler := connect.NewUnaryHandlerSimple(
-		InternetExchangeServiceListInternetExchangesProcedure,
-		svc.ListInternetExchanges,
-		connect.WithSchema(internetExchangeServiceMethods.ByName("ListInternetExchanges")),
-		connect.WithHandlerOptions(opts...),
-	)
-	internetExchangeServiceStreamInternetExchangesHandler := connect.NewServerStreamHandlerSimple(
-		InternetExchangeServiceStreamInternetExchangesProcedure,
-		svc.StreamInternetExchanges,
-		connect.WithSchema(internetExchangeServiceMethods.ByName("StreamInternetExchanges")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.InternetExchangeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case InternetExchangeServiceGetInternetExchangeProcedure:
-			internetExchangeServiceGetInternetExchangeHandler.ServeHTTP(w, r)
-		case InternetExchangeServiceListInternetExchangesProcedure:
-			internetExchangeServiceListInternetExchangesHandler.ServeHTTP(w, r)
-		case InternetExchangeServiceStreamInternetExchangesProcedure:
-			internetExchangeServiceStreamInternetExchangesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// InternetExchangeServiceStreamInternetExchangesServerStream is the server stream for the
+// InternetExchangeService's StreamInternetExchanges RPC.
+type InternetExchangeServiceStreamInternetExchangesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s InternetExchangeServiceStreamInternetExchangesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s InternetExchangeServiceStreamInternetExchangesServerStream) Send(res *v1.InternetExchange) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedInternetExchangeServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedInternetExchangeServiceHandler struct{}
 
 func (UnimplementedInternetExchangeServiceHandler) GetInternetExchange(context.Context, *v1.GetInternetExchangeRequest) (*v1.GetInternetExchangeResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.InternetExchangeService.GetInternetExchange is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.InternetExchangeService.GetInternetExchange is not implemented")
 }
 
 func (UnimplementedInternetExchangeServiceHandler) ListInternetExchanges(context.Context, *v1.ListInternetExchangesRequest) (*v1.ListInternetExchangesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.InternetExchangeService.ListInternetExchanges is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.InternetExchangeService.ListInternetExchanges is not implemented")
 }
 
-func (UnimplementedInternetExchangeServiceHandler) StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest, *connect.ServerStream[v1.InternetExchange]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.InternetExchangeService.StreamInternetExchanges is not implemented"))
+func (UnimplementedInternetExchangeServiceHandler) StreamInternetExchanges(context.Context, *v1.StreamInternetExchangesRequest, InternetExchangeServiceStreamInternetExchangesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.InternetExchangeService.StreamInternetExchanges is not implemented")
 }
+
+type internetExchangeServiceClient struct {
+	client *connect.Client
+}
+
+func (c *internetExchangeServiceClient) GetInternetExchange(ctx context.Context, req *v1.GetInternetExchangeRequest) (*v1.GetInternetExchangeResponse, error) {
+	var res v1.GetInternetExchangeResponse
+	if err := c.client.CallUnary(ctx, internetExchangeServiceGetInternetExchangeSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *internetExchangeServiceClient) ListInternetExchanges(ctx context.Context, req *v1.ListInternetExchangesRequest) (*v1.ListInternetExchangesResponse, error) {
+	var res v1.ListInternetExchangesResponse
+	if err := c.client.CallUnary(ctx, internetExchangeServiceListInternetExchangesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *internetExchangeServiceClient) StreamInternetExchanges(ctx context.Context, req *v1.StreamInternetExchangesRequest) (InternetExchangeServiceStreamInternetExchangesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, internetExchangeServiceStreamInternetExchangesSpec(), req)
+	if err != nil {
+		return InternetExchangeServiceStreamInternetExchangesClientStream{}, err
+	}
+	return InternetExchangeServiceStreamInternetExchangesClientStream{stream: stream}, nil
+}
+
+type internetExchangeServiceHandler struct {
+	svc InternetExchangeServiceHandler
+}
+
+func (h internetExchangeServiceHandler) getInternetExchange(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetInternetExchangeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetInternetExchange(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h internetExchangeServiceHandler) listInternetExchanges(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListInternetExchangesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListInternetExchanges(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h internetExchangeServiceHandler) streamInternetExchanges(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamInternetExchangesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamInternetExchanges(ctx, &req, InternetExchangeServiceStreamInternetExchangesServerStream{stream: stream})
+}
+
+var (
+	ixFacilityServiceGetIxFacilitySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxFacilityService").Methods().ByName("GetIxFacility"),
+			Procedure:  IxFacilityServiceGetIxFacilityProcedure,
+		}
+	})
+	ixFacilityServiceListIxFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxFacilityService").Methods().ByName("ListIxFacilities"),
+			Procedure:  IxFacilityServiceListIxFacilitiesProcedure,
+		}
+	})
+	ixFacilityServiceStreamIxFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxFacilityService").Methods().ByName("StreamIxFacilities"),
+			Procedure:  IxFacilityServiceStreamIxFacilitiesProcedure,
+		}
+	})
+)
 
 // IxFacilityServiceClient is a client for the peeringdb.v1.IxFacilityService service.
 type IxFacilityServiceClient interface {
@@ -892,69 +1100,34 @@ type IxFacilityServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest) (*connect.ServerStreamForClient[v1.IxFacility], error)
+	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest) (IxFacilityServiceStreamIxFacilitiesClientStream, error)
 }
 
-// NewIxFacilityServiceClient constructs a client for the peeringdb.v1.IxFacilityService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewIxFacilityServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) IxFacilityServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	ixFacilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("IxFacilityService").Methods()
-	return &ixFacilityServiceClient{
-		getIxFacility: connect.NewClient[v1.GetIxFacilityRequest, v1.GetIxFacilityResponse](
-			httpClient,
-			baseURL+IxFacilityServiceGetIxFacilityProcedure,
-			connect.WithSchema(ixFacilityServiceMethods.ByName("GetIxFacility")),
-			connect.WithClientOptions(opts...),
-		),
-		listIxFacilities: connect.NewClient[v1.ListIxFacilitiesRequest, v1.ListIxFacilitiesResponse](
-			httpClient,
-			baseURL+IxFacilityServiceListIxFacilitiesProcedure,
-			connect.WithSchema(ixFacilityServiceMethods.ByName("ListIxFacilities")),
-			connect.WithClientOptions(opts...),
-		),
-		streamIxFacilities: connect.NewClient[v1.StreamIxFacilitiesRequest, v1.IxFacility](
-			httpClient,
-			baseURL+IxFacilityServiceStreamIxFacilitiesProcedure,
-			connect.WithSchema(ixFacilityServiceMethods.ByName("StreamIxFacilities")),
-			connect.WithClientOptions(opts...),
-		),
+// NewIxFacilityServiceClient constructs a client for the peeringdb.v1.IxFacilityService service.
+// Multiple service clients may share a single connect.Client.
+func NewIxFacilityServiceClient(client *connect.Client) IxFacilityServiceClient {
+	return &ixFacilityServiceClient{client: client}
+}
+
+// IxFacilityServiceStreamIxFacilitiesClientStream is the client stream for the IxFacilityService's
+// StreamIxFacilities RPC.
+type IxFacilityServiceStreamIxFacilitiesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s IxFacilityServiceStreamIxFacilitiesClientStream) Receive() (*v1.IxFacility, error) {
+	var res v1.IxFacility
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// ixFacilityServiceClient implements IxFacilityServiceClient.
-type ixFacilityServiceClient struct {
-	getIxFacility      *connect.Client[v1.GetIxFacilityRequest, v1.GetIxFacilityResponse]
-	listIxFacilities   *connect.Client[v1.ListIxFacilitiesRequest, v1.ListIxFacilitiesResponse]
-	streamIxFacilities *connect.Client[v1.StreamIxFacilitiesRequest, v1.IxFacility]
-}
-
-// GetIxFacility calls peeringdb.v1.IxFacilityService.GetIxFacility.
-func (c *ixFacilityServiceClient) GetIxFacility(ctx context.Context, req *v1.GetIxFacilityRequest) (*v1.GetIxFacilityResponse, error) {
-	response, err := c.getIxFacility.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListIxFacilities calls peeringdb.v1.IxFacilityService.ListIxFacilities.
-func (c *ixFacilityServiceClient) ListIxFacilities(ctx context.Context, req *v1.ListIxFacilitiesRequest) (*v1.ListIxFacilitiesResponse, error) {
-	response, err := c.listIxFacilities.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamIxFacilities calls peeringdb.v1.IxFacilityService.StreamIxFacilities.
-func (c *ixFacilityServiceClient) StreamIxFacilities(ctx context.Context, req *v1.StreamIxFacilitiesRequest) (*connect.ServerStreamForClient[v1.IxFacility], error) {
-	return c.streamIxFacilities.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s IxFacilityServiceStreamIxFacilitiesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // IxFacilityServiceHandler is an implementation of the peeringdb.v1.IxFacilityService service.
@@ -967,62 +1140,136 @@ type IxFacilityServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest, *connect.ServerStream[v1.IxFacility]) error
+	StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest, IxFacilityServiceStreamIxFacilitiesServerStream) error
 }
 
-// NewIxFacilityServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewIxFacilityServiceHandler(svc IxFacilityServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	ixFacilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("IxFacilityService").Methods()
-	ixFacilityServiceGetIxFacilityHandler := connect.NewUnaryHandlerSimple(
-		IxFacilityServiceGetIxFacilityProcedure,
-		svc.GetIxFacility,
-		connect.WithSchema(ixFacilityServiceMethods.ByName("GetIxFacility")),
-		connect.WithHandlerOptions(opts...),
+// RegisterIxFacilityServiceHandler registers svc as the peeringdb.v1.IxFacilityService
+// implementation on server.
+func RegisterIxFacilityServiceHandler(server *connect.Server, svc IxFacilityServiceHandler) {
+	adapter := ixFacilityServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: ixFacilityServiceGetIxFacilitySpec(), Handler: adapter.getIxFacility},
+		connect.Method{Spec: ixFacilityServiceListIxFacilitiesSpec(), Handler: adapter.listIxFacilities},
+		connect.Method{Spec: ixFacilityServiceStreamIxFacilitiesSpec(), Handler: adapter.streamIxFacilities},
 	)
-	ixFacilityServiceListIxFacilitiesHandler := connect.NewUnaryHandlerSimple(
-		IxFacilityServiceListIxFacilitiesProcedure,
-		svc.ListIxFacilities,
-		connect.WithSchema(ixFacilityServiceMethods.ByName("ListIxFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	ixFacilityServiceStreamIxFacilitiesHandler := connect.NewServerStreamHandlerSimple(
-		IxFacilityServiceStreamIxFacilitiesProcedure,
-		svc.StreamIxFacilities,
-		connect.WithSchema(ixFacilityServiceMethods.ByName("StreamIxFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.IxFacilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case IxFacilityServiceGetIxFacilityProcedure:
-			ixFacilityServiceGetIxFacilityHandler.ServeHTTP(w, r)
-		case IxFacilityServiceListIxFacilitiesProcedure:
-			ixFacilityServiceListIxFacilitiesHandler.ServeHTTP(w, r)
-		case IxFacilityServiceStreamIxFacilitiesProcedure:
-			ixFacilityServiceStreamIxFacilitiesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// IxFacilityServiceStreamIxFacilitiesServerStream is the server stream for the IxFacilityService's
+// StreamIxFacilities RPC.
+type IxFacilityServiceStreamIxFacilitiesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s IxFacilityServiceStreamIxFacilitiesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s IxFacilityServiceStreamIxFacilitiesServerStream) Send(res *v1.IxFacility) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedIxFacilityServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedIxFacilityServiceHandler struct{}
 
 func (UnimplementedIxFacilityServiceHandler) GetIxFacility(context.Context, *v1.GetIxFacilityRequest) (*v1.GetIxFacilityResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxFacilityService.GetIxFacility is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxFacilityService.GetIxFacility is not implemented")
 }
 
 func (UnimplementedIxFacilityServiceHandler) ListIxFacilities(context.Context, *v1.ListIxFacilitiesRequest) (*v1.ListIxFacilitiesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxFacilityService.ListIxFacilities is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxFacilityService.ListIxFacilities is not implemented")
 }
 
-func (UnimplementedIxFacilityServiceHandler) StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest, *connect.ServerStream[v1.IxFacility]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxFacilityService.StreamIxFacilities is not implemented"))
+func (UnimplementedIxFacilityServiceHandler) StreamIxFacilities(context.Context, *v1.StreamIxFacilitiesRequest, IxFacilityServiceStreamIxFacilitiesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxFacilityService.StreamIxFacilities is not implemented")
 }
+
+type ixFacilityServiceClient struct {
+	client *connect.Client
+}
+
+func (c *ixFacilityServiceClient) GetIxFacility(ctx context.Context, req *v1.GetIxFacilityRequest) (*v1.GetIxFacilityResponse, error) {
+	var res v1.GetIxFacilityResponse
+	if err := c.client.CallUnary(ctx, ixFacilityServiceGetIxFacilitySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *ixFacilityServiceClient) ListIxFacilities(ctx context.Context, req *v1.ListIxFacilitiesRequest) (*v1.ListIxFacilitiesResponse, error) {
+	var res v1.ListIxFacilitiesResponse
+	if err := c.client.CallUnary(ctx, ixFacilityServiceListIxFacilitiesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *ixFacilityServiceClient) StreamIxFacilities(ctx context.Context, req *v1.StreamIxFacilitiesRequest) (IxFacilityServiceStreamIxFacilitiesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, ixFacilityServiceStreamIxFacilitiesSpec(), req)
+	if err != nil {
+		return IxFacilityServiceStreamIxFacilitiesClientStream{}, err
+	}
+	return IxFacilityServiceStreamIxFacilitiesClientStream{stream: stream}, nil
+}
+
+type ixFacilityServiceHandler struct{ svc IxFacilityServiceHandler }
+
+func (h ixFacilityServiceHandler) getIxFacility(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetIxFacilityRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetIxFacility(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h ixFacilityServiceHandler) listIxFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListIxFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListIxFacilities(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h ixFacilityServiceHandler) streamIxFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamIxFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamIxFacilities(ctx, &req, IxFacilityServiceStreamIxFacilitiesServerStream{stream: stream})
+}
+
+var (
+	ixLanServiceGetIxLanSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxLanService").Methods().ByName("GetIxLan"),
+			Procedure:  IxLanServiceGetIxLanProcedure,
+		}
+	})
+	ixLanServiceListIxLansSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxLanService").Methods().ByName("ListIxLans"),
+			Procedure:  IxLanServiceListIxLansProcedure,
+		}
+	})
+	ixLanServiceStreamIxLansSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxLanService").Methods().ByName("StreamIxLans"),
+			Procedure:  IxLanServiceStreamIxLansProcedure,
+		}
+	})
+)
 
 // IxLanServiceClient is a client for the peeringdb.v1.IxLanService service.
 type IxLanServiceClient interface {
@@ -1034,69 +1281,34 @@ type IxLanServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamIxLans(context.Context, *v1.StreamIxLansRequest) (*connect.ServerStreamForClient[v1.IxLan], error)
+	StreamIxLans(context.Context, *v1.StreamIxLansRequest) (IxLanServiceStreamIxLansClientStream, error)
 }
 
-// NewIxLanServiceClient constructs a client for the peeringdb.v1.IxLanService service. By default,
-// it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and
-// sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC()
-// or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewIxLanServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) IxLanServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	ixLanServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("IxLanService").Methods()
-	return &ixLanServiceClient{
-		getIxLan: connect.NewClient[v1.GetIxLanRequest, v1.GetIxLanResponse](
-			httpClient,
-			baseURL+IxLanServiceGetIxLanProcedure,
-			connect.WithSchema(ixLanServiceMethods.ByName("GetIxLan")),
-			connect.WithClientOptions(opts...),
-		),
-		listIxLans: connect.NewClient[v1.ListIxLansRequest, v1.ListIxLansResponse](
-			httpClient,
-			baseURL+IxLanServiceListIxLansProcedure,
-			connect.WithSchema(ixLanServiceMethods.ByName("ListIxLans")),
-			connect.WithClientOptions(opts...),
-		),
-		streamIxLans: connect.NewClient[v1.StreamIxLansRequest, v1.IxLan](
-			httpClient,
-			baseURL+IxLanServiceStreamIxLansProcedure,
-			connect.WithSchema(ixLanServiceMethods.ByName("StreamIxLans")),
-			connect.WithClientOptions(opts...),
-		),
+// NewIxLanServiceClient constructs a client for the peeringdb.v1.IxLanService service. Multiple
+// service clients may share a single connect.Client.
+func NewIxLanServiceClient(client *connect.Client) IxLanServiceClient {
+	return &ixLanServiceClient{client: client}
+}
+
+// IxLanServiceStreamIxLansClientStream is the client stream for the IxLanService's StreamIxLans
+// RPC.
+type IxLanServiceStreamIxLansClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s IxLanServiceStreamIxLansClientStream) Receive() (*v1.IxLan, error) {
+	var res v1.IxLan
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// ixLanServiceClient implements IxLanServiceClient.
-type ixLanServiceClient struct {
-	getIxLan     *connect.Client[v1.GetIxLanRequest, v1.GetIxLanResponse]
-	listIxLans   *connect.Client[v1.ListIxLansRequest, v1.ListIxLansResponse]
-	streamIxLans *connect.Client[v1.StreamIxLansRequest, v1.IxLan]
-}
-
-// GetIxLan calls peeringdb.v1.IxLanService.GetIxLan.
-func (c *ixLanServiceClient) GetIxLan(ctx context.Context, req *v1.GetIxLanRequest) (*v1.GetIxLanResponse, error) {
-	response, err := c.getIxLan.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListIxLans calls peeringdb.v1.IxLanService.ListIxLans.
-func (c *ixLanServiceClient) ListIxLans(ctx context.Context, req *v1.ListIxLansRequest) (*v1.ListIxLansResponse, error) {
-	response, err := c.listIxLans.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamIxLans calls peeringdb.v1.IxLanService.StreamIxLans.
-func (c *ixLanServiceClient) StreamIxLans(ctx context.Context, req *v1.StreamIxLansRequest) (*connect.ServerStreamForClient[v1.IxLan], error) {
-	return c.streamIxLans.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s IxLanServiceStreamIxLansClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // IxLanServiceHandler is an implementation of the peeringdb.v1.IxLanService service.
@@ -1109,62 +1321,136 @@ type IxLanServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamIxLans(context.Context, *v1.StreamIxLansRequest, *connect.ServerStream[v1.IxLan]) error
+	StreamIxLans(context.Context, *v1.StreamIxLansRequest, IxLanServiceStreamIxLansServerStream) error
 }
 
-// NewIxLanServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewIxLanServiceHandler(svc IxLanServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	ixLanServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("IxLanService").Methods()
-	ixLanServiceGetIxLanHandler := connect.NewUnaryHandlerSimple(
-		IxLanServiceGetIxLanProcedure,
-		svc.GetIxLan,
-		connect.WithSchema(ixLanServiceMethods.ByName("GetIxLan")),
-		connect.WithHandlerOptions(opts...),
+// RegisterIxLanServiceHandler registers svc as the peeringdb.v1.IxLanService implementation on
+// server.
+func RegisterIxLanServiceHandler(server *connect.Server, svc IxLanServiceHandler) {
+	adapter := ixLanServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: ixLanServiceGetIxLanSpec(), Handler: adapter.getIxLan},
+		connect.Method{Spec: ixLanServiceListIxLansSpec(), Handler: adapter.listIxLans},
+		connect.Method{Spec: ixLanServiceStreamIxLansSpec(), Handler: adapter.streamIxLans},
 	)
-	ixLanServiceListIxLansHandler := connect.NewUnaryHandlerSimple(
-		IxLanServiceListIxLansProcedure,
-		svc.ListIxLans,
-		connect.WithSchema(ixLanServiceMethods.ByName("ListIxLans")),
-		connect.WithHandlerOptions(opts...),
-	)
-	ixLanServiceStreamIxLansHandler := connect.NewServerStreamHandlerSimple(
-		IxLanServiceStreamIxLansProcedure,
-		svc.StreamIxLans,
-		connect.WithSchema(ixLanServiceMethods.ByName("StreamIxLans")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.IxLanService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case IxLanServiceGetIxLanProcedure:
-			ixLanServiceGetIxLanHandler.ServeHTTP(w, r)
-		case IxLanServiceListIxLansProcedure:
-			ixLanServiceListIxLansHandler.ServeHTTP(w, r)
-		case IxLanServiceStreamIxLansProcedure:
-			ixLanServiceStreamIxLansHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// IxLanServiceStreamIxLansServerStream is the server stream for the IxLanService's StreamIxLans
+// RPC.
+type IxLanServiceStreamIxLansServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s IxLanServiceStreamIxLansServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s IxLanServiceStreamIxLansServerStream) Send(res *v1.IxLan) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedIxLanServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedIxLanServiceHandler struct{}
 
 func (UnimplementedIxLanServiceHandler) GetIxLan(context.Context, *v1.GetIxLanRequest) (*v1.GetIxLanResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxLanService.GetIxLan is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxLanService.GetIxLan is not implemented")
 }
 
 func (UnimplementedIxLanServiceHandler) ListIxLans(context.Context, *v1.ListIxLansRequest) (*v1.ListIxLansResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxLanService.ListIxLans is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxLanService.ListIxLans is not implemented")
 }
 
-func (UnimplementedIxLanServiceHandler) StreamIxLans(context.Context, *v1.StreamIxLansRequest, *connect.ServerStream[v1.IxLan]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxLanService.StreamIxLans is not implemented"))
+func (UnimplementedIxLanServiceHandler) StreamIxLans(context.Context, *v1.StreamIxLansRequest, IxLanServiceStreamIxLansServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxLanService.StreamIxLans is not implemented")
 }
+
+type ixLanServiceClient struct {
+	client *connect.Client
+}
+
+func (c *ixLanServiceClient) GetIxLan(ctx context.Context, req *v1.GetIxLanRequest) (*v1.GetIxLanResponse, error) {
+	var res v1.GetIxLanResponse
+	if err := c.client.CallUnary(ctx, ixLanServiceGetIxLanSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *ixLanServiceClient) ListIxLans(ctx context.Context, req *v1.ListIxLansRequest) (*v1.ListIxLansResponse, error) {
+	var res v1.ListIxLansResponse
+	if err := c.client.CallUnary(ctx, ixLanServiceListIxLansSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *ixLanServiceClient) StreamIxLans(ctx context.Context, req *v1.StreamIxLansRequest) (IxLanServiceStreamIxLansClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, ixLanServiceStreamIxLansSpec(), req)
+	if err != nil {
+		return IxLanServiceStreamIxLansClientStream{}, err
+	}
+	return IxLanServiceStreamIxLansClientStream{stream: stream}, nil
+}
+
+type ixLanServiceHandler struct{ svc IxLanServiceHandler }
+
+func (h ixLanServiceHandler) getIxLan(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetIxLanRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetIxLan(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h ixLanServiceHandler) listIxLans(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListIxLansRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListIxLans(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h ixLanServiceHandler) streamIxLans(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamIxLansRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamIxLans(ctx, &req, IxLanServiceStreamIxLansServerStream{stream: stream})
+}
+
+var (
+	ixPrefixServiceGetIxPrefixSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxPrefixService").Methods().ByName("GetIxPrefix"),
+			Procedure:  IxPrefixServiceGetIxPrefixProcedure,
+		}
+	})
+	ixPrefixServiceListIxPrefixesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxPrefixService").Methods().ByName("ListIxPrefixes"),
+			Procedure:  IxPrefixServiceListIxPrefixesProcedure,
+		}
+	})
+	ixPrefixServiceStreamIxPrefixesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("IxPrefixService").Methods().ByName("StreamIxPrefixes"),
+			Procedure:  IxPrefixServiceStreamIxPrefixesProcedure,
+		}
+	})
+)
 
 // IxPrefixServiceClient is a client for the peeringdb.v1.IxPrefixService service.
 type IxPrefixServiceClient interface {
@@ -1176,69 +1462,34 @@ type IxPrefixServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest) (*connect.ServerStreamForClient[v1.IxPrefix], error)
+	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest) (IxPrefixServiceStreamIxPrefixesClientStream, error)
 }
 
-// NewIxPrefixServiceClient constructs a client for the peeringdb.v1.IxPrefixService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewIxPrefixServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) IxPrefixServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	ixPrefixServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("IxPrefixService").Methods()
-	return &ixPrefixServiceClient{
-		getIxPrefix: connect.NewClient[v1.GetIxPrefixRequest, v1.GetIxPrefixResponse](
-			httpClient,
-			baseURL+IxPrefixServiceGetIxPrefixProcedure,
-			connect.WithSchema(ixPrefixServiceMethods.ByName("GetIxPrefix")),
-			connect.WithClientOptions(opts...),
-		),
-		listIxPrefixes: connect.NewClient[v1.ListIxPrefixesRequest, v1.ListIxPrefixesResponse](
-			httpClient,
-			baseURL+IxPrefixServiceListIxPrefixesProcedure,
-			connect.WithSchema(ixPrefixServiceMethods.ByName("ListIxPrefixes")),
-			connect.WithClientOptions(opts...),
-		),
-		streamIxPrefixes: connect.NewClient[v1.StreamIxPrefixesRequest, v1.IxPrefix](
-			httpClient,
-			baseURL+IxPrefixServiceStreamIxPrefixesProcedure,
-			connect.WithSchema(ixPrefixServiceMethods.ByName("StreamIxPrefixes")),
-			connect.WithClientOptions(opts...),
-		),
+// NewIxPrefixServiceClient constructs a client for the peeringdb.v1.IxPrefixService service.
+// Multiple service clients may share a single connect.Client.
+func NewIxPrefixServiceClient(client *connect.Client) IxPrefixServiceClient {
+	return &ixPrefixServiceClient{client: client}
+}
+
+// IxPrefixServiceStreamIxPrefixesClientStream is the client stream for the IxPrefixService's
+// StreamIxPrefixes RPC.
+type IxPrefixServiceStreamIxPrefixesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s IxPrefixServiceStreamIxPrefixesClientStream) Receive() (*v1.IxPrefix, error) {
+	var res v1.IxPrefix
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// ixPrefixServiceClient implements IxPrefixServiceClient.
-type ixPrefixServiceClient struct {
-	getIxPrefix      *connect.Client[v1.GetIxPrefixRequest, v1.GetIxPrefixResponse]
-	listIxPrefixes   *connect.Client[v1.ListIxPrefixesRequest, v1.ListIxPrefixesResponse]
-	streamIxPrefixes *connect.Client[v1.StreamIxPrefixesRequest, v1.IxPrefix]
-}
-
-// GetIxPrefix calls peeringdb.v1.IxPrefixService.GetIxPrefix.
-func (c *ixPrefixServiceClient) GetIxPrefix(ctx context.Context, req *v1.GetIxPrefixRequest) (*v1.GetIxPrefixResponse, error) {
-	response, err := c.getIxPrefix.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListIxPrefixes calls peeringdb.v1.IxPrefixService.ListIxPrefixes.
-func (c *ixPrefixServiceClient) ListIxPrefixes(ctx context.Context, req *v1.ListIxPrefixesRequest) (*v1.ListIxPrefixesResponse, error) {
-	response, err := c.listIxPrefixes.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamIxPrefixes calls peeringdb.v1.IxPrefixService.StreamIxPrefixes.
-func (c *ixPrefixServiceClient) StreamIxPrefixes(ctx context.Context, req *v1.StreamIxPrefixesRequest) (*connect.ServerStreamForClient[v1.IxPrefix], error) {
-	return c.streamIxPrefixes.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s IxPrefixServiceStreamIxPrefixesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // IxPrefixServiceHandler is an implementation of the peeringdb.v1.IxPrefixService service.
@@ -1251,62 +1502,136 @@ type IxPrefixServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest, *connect.ServerStream[v1.IxPrefix]) error
+	StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest, IxPrefixServiceStreamIxPrefixesServerStream) error
 }
 
-// NewIxPrefixServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewIxPrefixServiceHandler(svc IxPrefixServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	ixPrefixServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("IxPrefixService").Methods()
-	ixPrefixServiceGetIxPrefixHandler := connect.NewUnaryHandlerSimple(
-		IxPrefixServiceGetIxPrefixProcedure,
-		svc.GetIxPrefix,
-		connect.WithSchema(ixPrefixServiceMethods.ByName("GetIxPrefix")),
-		connect.WithHandlerOptions(opts...),
+// RegisterIxPrefixServiceHandler registers svc as the peeringdb.v1.IxPrefixService implementation
+// on server.
+func RegisterIxPrefixServiceHandler(server *connect.Server, svc IxPrefixServiceHandler) {
+	adapter := ixPrefixServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: ixPrefixServiceGetIxPrefixSpec(), Handler: adapter.getIxPrefix},
+		connect.Method{Spec: ixPrefixServiceListIxPrefixesSpec(), Handler: adapter.listIxPrefixes},
+		connect.Method{Spec: ixPrefixServiceStreamIxPrefixesSpec(), Handler: adapter.streamIxPrefixes},
 	)
-	ixPrefixServiceListIxPrefixesHandler := connect.NewUnaryHandlerSimple(
-		IxPrefixServiceListIxPrefixesProcedure,
-		svc.ListIxPrefixes,
-		connect.WithSchema(ixPrefixServiceMethods.ByName("ListIxPrefixes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	ixPrefixServiceStreamIxPrefixesHandler := connect.NewServerStreamHandlerSimple(
-		IxPrefixServiceStreamIxPrefixesProcedure,
-		svc.StreamIxPrefixes,
-		connect.WithSchema(ixPrefixServiceMethods.ByName("StreamIxPrefixes")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.IxPrefixService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case IxPrefixServiceGetIxPrefixProcedure:
-			ixPrefixServiceGetIxPrefixHandler.ServeHTTP(w, r)
-		case IxPrefixServiceListIxPrefixesProcedure:
-			ixPrefixServiceListIxPrefixesHandler.ServeHTTP(w, r)
-		case IxPrefixServiceStreamIxPrefixesProcedure:
-			ixPrefixServiceStreamIxPrefixesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// IxPrefixServiceStreamIxPrefixesServerStream is the server stream for the IxPrefixService's
+// StreamIxPrefixes RPC.
+type IxPrefixServiceStreamIxPrefixesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s IxPrefixServiceStreamIxPrefixesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s IxPrefixServiceStreamIxPrefixesServerStream) Send(res *v1.IxPrefix) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedIxPrefixServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedIxPrefixServiceHandler struct{}
 
 func (UnimplementedIxPrefixServiceHandler) GetIxPrefix(context.Context, *v1.GetIxPrefixRequest) (*v1.GetIxPrefixResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxPrefixService.GetIxPrefix is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxPrefixService.GetIxPrefix is not implemented")
 }
 
 func (UnimplementedIxPrefixServiceHandler) ListIxPrefixes(context.Context, *v1.ListIxPrefixesRequest) (*v1.ListIxPrefixesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxPrefixService.ListIxPrefixes is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxPrefixService.ListIxPrefixes is not implemented")
 }
 
-func (UnimplementedIxPrefixServiceHandler) StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest, *connect.ServerStream[v1.IxPrefix]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.IxPrefixService.StreamIxPrefixes is not implemented"))
+func (UnimplementedIxPrefixServiceHandler) StreamIxPrefixes(context.Context, *v1.StreamIxPrefixesRequest, IxPrefixServiceStreamIxPrefixesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.IxPrefixService.StreamIxPrefixes is not implemented")
 }
+
+type ixPrefixServiceClient struct {
+	client *connect.Client
+}
+
+func (c *ixPrefixServiceClient) GetIxPrefix(ctx context.Context, req *v1.GetIxPrefixRequest) (*v1.GetIxPrefixResponse, error) {
+	var res v1.GetIxPrefixResponse
+	if err := c.client.CallUnary(ctx, ixPrefixServiceGetIxPrefixSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *ixPrefixServiceClient) ListIxPrefixes(ctx context.Context, req *v1.ListIxPrefixesRequest) (*v1.ListIxPrefixesResponse, error) {
+	var res v1.ListIxPrefixesResponse
+	if err := c.client.CallUnary(ctx, ixPrefixServiceListIxPrefixesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *ixPrefixServiceClient) StreamIxPrefixes(ctx context.Context, req *v1.StreamIxPrefixesRequest) (IxPrefixServiceStreamIxPrefixesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, ixPrefixServiceStreamIxPrefixesSpec(), req)
+	if err != nil {
+		return IxPrefixServiceStreamIxPrefixesClientStream{}, err
+	}
+	return IxPrefixServiceStreamIxPrefixesClientStream{stream: stream}, nil
+}
+
+type ixPrefixServiceHandler struct{ svc IxPrefixServiceHandler }
+
+func (h ixPrefixServiceHandler) getIxPrefix(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetIxPrefixRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetIxPrefix(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h ixPrefixServiceHandler) listIxPrefixes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListIxPrefixesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListIxPrefixes(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h ixPrefixServiceHandler) streamIxPrefixes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamIxPrefixesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamIxPrefixes(ctx, &req, IxPrefixServiceStreamIxPrefixesServerStream{stream: stream})
+}
+
+var (
+	networkServiceGetNetworkSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkService").Methods().ByName("GetNetwork"),
+			Procedure:  NetworkServiceGetNetworkProcedure,
+		}
+	})
+	networkServiceListNetworksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkService").Methods().ByName("ListNetworks"),
+			Procedure:  NetworkServiceListNetworksProcedure,
+		}
+	})
+	networkServiceStreamNetworksSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkService").Methods().ByName("StreamNetworks"),
+			Procedure:  NetworkServiceStreamNetworksProcedure,
+		}
+	})
+)
 
 // NetworkServiceClient is a client for the peeringdb.v1.NetworkService service.
 type NetworkServiceClient interface {
@@ -1318,69 +1643,34 @@ type NetworkServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamNetworks(context.Context, *v1.StreamNetworksRequest) (*connect.ServerStreamForClient[v1.Network], error)
+	StreamNetworks(context.Context, *v1.StreamNetworksRequest) (NetworkServiceStreamNetworksClientStream, error)
 }
 
-// NewNetworkServiceClient constructs a client for the peeringdb.v1.NetworkService service. By
-// default, it uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses,
-// and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the
-// connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewNetworkServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NetworkServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	networkServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkService").Methods()
-	return &networkServiceClient{
-		getNetwork: connect.NewClient[v1.GetNetworkRequest, v1.GetNetworkResponse](
-			httpClient,
-			baseURL+NetworkServiceGetNetworkProcedure,
-			connect.WithSchema(networkServiceMethods.ByName("GetNetwork")),
-			connect.WithClientOptions(opts...),
-		),
-		listNetworks: connect.NewClient[v1.ListNetworksRequest, v1.ListNetworksResponse](
-			httpClient,
-			baseURL+NetworkServiceListNetworksProcedure,
-			connect.WithSchema(networkServiceMethods.ByName("ListNetworks")),
-			connect.WithClientOptions(opts...),
-		),
-		streamNetworks: connect.NewClient[v1.StreamNetworksRequest, v1.Network](
-			httpClient,
-			baseURL+NetworkServiceStreamNetworksProcedure,
-			connect.WithSchema(networkServiceMethods.ByName("StreamNetworks")),
-			connect.WithClientOptions(opts...),
-		),
+// NewNetworkServiceClient constructs a client for the peeringdb.v1.NetworkService service. Multiple
+// service clients may share a single connect.Client.
+func NewNetworkServiceClient(client *connect.Client) NetworkServiceClient {
+	return &networkServiceClient{client: client}
+}
+
+// NetworkServiceStreamNetworksClientStream is the client stream for the NetworkService's
+// StreamNetworks RPC.
+type NetworkServiceStreamNetworksClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s NetworkServiceStreamNetworksClientStream) Receive() (*v1.Network, error) {
+	var res v1.Network
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// networkServiceClient implements NetworkServiceClient.
-type networkServiceClient struct {
-	getNetwork     *connect.Client[v1.GetNetworkRequest, v1.GetNetworkResponse]
-	listNetworks   *connect.Client[v1.ListNetworksRequest, v1.ListNetworksResponse]
-	streamNetworks *connect.Client[v1.StreamNetworksRequest, v1.Network]
-}
-
-// GetNetwork calls peeringdb.v1.NetworkService.GetNetwork.
-func (c *networkServiceClient) GetNetwork(ctx context.Context, req *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error) {
-	response, err := c.getNetwork.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListNetworks calls peeringdb.v1.NetworkService.ListNetworks.
-func (c *networkServiceClient) ListNetworks(ctx context.Context, req *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
-	response, err := c.listNetworks.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamNetworks calls peeringdb.v1.NetworkService.StreamNetworks.
-func (c *networkServiceClient) StreamNetworks(ctx context.Context, req *v1.StreamNetworksRequest) (*connect.ServerStreamForClient[v1.Network], error) {
-	return c.streamNetworks.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s NetworkServiceStreamNetworksClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // NetworkServiceHandler is an implementation of the peeringdb.v1.NetworkService service.
@@ -1393,62 +1683,136 @@ type NetworkServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamNetworks(context.Context, *v1.StreamNetworksRequest, *connect.ServerStream[v1.Network]) error
+	StreamNetworks(context.Context, *v1.StreamNetworksRequest, NetworkServiceStreamNetworksServerStream) error
 }
 
-// NewNetworkServiceHandler builds an HTTP handler from the service implementation. It returns the
-// path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewNetworkServiceHandler(svc NetworkServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	networkServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkService").Methods()
-	networkServiceGetNetworkHandler := connect.NewUnaryHandlerSimple(
-		NetworkServiceGetNetworkProcedure,
-		svc.GetNetwork,
-		connect.WithSchema(networkServiceMethods.ByName("GetNetwork")),
-		connect.WithHandlerOptions(opts...),
+// RegisterNetworkServiceHandler registers svc as the peeringdb.v1.NetworkService implementation on
+// server.
+func RegisterNetworkServiceHandler(server *connect.Server, svc NetworkServiceHandler) {
+	adapter := networkServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: networkServiceGetNetworkSpec(), Handler: adapter.getNetwork},
+		connect.Method{Spec: networkServiceListNetworksSpec(), Handler: adapter.listNetworks},
+		connect.Method{Spec: networkServiceStreamNetworksSpec(), Handler: adapter.streamNetworks},
 	)
-	networkServiceListNetworksHandler := connect.NewUnaryHandlerSimple(
-		NetworkServiceListNetworksProcedure,
-		svc.ListNetworks,
-		connect.WithSchema(networkServiceMethods.ByName("ListNetworks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	networkServiceStreamNetworksHandler := connect.NewServerStreamHandlerSimple(
-		NetworkServiceStreamNetworksProcedure,
-		svc.StreamNetworks,
-		connect.WithSchema(networkServiceMethods.ByName("StreamNetworks")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.NetworkService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case NetworkServiceGetNetworkProcedure:
-			networkServiceGetNetworkHandler.ServeHTTP(w, r)
-		case NetworkServiceListNetworksProcedure:
-			networkServiceListNetworksHandler.ServeHTTP(w, r)
-		case NetworkServiceStreamNetworksProcedure:
-			networkServiceStreamNetworksHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// NetworkServiceStreamNetworksServerStream is the server stream for the NetworkService's
+// StreamNetworks RPC.
+type NetworkServiceStreamNetworksServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s NetworkServiceStreamNetworksServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s NetworkServiceStreamNetworksServerStream) Send(res *v1.Network) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedNetworkServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNetworkServiceHandler struct{}
 
 func (UnimplementedNetworkServiceHandler) GetNetwork(context.Context, *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkService.GetNetwork is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkService.GetNetwork is not implemented")
 }
 
 func (UnimplementedNetworkServiceHandler) ListNetworks(context.Context, *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkService.ListNetworks is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkService.ListNetworks is not implemented")
 }
 
-func (UnimplementedNetworkServiceHandler) StreamNetworks(context.Context, *v1.StreamNetworksRequest, *connect.ServerStream[v1.Network]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkService.StreamNetworks is not implemented"))
+func (UnimplementedNetworkServiceHandler) StreamNetworks(context.Context, *v1.StreamNetworksRequest, NetworkServiceStreamNetworksServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkService.StreamNetworks is not implemented")
 }
+
+type networkServiceClient struct {
+	client *connect.Client
+}
+
+func (c *networkServiceClient) GetNetwork(ctx context.Context, req *v1.GetNetworkRequest) (*v1.GetNetworkResponse, error) {
+	var res v1.GetNetworkResponse
+	if err := c.client.CallUnary(ctx, networkServiceGetNetworkSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *networkServiceClient) ListNetworks(ctx context.Context, req *v1.ListNetworksRequest) (*v1.ListNetworksResponse, error) {
+	var res v1.ListNetworksResponse
+	if err := c.client.CallUnary(ctx, networkServiceListNetworksSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *networkServiceClient) StreamNetworks(ctx context.Context, req *v1.StreamNetworksRequest) (NetworkServiceStreamNetworksClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, networkServiceStreamNetworksSpec(), req)
+	if err != nil {
+		return NetworkServiceStreamNetworksClientStream{}, err
+	}
+	return NetworkServiceStreamNetworksClientStream{stream: stream}, nil
+}
+
+type networkServiceHandler struct{ svc NetworkServiceHandler }
+
+func (h networkServiceHandler) getNetwork(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNetworkRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNetwork(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h networkServiceHandler) listNetworks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListNetworksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListNetworks(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h networkServiceHandler) streamNetworks(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamNetworksRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamNetworks(ctx, &req, NetworkServiceStreamNetworksServerStream{stream: stream})
+}
+
+var (
+	networkFacilityServiceGetNetworkFacilitySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkFacilityService").Methods().ByName("GetNetworkFacility"),
+			Procedure:  NetworkFacilityServiceGetNetworkFacilityProcedure,
+		}
+	})
+	networkFacilityServiceListNetworkFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkFacilityService").Methods().ByName("ListNetworkFacilities"),
+			Procedure:  NetworkFacilityServiceListNetworkFacilitiesProcedure,
+		}
+	})
+	networkFacilityServiceStreamNetworkFacilitiesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkFacilityService").Methods().ByName("StreamNetworkFacilities"),
+			Procedure:  NetworkFacilityServiceStreamNetworkFacilitiesProcedure,
+		}
+	})
+)
 
 // NetworkFacilityServiceClient is a client for the peeringdb.v1.NetworkFacilityService service.
 type NetworkFacilityServiceClient interface {
@@ -1460,69 +1824,34 @@ type NetworkFacilityServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest) (*connect.ServerStreamForClient[v1.NetworkFacility], error)
+	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest) (NetworkFacilityServiceStreamNetworkFacilitiesClientStream, error)
 }
 
 // NewNetworkFacilityServiceClient constructs a client for the peeringdb.v1.NetworkFacilityService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewNetworkFacilityServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NetworkFacilityServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	networkFacilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkFacilityService").Methods()
-	return &networkFacilityServiceClient{
-		getNetworkFacility: connect.NewClient[v1.GetNetworkFacilityRequest, v1.GetNetworkFacilityResponse](
-			httpClient,
-			baseURL+NetworkFacilityServiceGetNetworkFacilityProcedure,
-			connect.WithSchema(networkFacilityServiceMethods.ByName("GetNetworkFacility")),
-			connect.WithClientOptions(opts...),
-		),
-		listNetworkFacilities: connect.NewClient[v1.ListNetworkFacilitiesRequest, v1.ListNetworkFacilitiesResponse](
-			httpClient,
-			baseURL+NetworkFacilityServiceListNetworkFacilitiesProcedure,
-			connect.WithSchema(networkFacilityServiceMethods.ByName("ListNetworkFacilities")),
-			connect.WithClientOptions(opts...),
-		),
-		streamNetworkFacilities: connect.NewClient[v1.StreamNetworkFacilitiesRequest, v1.NetworkFacility](
-			httpClient,
-			baseURL+NetworkFacilityServiceStreamNetworkFacilitiesProcedure,
-			connect.WithSchema(networkFacilityServiceMethods.ByName("StreamNetworkFacilities")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewNetworkFacilityServiceClient(client *connect.Client) NetworkFacilityServiceClient {
+	return &networkFacilityServiceClient{client: client}
+}
+
+// NetworkFacilityServiceStreamNetworkFacilitiesClientStream is the client stream for the
+// NetworkFacilityService's StreamNetworkFacilities RPC.
+type NetworkFacilityServiceStreamNetworkFacilitiesClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s NetworkFacilityServiceStreamNetworkFacilitiesClientStream) Receive() (*v1.NetworkFacility, error) {
+	var res v1.NetworkFacility
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// networkFacilityServiceClient implements NetworkFacilityServiceClient.
-type networkFacilityServiceClient struct {
-	getNetworkFacility      *connect.Client[v1.GetNetworkFacilityRequest, v1.GetNetworkFacilityResponse]
-	listNetworkFacilities   *connect.Client[v1.ListNetworkFacilitiesRequest, v1.ListNetworkFacilitiesResponse]
-	streamNetworkFacilities *connect.Client[v1.StreamNetworkFacilitiesRequest, v1.NetworkFacility]
-}
-
-// GetNetworkFacility calls peeringdb.v1.NetworkFacilityService.GetNetworkFacility.
-func (c *networkFacilityServiceClient) GetNetworkFacility(ctx context.Context, req *v1.GetNetworkFacilityRequest) (*v1.GetNetworkFacilityResponse, error) {
-	response, err := c.getNetworkFacility.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListNetworkFacilities calls peeringdb.v1.NetworkFacilityService.ListNetworkFacilities.
-func (c *networkFacilityServiceClient) ListNetworkFacilities(ctx context.Context, req *v1.ListNetworkFacilitiesRequest) (*v1.ListNetworkFacilitiesResponse, error) {
-	response, err := c.listNetworkFacilities.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamNetworkFacilities calls peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities.
-func (c *networkFacilityServiceClient) StreamNetworkFacilities(ctx context.Context, req *v1.StreamNetworkFacilitiesRequest) (*connect.ServerStreamForClient[v1.NetworkFacility], error) {
-	return c.streamNetworkFacilities.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s NetworkFacilityServiceStreamNetworkFacilitiesClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // NetworkFacilityServiceHandler is an implementation of the peeringdb.v1.NetworkFacilityService
@@ -1536,62 +1865,136 @@ type NetworkFacilityServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest, *connect.ServerStream[v1.NetworkFacility]) error
+	StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest, NetworkFacilityServiceStreamNetworkFacilitiesServerStream) error
 }
 
-// NewNetworkFacilityServiceHandler builds an HTTP handler from the service implementation. It
-// returns the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewNetworkFacilityServiceHandler(svc NetworkFacilityServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	networkFacilityServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkFacilityService").Methods()
-	networkFacilityServiceGetNetworkFacilityHandler := connect.NewUnaryHandlerSimple(
-		NetworkFacilityServiceGetNetworkFacilityProcedure,
-		svc.GetNetworkFacility,
-		connect.WithSchema(networkFacilityServiceMethods.ByName("GetNetworkFacility")),
-		connect.WithHandlerOptions(opts...),
+// RegisterNetworkFacilityServiceHandler registers svc as the peeringdb.v1.NetworkFacilityService
+// implementation on server.
+func RegisterNetworkFacilityServiceHandler(server *connect.Server, svc NetworkFacilityServiceHandler) {
+	adapter := networkFacilityServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: networkFacilityServiceGetNetworkFacilitySpec(), Handler: adapter.getNetworkFacility},
+		connect.Method{Spec: networkFacilityServiceListNetworkFacilitiesSpec(), Handler: adapter.listNetworkFacilities},
+		connect.Method{Spec: networkFacilityServiceStreamNetworkFacilitiesSpec(), Handler: adapter.streamNetworkFacilities},
 	)
-	networkFacilityServiceListNetworkFacilitiesHandler := connect.NewUnaryHandlerSimple(
-		NetworkFacilityServiceListNetworkFacilitiesProcedure,
-		svc.ListNetworkFacilities,
-		connect.WithSchema(networkFacilityServiceMethods.ByName("ListNetworkFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	networkFacilityServiceStreamNetworkFacilitiesHandler := connect.NewServerStreamHandlerSimple(
-		NetworkFacilityServiceStreamNetworkFacilitiesProcedure,
-		svc.StreamNetworkFacilities,
-		connect.WithSchema(networkFacilityServiceMethods.ByName("StreamNetworkFacilities")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.NetworkFacilityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case NetworkFacilityServiceGetNetworkFacilityProcedure:
-			networkFacilityServiceGetNetworkFacilityHandler.ServeHTTP(w, r)
-		case NetworkFacilityServiceListNetworkFacilitiesProcedure:
-			networkFacilityServiceListNetworkFacilitiesHandler.ServeHTTP(w, r)
-		case NetworkFacilityServiceStreamNetworkFacilitiesProcedure:
-			networkFacilityServiceStreamNetworkFacilitiesHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// NetworkFacilityServiceStreamNetworkFacilitiesServerStream is the server stream for the
+// NetworkFacilityService's StreamNetworkFacilities RPC.
+type NetworkFacilityServiceStreamNetworkFacilitiesServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s NetworkFacilityServiceStreamNetworkFacilitiesServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s NetworkFacilityServiceStreamNetworkFacilitiesServerStream) Send(res *v1.NetworkFacility) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedNetworkFacilityServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNetworkFacilityServiceHandler struct{}
 
 func (UnimplementedNetworkFacilityServiceHandler) GetNetworkFacility(context.Context, *v1.GetNetworkFacilityRequest) (*v1.GetNetworkFacilityResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkFacilityService.GetNetworkFacility is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkFacilityService.GetNetworkFacility is not implemented")
 }
 
 func (UnimplementedNetworkFacilityServiceHandler) ListNetworkFacilities(context.Context, *v1.ListNetworkFacilitiesRequest) (*v1.ListNetworkFacilitiesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkFacilityService.ListNetworkFacilities is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkFacilityService.ListNetworkFacilities is not implemented")
 }
 
-func (UnimplementedNetworkFacilityServiceHandler) StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest, *connect.ServerStream[v1.NetworkFacility]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities is not implemented"))
+func (UnimplementedNetworkFacilityServiceHandler) StreamNetworkFacilities(context.Context, *v1.StreamNetworkFacilitiesRequest, NetworkFacilityServiceStreamNetworkFacilitiesServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkFacilityService.StreamNetworkFacilities is not implemented")
 }
+
+type networkFacilityServiceClient struct {
+	client *connect.Client
+}
+
+func (c *networkFacilityServiceClient) GetNetworkFacility(ctx context.Context, req *v1.GetNetworkFacilityRequest) (*v1.GetNetworkFacilityResponse, error) {
+	var res v1.GetNetworkFacilityResponse
+	if err := c.client.CallUnary(ctx, networkFacilityServiceGetNetworkFacilitySpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *networkFacilityServiceClient) ListNetworkFacilities(ctx context.Context, req *v1.ListNetworkFacilitiesRequest) (*v1.ListNetworkFacilitiesResponse, error) {
+	var res v1.ListNetworkFacilitiesResponse
+	if err := c.client.CallUnary(ctx, networkFacilityServiceListNetworkFacilitiesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *networkFacilityServiceClient) StreamNetworkFacilities(ctx context.Context, req *v1.StreamNetworkFacilitiesRequest) (NetworkFacilityServiceStreamNetworkFacilitiesClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, networkFacilityServiceStreamNetworkFacilitiesSpec(), req)
+	if err != nil {
+		return NetworkFacilityServiceStreamNetworkFacilitiesClientStream{}, err
+	}
+	return NetworkFacilityServiceStreamNetworkFacilitiesClientStream{stream: stream}, nil
+}
+
+type networkFacilityServiceHandler struct{ svc NetworkFacilityServiceHandler }
+
+func (h networkFacilityServiceHandler) getNetworkFacility(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNetworkFacilityRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNetworkFacility(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h networkFacilityServiceHandler) listNetworkFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListNetworkFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListNetworkFacilities(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h networkFacilityServiceHandler) streamNetworkFacilities(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamNetworkFacilitiesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamNetworkFacilities(ctx, &req, NetworkFacilityServiceStreamNetworkFacilitiesServerStream{stream: stream})
+}
+
+var (
+	networkIxLanServiceGetNetworkIxLanSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkIxLanService").Methods().ByName("GetNetworkIxLan"),
+			Procedure:  NetworkIxLanServiceGetNetworkIxLanProcedure,
+		}
+	})
+	networkIxLanServiceListNetworkIxLansSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkIxLanService").Methods().ByName("ListNetworkIxLans"),
+			Procedure:  NetworkIxLanServiceListNetworkIxLansProcedure,
+		}
+	})
+	networkIxLanServiceStreamNetworkIxLansSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkIxLanService").Methods().ByName("StreamNetworkIxLans"),
+			Procedure:  NetworkIxLanServiceStreamNetworkIxLansProcedure,
+		}
+	})
+)
 
 // NetworkIxLanServiceClient is a client for the peeringdb.v1.NetworkIxLanService service.
 type NetworkIxLanServiceClient interface {
@@ -1603,69 +2006,34 @@ type NetworkIxLanServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest) (*connect.ServerStreamForClient[v1.NetworkIxLan], error)
+	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest) (NetworkIxLanServiceStreamNetworkIxLansClientStream, error)
 }
 
 // NewNetworkIxLanServiceClient constructs a client for the peeringdb.v1.NetworkIxLanService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewNetworkIxLanServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) NetworkIxLanServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	networkIxLanServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkIxLanService").Methods()
-	return &networkIxLanServiceClient{
-		getNetworkIxLan: connect.NewClient[v1.GetNetworkIxLanRequest, v1.GetNetworkIxLanResponse](
-			httpClient,
-			baseURL+NetworkIxLanServiceGetNetworkIxLanProcedure,
-			connect.WithSchema(networkIxLanServiceMethods.ByName("GetNetworkIxLan")),
-			connect.WithClientOptions(opts...),
-		),
-		listNetworkIxLans: connect.NewClient[v1.ListNetworkIxLansRequest, v1.ListNetworkIxLansResponse](
-			httpClient,
-			baseURL+NetworkIxLanServiceListNetworkIxLansProcedure,
-			connect.WithSchema(networkIxLanServiceMethods.ByName("ListNetworkIxLans")),
-			connect.WithClientOptions(opts...),
-		),
-		streamNetworkIxLans: connect.NewClient[v1.StreamNetworkIxLansRequest, v1.NetworkIxLan](
-			httpClient,
-			baseURL+NetworkIxLanServiceStreamNetworkIxLansProcedure,
-			connect.WithSchema(networkIxLanServiceMethods.ByName("StreamNetworkIxLans")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewNetworkIxLanServiceClient(client *connect.Client) NetworkIxLanServiceClient {
+	return &networkIxLanServiceClient{client: client}
+}
+
+// NetworkIxLanServiceStreamNetworkIxLansClientStream is the client stream for the
+// NetworkIxLanService's StreamNetworkIxLans RPC.
+type NetworkIxLanServiceStreamNetworkIxLansClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s NetworkIxLanServiceStreamNetworkIxLansClientStream) Receive() (*v1.NetworkIxLan, error) {
+	var res v1.NetworkIxLan
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// networkIxLanServiceClient implements NetworkIxLanServiceClient.
-type networkIxLanServiceClient struct {
-	getNetworkIxLan     *connect.Client[v1.GetNetworkIxLanRequest, v1.GetNetworkIxLanResponse]
-	listNetworkIxLans   *connect.Client[v1.ListNetworkIxLansRequest, v1.ListNetworkIxLansResponse]
-	streamNetworkIxLans *connect.Client[v1.StreamNetworkIxLansRequest, v1.NetworkIxLan]
-}
-
-// GetNetworkIxLan calls peeringdb.v1.NetworkIxLanService.GetNetworkIxLan.
-func (c *networkIxLanServiceClient) GetNetworkIxLan(ctx context.Context, req *v1.GetNetworkIxLanRequest) (*v1.GetNetworkIxLanResponse, error) {
-	response, err := c.getNetworkIxLan.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListNetworkIxLans calls peeringdb.v1.NetworkIxLanService.ListNetworkIxLans.
-func (c *networkIxLanServiceClient) ListNetworkIxLans(ctx context.Context, req *v1.ListNetworkIxLansRequest) (*v1.ListNetworkIxLansResponse, error) {
-	response, err := c.listNetworkIxLans.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamNetworkIxLans calls peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans.
-func (c *networkIxLanServiceClient) StreamNetworkIxLans(ctx context.Context, req *v1.StreamNetworkIxLansRequest) (*connect.ServerStreamForClient[v1.NetworkIxLan], error) {
-	return c.streamNetworkIxLans.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s NetworkIxLanServiceStreamNetworkIxLansClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // NetworkIxLanServiceHandler is an implementation of the peeringdb.v1.NetworkIxLanService service.
@@ -1678,62 +2046,136 @@ type NetworkIxLanServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest, *connect.ServerStream[v1.NetworkIxLan]) error
+	StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest, NetworkIxLanServiceStreamNetworkIxLansServerStream) error
 }
 
-// NewNetworkIxLanServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewNetworkIxLanServiceHandler(svc NetworkIxLanServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	networkIxLanServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("NetworkIxLanService").Methods()
-	networkIxLanServiceGetNetworkIxLanHandler := connect.NewUnaryHandlerSimple(
-		NetworkIxLanServiceGetNetworkIxLanProcedure,
-		svc.GetNetworkIxLan,
-		connect.WithSchema(networkIxLanServiceMethods.ByName("GetNetworkIxLan")),
-		connect.WithHandlerOptions(opts...),
+// RegisterNetworkIxLanServiceHandler registers svc as the peeringdb.v1.NetworkIxLanService
+// implementation on server.
+func RegisterNetworkIxLanServiceHandler(server *connect.Server, svc NetworkIxLanServiceHandler) {
+	adapter := networkIxLanServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: networkIxLanServiceGetNetworkIxLanSpec(), Handler: adapter.getNetworkIxLan},
+		connect.Method{Spec: networkIxLanServiceListNetworkIxLansSpec(), Handler: adapter.listNetworkIxLans},
+		connect.Method{Spec: networkIxLanServiceStreamNetworkIxLansSpec(), Handler: adapter.streamNetworkIxLans},
 	)
-	networkIxLanServiceListNetworkIxLansHandler := connect.NewUnaryHandlerSimple(
-		NetworkIxLanServiceListNetworkIxLansProcedure,
-		svc.ListNetworkIxLans,
-		connect.WithSchema(networkIxLanServiceMethods.ByName("ListNetworkIxLans")),
-		connect.WithHandlerOptions(opts...),
-	)
-	networkIxLanServiceStreamNetworkIxLansHandler := connect.NewServerStreamHandlerSimple(
-		NetworkIxLanServiceStreamNetworkIxLansProcedure,
-		svc.StreamNetworkIxLans,
-		connect.WithSchema(networkIxLanServiceMethods.ByName("StreamNetworkIxLans")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.NetworkIxLanService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case NetworkIxLanServiceGetNetworkIxLanProcedure:
-			networkIxLanServiceGetNetworkIxLanHandler.ServeHTTP(w, r)
-		case NetworkIxLanServiceListNetworkIxLansProcedure:
-			networkIxLanServiceListNetworkIxLansHandler.ServeHTTP(w, r)
-		case NetworkIxLanServiceStreamNetworkIxLansProcedure:
-			networkIxLanServiceStreamNetworkIxLansHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// NetworkIxLanServiceStreamNetworkIxLansServerStream is the server stream for the
+// NetworkIxLanService's StreamNetworkIxLans RPC.
+type NetworkIxLanServiceStreamNetworkIxLansServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s NetworkIxLanServiceStreamNetworkIxLansServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s NetworkIxLanServiceStreamNetworkIxLansServerStream) Send(res *v1.NetworkIxLan) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedNetworkIxLanServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedNetworkIxLanServiceHandler struct{}
 
 func (UnimplementedNetworkIxLanServiceHandler) GetNetworkIxLan(context.Context, *v1.GetNetworkIxLanRequest) (*v1.GetNetworkIxLanResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkIxLanService.GetNetworkIxLan is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkIxLanService.GetNetworkIxLan is not implemented")
 }
 
 func (UnimplementedNetworkIxLanServiceHandler) ListNetworkIxLans(context.Context, *v1.ListNetworkIxLansRequest) (*v1.ListNetworkIxLansResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkIxLanService.ListNetworkIxLans is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkIxLanService.ListNetworkIxLans is not implemented")
 }
 
-func (UnimplementedNetworkIxLanServiceHandler) StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest, *connect.ServerStream[v1.NetworkIxLan]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans is not implemented"))
+func (UnimplementedNetworkIxLanServiceHandler) StreamNetworkIxLans(context.Context, *v1.StreamNetworkIxLansRequest, NetworkIxLanServiceStreamNetworkIxLansServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.NetworkIxLanService.StreamNetworkIxLans is not implemented")
 }
+
+type networkIxLanServiceClient struct {
+	client *connect.Client
+}
+
+func (c *networkIxLanServiceClient) GetNetworkIxLan(ctx context.Context, req *v1.GetNetworkIxLanRequest) (*v1.GetNetworkIxLanResponse, error) {
+	var res v1.GetNetworkIxLanResponse
+	if err := c.client.CallUnary(ctx, networkIxLanServiceGetNetworkIxLanSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *networkIxLanServiceClient) ListNetworkIxLans(ctx context.Context, req *v1.ListNetworkIxLansRequest) (*v1.ListNetworkIxLansResponse, error) {
+	var res v1.ListNetworkIxLansResponse
+	if err := c.client.CallUnary(ctx, networkIxLanServiceListNetworkIxLansSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *networkIxLanServiceClient) StreamNetworkIxLans(ctx context.Context, req *v1.StreamNetworkIxLansRequest) (NetworkIxLanServiceStreamNetworkIxLansClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, networkIxLanServiceStreamNetworkIxLansSpec(), req)
+	if err != nil {
+		return NetworkIxLanServiceStreamNetworkIxLansClientStream{}, err
+	}
+	return NetworkIxLanServiceStreamNetworkIxLansClientStream{stream: stream}, nil
+}
+
+type networkIxLanServiceHandler struct{ svc NetworkIxLanServiceHandler }
+
+func (h networkIxLanServiceHandler) getNetworkIxLan(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetNetworkIxLanRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetNetworkIxLan(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h networkIxLanServiceHandler) listNetworkIxLans(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListNetworkIxLansRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListNetworkIxLans(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h networkIxLanServiceHandler) streamNetworkIxLans(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamNetworkIxLansRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamNetworkIxLans(ctx, &req, NetworkIxLanServiceStreamNetworkIxLansServerStream{stream: stream})
+}
+
+var (
+	organizationServiceGetOrganizationSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("OrganizationService").Methods().ByName("GetOrganization"),
+			Procedure:  OrganizationServiceGetOrganizationProcedure,
+		}
+	})
+	organizationServiceListOrganizationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("OrganizationService").Methods().ByName("ListOrganizations"),
+			Procedure:  OrganizationServiceListOrganizationsProcedure,
+		}
+	})
+	organizationServiceStreamOrganizationsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("OrganizationService").Methods().ByName("StreamOrganizations"),
+			Procedure:  OrganizationServiceStreamOrganizationsProcedure,
+		}
+	})
+)
 
 // OrganizationServiceClient is a client for the peeringdb.v1.OrganizationService service.
 type OrganizationServiceClient interface {
@@ -1745,69 +2187,34 @@ type OrganizationServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest) (*connect.ServerStreamForClient[v1.Organization], error)
+	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest) (OrganizationServiceStreamOrganizationsClientStream, error)
 }
 
 // NewOrganizationServiceClient constructs a client for the peeringdb.v1.OrganizationService
-// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
-// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
-// the connect.WithGRPC() or connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewOrganizationServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) OrganizationServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	organizationServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("OrganizationService").Methods()
-	return &organizationServiceClient{
-		getOrganization: connect.NewClient[v1.GetOrganizationRequest, v1.GetOrganizationResponse](
-			httpClient,
-			baseURL+OrganizationServiceGetOrganizationProcedure,
-			connect.WithSchema(organizationServiceMethods.ByName("GetOrganization")),
-			connect.WithClientOptions(opts...),
-		),
-		listOrganizations: connect.NewClient[v1.ListOrganizationsRequest, v1.ListOrganizationsResponse](
-			httpClient,
-			baseURL+OrganizationServiceListOrganizationsProcedure,
-			connect.WithSchema(organizationServiceMethods.ByName("ListOrganizations")),
-			connect.WithClientOptions(opts...),
-		),
-		streamOrganizations: connect.NewClient[v1.StreamOrganizationsRequest, v1.Organization](
-			httpClient,
-			baseURL+OrganizationServiceStreamOrganizationsProcedure,
-			connect.WithSchema(organizationServiceMethods.ByName("StreamOrganizations")),
-			connect.WithClientOptions(opts...),
-		),
+// service. Multiple service clients may share a single connect.Client.
+func NewOrganizationServiceClient(client *connect.Client) OrganizationServiceClient {
+	return &organizationServiceClient{client: client}
+}
+
+// OrganizationServiceStreamOrganizationsClientStream is the client stream for the
+// OrganizationService's StreamOrganizations RPC.
+type OrganizationServiceStreamOrganizationsClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s OrganizationServiceStreamOrganizationsClientStream) Receive() (*v1.Organization, error) {
+	var res v1.Organization
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// organizationServiceClient implements OrganizationServiceClient.
-type organizationServiceClient struct {
-	getOrganization     *connect.Client[v1.GetOrganizationRequest, v1.GetOrganizationResponse]
-	listOrganizations   *connect.Client[v1.ListOrganizationsRequest, v1.ListOrganizationsResponse]
-	streamOrganizations *connect.Client[v1.StreamOrganizationsRequest, v1.Organization]
-}
-
-// GetOrganization calls peeringdb.v1.OrganizationService.GetOrganization.
-func (c *organizationServiceClient) GetOrganization(ctx context.Context, req *v1.GetOrganizationRequest) (*v1.GetOrganizationResponse, error) {
-	response, err := c.getOrganization.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListOrganizations calls peeringdb.v1.OrganizationService.ListOrganizations.
-func (c *organizationServiceClient) ListOrganizations(ctx context.Context, req *v1.ListOrganizationsRequest) (*v1.ListOrganizationsResponse, error) {
-	response, err := c.listOrganizations.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamOrganizations calls peeringdb.v1.OrganizationService.StreamOrganizations.
-func (c *organizationServiceClient) StreamOrganizations(ctx context.Context, req *v1.StreamOrganizationsRequest) (*connect.ServerStreamForClient[v1.Organization], error) {
-	return c.streamOrganizations.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s OrganizationServiceStreamOrganizationsClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // OrganizationServiceHandler is an implementation of the peeringdb.v1.OrganizationService service.
@@ -1820,62 +2227,136 @@ type OrganizationServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest, *connect.ServerStream[v1.Organization]) error
+	StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest, OrganizationServiceStreamOrganizationsServerStream) error
 }
 
-// NewOrganizationServiceHandler builds an HTTP handler from the service implementation. It returns
-// the path on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewOrganizationServiceHandler(svc OrganizationServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	organizationServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("OrganizationService").Methods()
-	organizationServiceGetOrganizationHandler := connect.NewUnaryHandlerSimple(
-		OrganizationServiceGetOrganizationProcedure,
-		svc.GetOrganization,
-		connect.WithSchema(organizationServiceMethods.ByName("GetOrganization")),
-		connect.WithHandlerOptions(opts...),
+// RegisterOrganizationServiceHandler registers svc as the peeringdb.v1.OrganizationService
+// implementation on server.
+func RegisterOrganizationServiceHandler(server *connect.Server, svc OrganizationServiceHandler) {
+	adapter := organizationServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: organizationServiceGetOrganizationSpec(), Handler: adapter.getOrganization},
+		connect.Method{Spec: organizationServiceListOrganizationsSpec(), Handler: adapter.listOrganizations},
+		connect.Method{Spec: organizationServiceStreamOrganizationsSpec(), Handler: adapter.streamOrganizations},
 	)
-	organizationServiceListOrganizationsHandler := connect.NewUnaryHandlerSimple(
-		OrganizationServiceListOrganizationsProcedure,
-		svc.ListOrganizations,
-		connect.WithSchema(organizationServiceMethods.ByName("ListOrganizations")),
-		connect.WithHandlerOptions(opts...),
-	)
-	organizationServiceStreamOrganizationsHandler := connect.NewServerStreamHandlerSimple(
-		OrganizationServiceStreamOrganizationsProcedure,
-		svc.StreamOrganizations,
-		connect.WithSchema(organizationServiceMethods.ByName("StreamOrganizations")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.OrganizationService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case OrganizationServiceGetOrganizationProcedure:
-			organizationServiceGetOrganizationHandler.ServeHTTP(w, r)
-		case OrganizationServiceListOrganizationsProcedure:
-			organizationServiceListOrganizationsHandler.ServeHTTP(w, r)
-		case OrganizationServiceStreamOrganizationsProcedure:
-			organizationServiceStreamOrganizationsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// OrganizationServiceStreamOrganizationsServerStream is the server stream for the
+// OrganizationService's StreamOrganizations RPC.
+type OrganizationServiceStreamOrganizationsServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s OrganizationServiceStreamOrganizationsServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s OrganizationServiceStreamOrganizationsServerStream) Send(res *v1.Organization) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedOrganizationServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedOrganizationServiceHandler struct{}
 
 func (UnimplementedOrganizationServiceHandler) GetOrganization(context.Context, *v1.GetOrganizationRequest) (*v1.GetOrganizationResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.OrganizationService.GetOrganization is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.OrganizationService.GetOrganization is not implemented")
 }
 
 func (UnimplementedOrganizationServiceHandler) ListOrganizations(context.Context, *v1.ListOrganizationsRequest) (*v1.ListOrganizationsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.OrganizationService.ListOrganizations is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.OrganizationService.ListOrganizations is not implemented")
 }
 
-func (UnimplementedOrganizationServiceHandler) StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest, *connect.ServerStream[v1.Organization]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.OrganizationService.StreamOrganizations is not implemented"))
+func (UnimplementedOrganizationServiceHandler) StreamOrganizations(context.Context, *v1.StreamOrganizationsRequest, OrganizationServiceStreamOrganizationsServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.OrganizationService.StreamOrganizations is not implemented")
 }
+
+type organizationServiceClient struct {
+	client *connect.Client
+}
+
+func (c *organizationServiceClient) GetOrganization(ctx context.Context, req *v1.GetOrganizationRequest) (*v1.GetOrganizationResponse, error) {
+	var res v1.GetOrganizationResponse
+	if err := c.client.CallUnary(ctx, organizationServiceGetOrganizationSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *organizationServiceClient) ListOrganizations(ctx context.Context, req *v1.ListOrganizationsRequest) (*v1.ListOrganizationsResponse, error) {
+	var res v1.ListOrganizationsResponse
+	if err := c.client.CallUnary(ctx, organizationServiceListOrganizationsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *organizationServiceClient) StreamOrganizations(ctx context.Context, req *v1.StreamOrganizationsRequest) (OrganizationServiceStreamOrganizationsClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, organizationServiceStreamOrganizationsSpec(), req)
+	if err != nil {
+		return OrganizationServiceStreamOrganizationsClientStream{}, err
+	}
+	return OrganizationServiceStreamOrganizationsClientStream{stream: stream}, nil
+}
+
+type organizationServiceHandler struct{ svc OrganizationServiceHandler }
+
+func (h organizationServiceHandler) getOrganization(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetOrganizationRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetOrganization(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h organizationServiceHandler) listOrganizations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListOrganizationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListOrganizations(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h organizationServiceHandler) streamOrganizations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamOrganizationsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamOrganizations(ctx, &req, OrganizationServiceStreamOrganizationsServerStream{stream: stream})
+}
+
+var (
+	pocServiceGetPocSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("PocService").Methods().ByName("GetPoc"),
+			Procedure:  PocServiceGetPocProcedure,
+		}
+	})
+	pocServiceListPocsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("PocService").Methods().ByName("ListPocs"),
+			Procedure:  PocServiceListPocsProcedure,
+		}
+	})
+	pocServiceStreamPocsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeServer,
+			Schema:     v1.File_peeringdb_v1_services_proto.Services().ByName("PocService").Methods().ByName("StreamPocs"),
+			Procedure:  PocServiceStreamPocsProcedure,
+		}
+	})
+)
 
 // PocServiceClient is a client for the peeringdb.v1.PocService service.
 type PocServiceClient interface {
@@ -1887,69 +2368,33 @@ type PocServiceClient interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamPocs(context.Context, *v1.StreamPocsRequest) (*connect.ServerStreamForClient[v1.Poc], error)
+	StreamPocs(context.Context, *v1.StreamPocsRequest) (PocServiceStreamPocsClientStream, error)
 }
 
-// NewPocServiceClient constructs a client for the peeringdb.v1.PocService service. By default, it
-// uses the Connect protocol with the binary Protobuf Codec, asks for gzipped responses, and sends
-// uncompressed requests. To use the gRPC or gRPC-Web protocols, supply the connect.WithGRPC() or
-// connect.WithGRPCWeb() options.
-//
-// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
-// http://api.acme.com or https://acme.com/grpc).
-func NewPocServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) PocServiceClient {
-	baseURL = strings.TrimRight(baseURL, "/")
-	pocServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("PocService").Methods()
-	return &pocServiceClient{
-		getPoc: connect.NewClient[v1.GetPocRequest, v1.GetPocResponse](
-			httpClient,
-			baseURL+PocServiceGetPocProcedure,
-			connect.WithSchema(pocServiceMethods.ByName("GetPoc")),
-			connect.WithClientOptions(opts...),
-		),
-		listPocs: connect.NewClient[v1.ListPocsRequest, v1.ListPocsResponse](
-			httpClient,
-			baseURL+PocServiceListPocsProcedure,
-			connect.WithSchema(pocServiceMethods.ByName("ListPocs")),
-			connect.WithClientOptions(opts...),
-		),
-		streamPocs: connect.NewClient[v1.StreamPocsRequest, v1.Poc](
-			httpClient,
-			baseURL+PocServiceStreamPocsProcedure,
-			connect.WithSchema(pocServiceMethods.ByName("StreamPocs")),
-			connect.WithClientOptions(opts...),
-		),
+// NewPocServiceClient constructs a client for the peeringdb.v1.PocService service. Multiple service
+// clients may share a single connect.Client.
+func NewPocServiceClient(client *connect.Client) PocServiceClient {
+	return &pocServiceClient{client: client}
+}
+
+// PocServiceStreamPocsClientStream is the client stream for the PocService's StreamPocs RPC.
+type PocServiceStreamPocsClientStream struct {
+	stream connect.ClientStream
+}
+
+// Receive returns the next response message from the server.
+func (s PocServiceStreamPocsClientStream) Receive() (*v1.Poc, error) {
+	var res v1.Poc
+	if err := s.stream.Receive(&res); err != nil {
+		return nil, err
 	}
+	return &res, nil
 }
 
-// pocServiceClient implements PocServiceClient.
-type pocServiceClient struct {
-	getPoc     *connect.Client[v1.GetPocRequest, v1.GetPocResponse]
-	listPocs   *connect.Client[v1.ListPocsRequest, v1.ListPocsResponse]
-	streamPocs *connect.Client[v1.StreamPocsRequest, v1.Poc]
-}
-
-// GetPoc calls peeringdb.v1.PocService.GetPoc.
-func (c *pocServiceClient) GetPoc(ctx context.Context, req *v1.GetPocRequest) (*v1.GetPocResponse, error) {
-	response, err := c.getPoc.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// ListPocs calls peeringdb.v1.PocService.ListPocs.
-func (c *pocServiceClient) ListPocs(ctx context.Context, req *v1.ListPocsRequest) (*v1.ListPocsResponse, error) {
-	response, err := c.listPocs.CallUnary(ctx, connect.NewRequest(req))
-	if response != nil {
-		return response.Msg, err
-	}
-	return nil, err
-}
-
-// StreamPocs calls peeringdb.v1.PocService.StreamPocs.
-func (c *pocServiceClient) StreamPocs(ctx context.Context, req *v1.StreamPocsRequest) (*connect.ServerStreamForClient[v1.Poc], error) {
-	return c.streamPocs.CallServerStream(ctx, connect.NewRequest(req))
+// Close releases the stream's resources. It is idempotent and is typically deferred to clean up a
+// stream abandoned before io.EOF.
+func (s PocServiceStreamPocsClientStream) Close() error {
+	return s.stream.Close()
 }
 
 // PocServiceHandler is an implementation of the peeringdb.v1.PocService service.
@@ -1962,59 +2407,107 @@ type PocServiceHandler interface {
 	// content types.
 	// A stream without since_id or updated_since sets the
 	// pdbplus-total-count response header to the number of matching rows.
-	StreamPocs(context.Context, *v1.StreamPocsRequest, *connect.ServerStream[v1.Poc]) error
+	StreamPocs(context.Context, *v1.StreamPocsRequest, PocServiceStreamPocsServerStream) error
 }
 
-// NewPocServiceHandler builds an HTTP handler from the service implementation. It returns the path
-// on which to mount the handler and the handler itself.
-//
-// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
-// and JSON codecs. They also support gzip compression.
-func NewPocServiceHandler(svc PocServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
-	pocServiceMethods := v1.File_peeringdb_v1_services_proto.Services().ByName("PocService").Methods()
-	pocServiceGetPocHandler := connect.NewUnaryHandlerSimple(
-		PocServiceGetPocProcedure,
-		svc.GetPoc,
-		connect.WithSchema(pocServiceMethods.ByName("GetPoc")),
-		connect.WithHandlerOptions(opts...),
+// RegisterPocServiceHandler registers svc as the peeringdb.v1.PocService implementation on server.
+func RegisterPocServiceHandler(server *connect.Server, svc PocServiceHandler) {
+	adapter := pocServiceHandler{svc: svc}
+	server.Register(
+		connect.Method{Spec: pocServiceGetPocSpec(), Handler: adapter.getPoc},
+		connect.Method{Spec: pocServiceListPocsSpec(), Handler: adapter.listPocs},
+		connect.Method{Spec: pocServiceStreamPocsSpec(), Handler: adapter.streamPocs},
 	)
-	pocServiceListPocsHandler := connect.NewUnaryHandlerSimple(
-		PocServiceListPocsProcedure,
-		svc.ListPocs,
-		connect.WithSchema(pocServiceMethods.ByName("ListPocs")),
-		connect.WithHandlerOptions(opts...),
-	)
-	pocServiceStreamPocsHandler := connect.NewServerStreamHandlerSimple(
-		PocServiceStreamPocsProcedure,
-		svc.StreamPocs,
-		connect.WithSchema(pocServiceMethods.ByName("StreamPocs")),
-		connect.WithHandlerOptions(opts...),
-	)
-	return "/peeringdb.v1.PocService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case PocServiceGetPocProcedure:
-			pocServiceGetPocHandler.ServeHTTP(w, r)
-		case PocServiceListPocsProcedure:
-			pocServiceListPocsHandler.ServeHTTP(w, r)
-		case PocServiceStreamPocsProcedure:
-			pocServiceStreamPocsHandler.ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
-		}
-	})
+}
+
+// PocServiceStreamPocsServerStream is the server stream for the PocService's StreamPocs RPC.
+type PocServiceStreamPocsServerStream struct {
+	stream connect.ServerStream
+}
+
+// SendHeaders flushes the response headers without a message. The first Send does this implicitly.
+func (s PocServiceStreamPocsServerStream) SendHeaders() error {
+	return s.stream.SendHeaders()
+}
+
+// Send sends a response message to the client.
+func (s PocServiceStreamPocsServerStream) Send(res *v1.Poc) error {
+	return s.stream.Send(res)
 }
 
 // UnimplementedPocServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedPocServiceHandler struct{}
 
 func (UnimplementedPocServiceHandler) GetPoc(context.Context, *v1.GetPocRequest) (*v1.GetPocResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.PocService.GetPoc is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.PocService.GetPoc is not implemented")
 }
 
 func (UnimplementedPocServiceHandler) ListPocs(context.Context, *v1.ListPocsRequest) (*v1.ListPocsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.PocService.ListPocs is not implemented"))
+	return nil, connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.PocService.ListPocs is not implemented")
 }
 
-func (UnimplementedPocServiceHandler) StreamPocs(context.Context, *v1.StreamPocsRequest, *connect.ServerStream[v1.Poc]) error {
-	return connect.NewError(connect.CodeUnimplemented, errors.New("peeringdb.v1.PocService.StreamPocs is not implemented"))
+func (UnimplementedPocServiceHandler) StreamPocs(context.Context, *v1.StreamPocsRequest, PocServiceStreamPocsServerStream) error {
+	return connect.NewError(connect.CodeUnimplemented, "peeringdb.v1.PocService.StreamPocs is not implemented")
+}
+
+type pocServiceClient struct {
+	client *connect.Client
+}
+
+func (c *pocServiceClient) GetPoc(ctx context.Context, req *v1.GetPocRequest) (*v1.GetPocResponse, error) {
+	var res v1.GetPocResponse
+	if err := c.client.CallUnary(ctx, pocServiceGetPocSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *pocServiceClient) ListPocs(ctx context.Context, req *v1.ListPocsRequest) (*v1.ListPocsResponse, error) {
+	var res v1.ListPocsResponse
+	if err := c.client.CallUnary(ctx, pocServiceListPocsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *pocServiceClient) StreamPocs(ctx context.Context, req *v1.StreamPocsRequest) (PocServiceStreamPocsClientStream, error) {
+	stream, err := c.client.CallServerStream(ctx, pocServiceStreamPocsSpec(), req)
+	if err != nil {
+		return PocServiceStreamPocsClientStream{}, err
+	}
+	return PocServiceStreamPocsClientStream{stream: stream}, nil
+}
+
+type pocServiceHandler struct{ svc PocServiceHandler }
+
+func (h pocServiceHandler) getPoc(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPocRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPoc(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h pocServiceHandler) listPocs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListPocsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListPocs(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h pocServiceHandler) streamPocs(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.StreamPocsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	return h.svc.StreamPocs(ctx, &req, PocServiceStreamPocsServerStream{stream: stream})
 }

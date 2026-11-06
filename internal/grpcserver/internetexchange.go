@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/internetexchange"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // InternetExchangeService implements the peeringdb.v1.InternetExchangeService
@@ -145,7 +146,7 @@ func (s *InternetExchangeService) GetInternetExchange(ctx context.Context, req *
 	ix, err := s.Client.InternetExchange.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity internetexchange %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity internetexchange %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get internetexchange %d", req.GetId()), err)
 	}
@@ -193,7 +194,7 @@ func (s *InternetExchangeService) ListInternetExchanges(ctx context.Context, req
 
 // StreamInternetExchanges streams all matching internet exchanges via compound
 // (updated, id) keyset pagination under the (-updated, -created, -id) order.
-func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, req *pb.StreamInternetExchangesRequest, stream *connect.ServerStream[pb.InternetExchange]) error {
+func (s *InternetExchangeService) StreamInternetExchanges(ctx context.Context, req *pb.StreamInternetExchangesRequest, stream peeringdbv1connect.InternetExchangeServiceStreamInternetExchangesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.InternetExchange, pb.InternetExchange]{
 		EntityName:   "internet exchanges",
 		Timeout:      s.StreamTimeout,

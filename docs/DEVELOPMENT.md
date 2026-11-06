@@ -72,27 +72,27 @@ Code-change-relevant directories:
 
 ## GraphQL playground assets
 
-The Go handler serves the GraphiQL 5 editor at `/graphql`.
+The Go handler serves the GraphiQL 6 editor at `/graphql`.
 The main Web UI uses templ and htmx.
 The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for import-map integrity support.
 Older browsers can ignore the module integrity map and are unsupported for this editor.
 
-`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 5.4.0.
-It uses GraphQL.js 16.14.2 to keep the editor on GraphQL 16 semantics.
+`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 6.0.0.
+It uses GraphQL.js 17.1.0 and the POST-only GraphiQL transport.
 Each CDN module has a SHA-384 digest, including modules imported by other modules.
 The stylesheet has its own integrity attribute.
 The explicit `es2022` URLs prevent the CDN from selecting different bytes for different browser user agents.
 
-Monaco 0.52.2 matches the `@graphiql/react` dependency and the `monaco-graphql` peer range.
+Monaco 0.57.0 matches the `@graphiql/react` dependency and the `monaco-graphql` peer range.
 Browsers do not accept an integrity option for worker scripts.
 The Go binary therefore embeds the worker modules and their dependencies from `internal/graphql/assets/`.
 The handler serves these files at `/graphql/assets/`.
-The vendored modules total about 1.12 MB, or 339 KB with gzip.
+The vendored modules total about 1.43 MB, or 470 KB with gzip.
 The `licenses/` directory contains their license texts and third-party notices and is also embedded.
 
 To update these assets:
 
-1. Check the [GraphiQL migration guide](https://github.com/graphql/graphiql/blob/main/docs/migration/graphiql-5.0.0.md) and [CDN example](https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html).
+1. Check the [GraphiQL migration guide](https://github.com/graphql/graphiql/blob/main/docs/migration/graphiql-6.0.0.md) and [CDN example](https://github.com/graphql/graphiql/blob/main/examples/graphiql-cdn/index.html).
 2. Select exact package versions and use the `es2022` CDN target.
    Keep React and ReactDOM on the same version.
    Check the Monaco peer constraints before changing its version.
@@ -154,7 +154,7 @@ These generator pins must match a module version in `go.mod`, because the genera
 | `gqlgen` | `github.com/99designs/gqlgen` |
 | `templ` | `github.com/a-h/templ` |
 | `protoc-gen-go` | `google.golang.org/protobuf` |
-| `protoc-gen-connect-go` | `connectrpc.com/connect` |
+| `protoc-gen-connect-go` | `connectrpc.com/connect/v2` |
 
 Change both versions in the same commit.
 Then run `mise run generate` and commit the regenerated files.
@@ -191,6 +191,16 @@ This order runs the schema producer before entc, its consumer, so a single pass 
 
 A clean tree must produce zero drift after `go generate ./...`.
 CI checks this (see [Generated Code Drift Check](../CONTRIBUTING.md#generated-code-drift-check)).
+
+### GraphQL generation constraints
+
+Keep external test files in `graph/` after its package files in alphabetical order, for example `resolver_*_test.go`.
+gqlgen uses the first Go file to identify the package.
+An earlier `package graph_test` file can make generation fail with conflicting import paths.
+
+`scalar Map` comes from entgql in `graph/schema.graphqls`.
+Do not redeclare it in `graph/custom.graphql`.
+The entgql schema load does not see that custom declaration.
 
 ### Sibling-file convention (load-bearing)
 
@@ -277,7 +287,9 @@ internal/pdbcompat/allowlist_gen.go
 - `proto/peeringdb/v1/services.proto` — **hand-written**.
   Defines the `Get*` / `List*` / `Stream*` RPCs and their request/response messages.
 - `proto/peeringdb/v1/common.proto` — **hand-written**.
-  Manual types like `SocialMedia` that don't map cleanly to an ent field.
+  Shared types such as `SocialMedia`.
+  Their presence does not make an ent field part of a response.
+  The project chooses response mappings explicitly.
 
 `buf generate` (invoked by `ent/generate.go`) reads `buf.gen.yaml` and produces:
 
@@ -299,6 +311,11 @@ To expose one, edit `v1.proto` by hand:
 `meta` on `Network` and `NetworkIxLan` (PeeringDB 2.83.0) is such an edit.
 It is a `google.protobuf.Struct`.
 Dropped ent fields whose proto wrappers still exist remain declared in `v1.proto` but serialize as zero-value pointers (absent on the wire).
+
+`TestResponseFieldContract` in `internal/grpcserver/response_contract_test.go` checks stored fields against response messages and actual converters.
+When adding a stored field, add its response field and converter mapping, or document an explicit exclusion in that test.
+Keep the exclusion and legacy-field inventories current.
+Run the focused check with `go test ./internal/grpcserver -run TestResponseFieldContract`.
 
 ## Common dev loop
 
@@ -377,7 +394,12 @@ Add the field at its source instead:
 ## Schema hygiene drop procedure
 
 `migrate.WithDropColumn(true)` and `migrate.WithDropIndex(true)` are permanently on (`cmd/peeringdb-plus/main.go`).
-Dropping a field is therefore a checklist, not a migration script:
+A change that SQLite cannot apply with `ALTER TABLE` can rebuild the table.
+Do not use the database pool before startup `Schema.Create` completes.
+The migration must disable foreign keys on the connection that runs its transaction to preserve child references during the rebuild.
+`internal/database/migrate_rebuild_test.go` checks this behavior.
+
+Dropping a field requires these steps:
 
 1. Edit `schema/peeringdb.json` (remove the field from the upstream-derived schema), OR remove it from its sibling-file Mixin (e.g. `ent/schema/{type}_fold.go`) if it is peeringdb-plus-local -- never from the generated `ent/schema/{type}.go` itself.
 2. Run `go generate ./...`.

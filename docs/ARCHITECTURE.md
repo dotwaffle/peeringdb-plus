@@ -21,7 +21,7 @@ Hand-written schema methods live in sibling files that the generator does not to
 
 ```mermaid
 graph TD
-    PDB["PeeringDB API<br/>(api.peeringdb.com)"]
+    PDB["PeeringDB API<br/>(www.peeringdb.com)"]
     W["Sync Worker<br/>internal/sync/"]
     DB[("SQLite + LiteFS<br/>(FUSE mount)")]
     REP[("LiteFS Replicas<br/>(read-only)")]
@@ -77,7 +77,7 @@ The sync data flow (one cycle per `PDBPLUS_SYNC_INTERVAL`, default `1h` unauthen
    Then it deletes up to 1000 rows that are older than the newest 3000 rows.
    It keeps the newest success row and the newest full success row.
    If the delete fails, the worker logs a WARN and the cycle continues.
-2. Phase A — fetch: the worker calls `api.peeringdb.com` for every object type using `internal/peeringdb/client.go`, staging all responses in an on-disk SQLite scratch database (`internal/sync/scratch.go`) — deliberately spilled to disk to keep heap under the sync memory gate.
+2. Phase A — fetch: the worker calls `www.peeringdb.com` for every object type using `internal/peeringdb/client.go`, staging all responses in an on-disk SQLite scratch database (`internal/sync/scratch.go`) — deliberately spilled to disk to keep heap under the sync memory gate.
    The database is in `PDBPLUS_SCRATCH_DIR`, or in `os.TempDir()` when that is empty.
    On Fly.io it is on the primary volume, which is faster than the root file system.
    At scheduler start, the primary removes the scratch files that a crashed process left in a set `PDBPLUS_SCRATCH_DIR`.
@@ -374,7 +374,7 @@ When the last attempt fails, the caller logs its usual failure line.
 - **ent schemas** (`ent/schema/`): `{type}.go` files that `cmd/pdb-schema-generate` writes from `schema/peeringdb.json`.
   Do not edit them.
   Hand-written methods live in sibling files (`poc_policy.go`, `{type}_fold.go`, `fold_mixin.go`, `campus_annotations.go`, `pdb_allowlists.go`, `hooks.go`).
-- **`peeringdb.Client`** (`internal/peeringdb/client.go`) -- Rate-limit-aware HTTP client for `api.peeringdb.com`; returns a typed `RateLimitError` on HTTP 429 so the retry loop honors `Retry-After`.
+- **`peeringdb.Client`** (`internal/peeringdb/client.go`) -- Rate-limit-aware HTTP client for `www.peeringdb.com`; returns a typed `RateLimitError` on HTTP 429 so the retry loop honors `Retry-After`.
 - **`sync.Worker`** (`internal/sync/worker.go`) -- Two-phase sync orchestrator with scheduler, retry backoff, primary gating, and memory guardrail.
 - **`litefs.IsPrimaryWithFallback`** (`internal/litefs/primary.go`) -- Primary detection with inverted-lease-file semantics, a lease-candidate check (`litefs.IsCandidate`), and env var fallback for local dev.
 - **`grpcserver.ListEntities[E, P]`** (`internal/grpcserver/generic.go`): Generic paginated list helper parameterized over ent entity and proto message types; used by all 13 ConnectRPC services to avoid per-type duplication.
@@ -585,7 +585,8 @@ All six surfaces are mounted on the same mux in `cmd/peeringdb-plus/main.go` and
 
 - **PeeringDB-compatible — `/api/*`** (`internal/pdbcompat/`) — Drop-in replacement for the PeeringDB API shape, including `depth` expansion, filter parameters, the canonical response envelope, and the response memory envelope (see § Response Memory Envelope below).
   Uses a type registry (`internal/pdbcompat/registry.go`) to dispatch by object type.
-  The pk-lookup path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site (`StatusIn("ok", "not-operational", "pending")` for netixlan) so soft-delete tombstones return 404 on direct-ID GETs.
+  The root PK lookup (`internal/pdbcompat/depth.go`) admits live rows and pending campuses.
+  Other pending rows and tombstones return 404 for both privacy tiers, matching the upstream read-permission gate for callers without UPDATE permission.
 
 - **ConnectRPC / gRPC — `/peeringdb.v1.*`** (`internal/grpcserver/`, `gen/peeringdb/v1/`) — All 13 entity types expose `Get`, `List`, and `Stream` RPCs.
   `cmd/peeringdb-plus/main.go` registers each service with one `registerService` call and the otelconnect interceptor (`connectOTelOpts`: spans only, no `rpc.server.*` metrics).
@@ -809,14 +810,18 @@ With the hint, SQLite reads the rowid table for `id` order and the `updated` ind
 `COUNT` queries still read a covering status index.
 `TestPdbcompatListPlan_NoTempBTree` locks these plans.
 A distance search sorts the kept rows in a temp B-tree, because no index can serve the distance order (`TestPdbcompatListPlan_Distance`).
-The pk-lookup path (`internal/pdbcompat/depth.go`) inlines `StatusIn("ok", "pending")` at every call site (`StatusIn("ok", "not-operational", "pending")` for netixlan) so direct-ID GETs return 404 for tombstones.
+The root PK lookup (`internal/pdbcompat/depth.go`) uses `StatusEQ("ok")`, with `not-operational` also admitted for netixlan and `pending` also admitted for campus.
+Other pending rows return 404, as do tombstones.
+PeeringDB 2.84.1 requires UPDATE permission for pending non-campus rows ([PR #2073](https://github.com/peeringdb/peeringdb/pull/2073)).
+Neither mirror privacy tier grants organization membership or edit permission.
+This root permission gate does not filter singular FK objects embedded by serializers.
 The nested `_set` collections of the depth expansion admit only the live statuses of the child (`likelyOK`, `StatusIn("ok", "not-operational")` for netixlan), the same as the upstream nested prefetch.
 `likelyOK` is `likely(status IN ('ok'))`.
 Without the hint, SQLite can read every `ok` row of the child table through its status index instead of the parent's rows through the FK index.
 The relation-key status pin (`withStatusPin`) uses the same filter.
 The link-status test of the presence keys `all_net` and `asn_overlap` uses `likely()` too (on `ix`, `asn_overlap` admits `ok` and `not-operational`).
 `TestDetailPlan_KeepsFKIndex`, `TestRelationFilterPlan_KeepsFKIndex` and `TestPresencePlan_KeepsNetIndex` lock these plans.
-A pending child, in practice a campus, is fetchable by ID but is left out of the sets of its parent.
+A pending campus is fetchable by ID but is left out of the sets of its parent.
 The sets `net.netfac_set`, `ix.fac_set` and `carrier.carrierfac_set` are ordered by facility id, then by link id.
 The upstream prefetch has no `ORDER BY`, and MySQL reads these sets through the unique `(<parent>, facility)` index.
 
@@ -1110,7 +1115,7 @@ Three signal providers are configured via the OpenTelemetry autoexport package, 
   Other spans without a URL path use the 1% default.
   The sync rule comes before the route rules, because a sync root span has no URL path.
   Without the rule, the 1% default would drop 99% of the sync cycles.
-  Spans are created automatically by `otelhttp` middleware for HTTP requests, by `otelconnect.NewInterceptor` for ConnectRPC RPCs, and by the sync worker for sync cycles.
+  Spans are created automatically by `otelhttp` middleware for HTTP requests, by `otelconnect.NewServerInterceptor` for ConnectRPC RPCs, and by the sync worker for sync cycles.
   With `PDBPLUS_OTEL_SQL=true` (the default), `otelsql` adds one span for each SQL statement (`internal/database/database.go`).
   It records no metrics (a no-op MeterProvider): its `db.client.operation.duration` histogram had no reader.
   These spans are children of the request span, so the same sampling decision applies.

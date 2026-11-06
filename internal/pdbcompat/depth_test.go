@@ -1578,14 +1578,9 @@ func TestDepth_FacCampusNullParity(t *testing.T) {
 	})
 }
 
-// TestDepth_PKStatusMatrix_AllEntities asserts the PK-lookup status predicate
-// — Query().Where(<type>.ID(id), <type>.StatusIn(...)), inlined at all 27
-// depth.go getter sites — resolves identically across all 13 types: a live
-// or pending row is fetchable (200) while a deleted row is a tombstone
-// (404). Upstream PK lookups admit the live statuses plus pending (2.83.0
-// rest.py:750), so a not-operational netixlan is fetchable too.
-// TestStatusMatrix proves this only for net; this covers the breadth.
-// Seeders are shared with TestStatusMatrix_AllEntities (statusseed_test.go).
+// TestDepth_PKStatusMatrix_AllEntities covers root read permissions at every
+// depth. PeeringDB PR #2073 denies pending non-campus rows without UPDATE
+// permission. Neither mirror privacy tier grants organization membership.
 func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 	t.Parallel()
 	for _, e := range statusMatrixEntities {
@@ -1594,25 +1589,84 @@ func TestDepth_PKStatusMatrix_AllEntities(t *testing.T) {
 			c := testutil.SetupClient(t)
 			seedStatusParentsFor(t, c, e.tag)
 			liveIDs := seedStatusMatrixRows(t, c, e.tag, e.live)
-
-			srv := httptest.NewServer(newMuxForOrdering(c))
-			t.Cleanup(srv.Close)
-
-			type pkCase struct{ id, want int }
-			cases := []pkCase{
-				{902, http.StatusNotFound}, // deleted -> 404 (tombstone hidden at PK)
-				{903, http.StatusOK},       // pending -> 200 (PK lookup admits pending)
+			mux := newMuxForOrdering(c)
+			pendingCode := http.StatusNotFound
+			if e.isCampus {
+				pendingCode = http.StatusOK
 			}
+			cases := []struct{ id, want int }{{902, http.StatusNotFound}, {903, pendingCode}}
 			for _, id := range liveIDs {
-				cases = append(cases, pkCase{id, http.StatusOK}) // live -> 200
+				cases = append(cases, struct{ id, want int }{id, http.StatusOK})
 			}
 			for _, tc := range cases {
-				// depth=0 and the default depth take separate queries.
-				for _, q := range []string{"?depth=0", ""} {
-					if code := fetchStatusCode(t, srv.URL+"/api/"+e.tag+"/"+itoa(tc.id)+q); code != tc.want {
-						t.Errorf("GET /api/%s/%d%s: got %d, want %d", e.tag, tc.id, q, code, tc.want)
+				queries := []string{"?depth=0", "?depth=1", "?depth=2", ""}
+				if tc.id == 903 {
+					queries = append(queries, "?since=1&status=pending")
+				}
+				for _, query := range queries {
+					for _, tier := range []privctx.Tier{privctx.TierPublic, privctx.TierUsers} {
+						for _, method := range []string{http.MethodGet, http.MethodHead} {
+							path := "/api/" + e.tag + "/" + itoa(tc.id) + query
+							req := httptest.NewRequestWithContext(privctx.WithTier(t.Context(), tier), method, path, nil)
+							rec := httptest.NewRecorder()
+							mux.ServeHTTP(rec, req)
+							want := tc.want
+							// Upstream's ixlan viewset does not allow HEAD.
+							if method == http.MethodHead && e.tag == peeringdb.TypeIXLan {
+								want = http.StatusMethodNotAllowed
+							}
+							if rec.Code != want {
+								t.Errorf("%s %s tier=%v: got %d, want %d", method, path, tier, rec.Code, want)
+							}
+							if tc.id == 903 && !e.isCampus {
+								missing := httptest.NewRecorder()
+								missingPath := "/api/" + e.tag + "/999" + query
+								mux.ServeHTTP(missing, httptest.NewRequestWithContext(req.Context(), method, missingPath, nil))
+								if rec.Body.String() != missing.Body.String() {
+									t.Errorf("%s %s: hidden pending body %q differs from missing body %q", method, path, rec.Body.String(), missing.Body.String())
+								}
+							}
+						}
 					}
 				}
+			}
+		})
+	}
+}
+
+// The root get_object permission check does not filter singular FK objects
+// embedded by a serializer. A live network still includes its pending org.
+func TestDepth_PendingParentRemainsEmbedded(t *testing.T) {
+	t.Parallel()
+	c := testutil.SetupClient(t)
+	seedStatusParentsFor(t, c, peeringdb.TypeNet)
+	seedStatusRow(t, c, peeringdb.TypeNet, 901, "ok")
+	c.Organization.UpdateOneID(1).SetStatus("pending").SaveX(t.Context())
+	mux := newMuxForOrdering(c)
+	for _, depth := range []int{1, 2} {
+		t.Run(fmt.Sprintf("depth=%d", depth), func(t *testing.T) {
+			path := fmt.Sprintf("/api/net/901?depth=%d", depth)
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("%s: status %d, body %s", path, rec.Code, rec.Body.String())
+			}
+			var envelope struct {
+				Data []struct {
+					Org struct {
+						ID     int    `json:"id"`
+						Status string `json:"status"`
+					} `json:"org"`
+				} `json:"data"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &envelope); err != nil {
+				t.Fatal(err)
+			}
+			if len(envelope.Data) != 1 {
+				t.Fatalf("got %d rows, want 1", len(envelope.Data))
+			}
+			if org := envelope.Data[0].Org; org.ID != 1 || org.Status != "pending" {
+				t.Errorf("embedded org = %+v, want id=1 status=pending", org)
 			}
 		})
 	}
@@ -1751,20 +1805,13 @@ func TestToMap_MatchesJSONRoundTrip(t *testing.T) {
 	}
 }
 
-// TestDepth_PocSetPrivacy_DIVERGENCE locks the intentional divergence
-// registered in docs/API.md § Known Divergences (v1.20.5 row): upstream
-// PeeringDB lists EVERY poc id in a depth=1 `poc_set` ID list regardless of
-// visibility (filtering non-Public POCs only when expanded to objects at
-// depth=2), while this mirror applies the row-level poc.visible privacy
-// policy uniformly: a poc_set ID list never holds the id of a POC that the
-// caller's tier cannot read, on a detail response and on a list response
-// at ?depth=1 or 2. Anonymous callers get Public ids only; the
-// Users tier gets Public and Users ids, never Private ones. Stricter than
-// upstream by design; if this test fails the way upstream behaves, that is
-// a privacy leak, not a parity win.
-//
-// upstream: peeringdb_server/serializers.py poc_set nested ID-list rendering
-// (no visibility filter on the ID-list path).
+// TestDepth_PocSetPrivacy_DIVERGENCE checks visibility on ID lists and objects.
+// PeeringDB PR #2073 also filters nested contact IDs by permission. Its shared
+// cached ID lists contain Public contacts only, even for authenticated callers.
+// Uncached upstream lists use the caller's permissions. The mirror uses its
+// local row policy on every query: Public for anonymous callers, Public and
+// Users for the Users tier, and never Private. The cached Users-tier difference
+// remains intentional; anonymous ID lists no longer differ on this rule.
 func TestDepth_PocSetPrivacy_DIVERGENCE(t *testing.T) {
 	t.Parallel()
 	client := testutil.SetupClient(t)

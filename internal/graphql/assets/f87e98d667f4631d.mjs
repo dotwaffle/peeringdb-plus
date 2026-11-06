@@ -1,0 +1,2 @@
+/* esm.sh - graphql@17.1.0/validation/rules/custom/NoSchemaIntrospectionCustomRule */
+import{GraphQLError as o}from"./3f07b35bd75fe31a.mjs";import{getNamedType as i}from"./593b35bd868e4b3b.mjs";import{isIntrospectionType as n}from"./a8265231a83f9039.mjs";function a(e){return{Field(r){let t=i(e.getType());t&&n(t)&&e.reportError(new o(`GraphQL introspection has been disabled, but the requested query contained the field "${r.name.value}".`,{nodes:r}))}}}export{a as NoSchemaIntrospectionCustomRule};

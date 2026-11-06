@@ -26,6 +26,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,8 @@ import (
 	"testing"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"connectrpc.com/connect/v2/connecthttp"
 	pbv1 "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
 	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 	"github.com/dotwaffle/peeringdb-plus/internal/privctx"
@@ -245,7 +248,7 @@ func TestE2E_FieldLevel_IxlanURL_NullStored(t *testing.T) {
 	})
 
 	t.Run("connectrpc", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: publicNullID})
 		if err != nil {
 			t.Fatalf("GetIxLan: %v", err)
@@ -426,7 +429,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 	// Surface 3: ConnectRPC IxLanService
 	// -------------------------------------------------------------------------
 	t.Run("connectrpc/get/gated", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: int64(fix.gatedIxLanID)})
 		if err != nil {
 			t.Fatalf("GetIxLan: %v", err)
@@ -440,7 +443,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 	})
 
 	t.Run("connectrpc/get/public", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: int64(fix.publicIxLanID)})
 		if err != nil {
 			t.Fatalf("GetIxLan public: %v", err)
@@ -454,7 +457,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 	})
 
 	t.Run("connectrpc/list", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.ListIxLans(t.Context(), &pbv1.ListIxLansRequest{PageSize: 100})
 		if err != nil {
 			t.Fatalf("ListIxLans: %v", err)
@@ -485,15 +488,22 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 	// captured tier reaches privfield.Redact so the gated URL is blanked
 	// on the streaming path, not just the unary Get/List paths.
 	t.Run("connectrpc/stream", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		stream, err := cl.StreamIxLans(t.Context(), &pbv1.StreamIxLansRequest{})
 		if err != nil {
 			t.Fatalf("StreamIxLans: %v", err)
 		}
 		defer func() { _ = stream.Close() }()
 		var gatedSeen, publicSeen bool
-		for stream.Receive() {
-			il := stream.Msg()
+		for {
+			msg, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				t.Fatalf("stream error: %v", err)
+			}
+			il := msg
 			switch il.Id {
 			case int64(fix.gatedIxLanID):
 				gatedSeen = true
@@ -507,9 +517,7 @@ func TestE2E_FieldLevel_IxlanURL_RedactedAnon(t *testing.T) {
 				}
 			}
 		}
-		if err := stream.Err(); err != nil {
-			t.Fatalf("stream error: %v", err)
-		}
+
 		if !gatedSeen || !publicSeen {
 			t.Fatalf("expected both gated=%d and public=%d ixlan rows in stream, saw gated=%v public=%v",
 				fix.gatedIxLanID, fix.publicIxLanID, gatedSeen, publicSeen)
@@ -685,7 +693,7 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 	})
 
 	t.Run("connectrpc/get/gated", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: int64(fix.gatedIxLanID)})
 		if err != nil {
 			t.Fatalf("GetIxLan: %v", err)
@@ -696,7 +704,7 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 	})
 
 	t.Run("connectrpc/get/public", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.GetIxLan(t.Context(), &pbv1.GetIxLanRequest{Id: int64(fix.publicIxLanID)})
 		if err != nil {
 			t.Fatalf("GetIxLan public: %v", err)
@@ -707,7 +715,7 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 	})
 
 	t.Run("connectrpc/list", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		resp, err := cl.ListIxLans(t.Context(), &pbv1.ListIxLansRequest{PageSize: 100})
 		if err != nil {
 			t.Fatalf("ListIxLans: %v", err)
@@ -733,15 +741,22 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 	})
 
 	t.Run("connectrpc/stream", func(t *testing.T) {
-		cl := peeringdbv1connect.NewIxLanServiceClient(http.DefaultClient, fix.server.URL)
+		cl := peeringdbv1connect.NewIxLanServiceClient(connect.NewClient(connecthttp.NewTransport(http.DefaultClient, fix.server.URL, connecthttp.WithReadMaxBytes(0))))
 		stream, err := cl.StreamIxLans(t.Context(), &pbv1.StreamIxLansRequest{})
 		if err != nil {
 			t.Fatalf("StreamIxLans: %v", err)
 		}
 		defer func() { _ = stream.Close() }()
 		var gatedSeen, publicSeen bool
-		for stream.Receive() {
-			il := stream.Msg()
+		for {
+			msg, err := stream.Receive()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				t.Fatalf("stream error: %v", err)
+			}
+			il := msg
 			switch il.Id {
 			case int64(fix.gatedIxLanID):
 				gatedSeen = true
@@ -755,9 +770,7 @@ func TestE2E_FieldLevel_IxlanURL_VisibleToUsersTier(t *testing.T) {
 				}
 			}
 		}
-		if err := stream.Err(); err != nil {
-			t.Fatalf("stream error: %v", err)
-		}
+
 		if !gatedSeen || !publicSeen {
 			t.Fatalf("users tier stream missing rows: gated=%v public=%v", gatedSeen, publicSeen)
 		}

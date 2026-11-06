@@ -74,8 +74,7 @@ func TestFreshnessFromDB(t *testing.T) {
 		t.Error("empty sync_status should report no observation")
 	}
 
-	// Most recent sync failed → still no observation (freshness tracks the
-	// last *successful* sync only).
+	// A failure without an earlier success produces no observation.
 	failID, err := pdbsync.RecordSyncStart(ctx, db, time.Now(), "incremental")
 	if err != nil {
 		t.Fatalf("record failed start: %v", err)
@@ -108,6 +107,32 @@ func TestFreshnessFromDB(t *testing.T) {
 	}
 	if !got.Equal(want) {
 		t.Errorf("freshness time = %v, want %v", got, want)
+	}
+
+	for _, status := range []string{"running", "failed", "success"} {
+		t.Run(status, func(t *testing.T) {
+			completed := want.Add(time.Minute)
+			id, err := pdbsync.RecordSyncStart(ctx, db, completed, "incremental")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if status != "running" {
+				if err := pdbsync.RecordSyncComplete(ctx, db, id, pdbsync.Status{
+					LastSyncAt: completed,
+					Status:     status,
+				}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			expected := want
+			if status == "success" {
+				expected = completed
+			}
+			got, ok := freshnessFromDB(ctx, db)
+			if !ok || !got.Equal(expected) {
+				t.Errorf("freshness after %s = (%v, %v), want (%v, true)", status, got, ok, expected)
+			}
+		})
 	}
 }
 

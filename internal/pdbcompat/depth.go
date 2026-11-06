@@ -132,14 +132,16 @@ func intsOrEmpty(ids []int, err error) ([]int, error) {
 // /api/ix/26 at depth=2 confirm this order. The link id breaks ties, which
 // the unique index makes impossible upstream.
 //
-// Status filters in the depth expansions follow upstream PeeringDB 2.83.0:
+// Status filters follow upstream nested prefetch and the PR #2073 detail gate:
 //   - A reverse `_set`, as an ID list or as expanded objects, admits only
 //     the live statuses of the child type: "ok", plus "not-operational" on
 //     netixlan (the nested prefetch, serializers.py:1140-1148). A pending
 //     child, such as a campus with fewer than two facilities, is left out
 //     of its parent's set.
-//   - A PK lookup admits the live statuses plus "pending" (rest.py:750), so
-//     the same pending child is still fetchable by ID.
+//   - A root PK lookup admits live statuses and pending campuses. Other
+//     pending rows need UPDATE permission upstream (rest.py get_object).
+//     The mirror has no organization membership, so both tiers get 404.
+//     Singular FK objects embedded by serializers keep their existing rules.
 //   - A through-relation set (ix.fac_set via ixfac, ixlan.net_set via
 //     netixlan) filters the join row only. The facility or network that
 //     the row resolves to is not filtered (serializers.py:1678-1681).
@@ -328,7 +330,7 @@ func resolveFacilitiesFromIxFacilities(ixfacs []*ent.IxFacility) []*ent.Facility
 func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		o, err := client.Organization.Query().
-			Where(organization.ID(id), organization.StatusIn("ok", "pending")).
+			Where(organization.ID(id), organization.StatusEQ("ok")).
 			WithNetworks(func(q *ent.NetworkQuery) { q.Where(likelyOK, setDateFilter(ctx)) }).
 			WithFacilities(func(q *ent.FacilityQuery) { q.Where(likelyOK, setDateFilter(ctx)) }).
 			WithInternetExchanges(func(q *ent.InternetExchangeQuery) { q.Where(likelyOK, setDateFilter(ctx)) }).
@@ -349,7 +351,7 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	}
 
 	o, err := client.Organization.Query().
-		Where(organization.ID(id), organization.StatusIn("ok", "pending")).
+		Where(organization.ID(id), organization.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get organization %d: %w", id, err)
@@ -366,7 +368,7 @@ func getOrgWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		n, err := client.Network.Query().
-			Where(network.ID(id), network.StatusIn("ok", "pending")).
+			Where(network.ID(id), network.StatusEQ("ok")).
 			WithOrganization().
 			WithPocs(func(q *ent.PocQuery) { q.Where(likelyOK, setDateFilter(ctx)) }).
 			WithNetworkFacilities(func(q *ent.NetworkFacilityQuery) {
@@ -393,7 +395,7 @@ func getNetWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	}
 
 	n, err := client.Network.Query().
-		Where(network.ID(id), network.StatusIn("ok", "pending")).
+		Where(network.ID(id), network.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get network %d: %w", id, err)
@@ -415,7 +417,7 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 		// the inline social_media / available_voltage_services lists appear).
 		// It expands the org and campus FK objects only.
 		f, err := client.Facility.Query().
-			Where(facility.ID(id), facility.StatusIn("ok", "pending")).
+			Where(facility.ID(id), facility.StatusEQ("ok")).
 			WithOrganization().
 			WithCampus(func(q *ent.CampusQuery) { q.WithOrganization() }).
 			Only(ctx)
@@ -442,7 +444,7 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	}
 
 	f, err := client.Facility.Query().
-		Where(facility.ID(id), facility.StatusIn("ok", "pending")).
+		Where(facility.ID(id), facility.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get facility %d: %w", id, err)
@@ -465,7 +467,7 @@ func getFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		ix, err := client.InternetExchange.Query().
-			Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
+			Where(internetexchange.ID(id), internetexchange.StatusEQ("ok")).
 			WithOrganization().
 			WithIxLans(func(q *ent.IxLanQuery) { q.Where(likelyOK, setDateFilter(ctx)) }).
 			WithIxFacilities(func(q *ent.IxFacilityQuery) {
@@ -490,7 +492,7 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 	}
 
 	ix, err := client.InternetExchange.Query().
-		Where(internetexchange.ID(id), internetexchange.StatusIn("ok", "pending")).
+		Where(internetexchange.ID(id), internetexchange.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get internet exchange %d: %w", id, err)
@@ -509,7 +511,7 @@ func getIXWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any
 func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		l, err := client.IxLan.Query().
-			Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
+			Where(ixlan.ID(id), ixlan.StatusEQ("ok")).
 			WithInternetExchange().
 			WithIxPrefixes(func(q *ent.IxPrefixQuery) {
 				q.Where(likelyOK, setDateFilter(ctx))
@@ -549,7 +551,7 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 	}
 
 	l, err := client.IxLan.Query().
-		Where(ixlan.ID(id), ixlan.StatusIn("ok", "pending")).
+		Where(ixlan.ID(id), ixlan.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixlan %d: %w", id, err)
@@ -567,7 +569,7 @@ func getIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 2 {
 		c, err := client.Carrier.Query().
-			Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
+			Where(carrier.ID(id), carrier.StatusEQ("ok")).
 			WithOrganization().
 			WithCarrierFacilities(func(q *ent.CarrierFacilityQuery) {
 				q.Where(likelyOK, setDateFilter(ctx)).Order(carrierfacility.ByFacID(), carrierfacility.ByID())
@@ -592,7 +594,7 @@ func getCarrierWithDepth(ctx context.Context, client *ent.Client, id, depth int)
 	}
 
 	c, err := client.Carrier.Query().
-		Where(carrier.ID(id), carrier.StatusIn("ok", "pending")).
+		Where(carrier.ID(id), carrier.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get carrier %d: %w", id, err)
@@ -659,7 +661,7 @@ func getCampusWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		nf, err := client.NetworkFacility.Query().
-			Where(networkfacility.ID(id), networkfacility.StatusIn("ok", "pending")).
+			Where(networkfacility.ID(id), networkfacility.StatusEQ("ok")).
 			WithNetwork().
 			WithFacility().
 			Only(ctx)
@@ -690,7 +692,7 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 	}
 
 	nf, err := client.NetworkFacility.Query().
-		Where(networkfacility.ID(id), networkfacility.StatusIn("ok", "pending")).
+		Where(networkfacility.ID(id), networkfacility.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get networkfacility %d: %w", id, err)
@@ -700,13 +702,12 @@ func getNetFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) 
 
 // getNetIXLanWithDepth fetches a network IX LAN by ID. At depth >= 2, expands
 // the net and ixlan FK edges to full objects. The PK lookup admits
-// not-operational as well as ok and pending: upstream PK lookups admit the
-// live statuses plus pending, and netixlan is live as ok or not-operational
-// (2.83.0 rest.py:750, models.py:109-122).
+// not-operational as well as ok. Pending rows need UPDATE permission
+// upstream, which neither mirror privacy tier grants (PR #2073).
 func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		nixl, err := client.NetworkIxLan.Query().
-			Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "not-operational", "pending")).
+			Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "not-operational")).
 			WithNetwork().
 			WithIxLan().
 			Only(ctx)
@@ -737,7 +738,7 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 	}
 
 	nixl, err := client.NetworkIxLan.Query().
-		Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "not-operational", "pending")).
+		Where(networkixlan.ID(id), networkixlan.StatusIn("ok", "not-operational")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get networkixlan %d: %w", id, err)
@@ -750,7 +751,7 @@ func getNetIXLanWithDepth(ctx context.Context, client *ent.Client, id, depth int
 func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		ixf, err := client.IxFacility.Query().
-			Where(ixfacility.ID(id), ixfacility.StatusIn("ok", "pending")).
+			Where(ixfacility.ID(id), ixfacility.StatusEQ("ok")).
 			WithInternetExchange().
 			WithFacility().
 			Only(ctx)
@@ -781,7 +782,7 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 	}
 
 	ixf, err := client.IxFacility.Query().
-		Where(ixfacility.ID(id), ixfacility.StatusIn("ok", "pending")).
+		Where(ixfacility.ID(id), ixfacility.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixfacility %d: %w", id, err)
@@ -794,7 +795,7 @@ func getIXFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		cf, err := client.CarrierFacility.Query().
-			Where(carrierfacility.ID(id), carrierfacility.StatusIn("ok", "pending")).
+			Where(carrierfacility.ID(id), carrierfacility.StatusEQ("ok")).
 			WithCarrier().
 			WithFacility().
 			Only(ctx)
@@ -825,7 +826,7 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 	}
 
 	cf, err := client.CarrierFacility.Query().
-		Where(carrierfacility.ID(id), carrierfacility.StatusIn("ok", "pending")).
+		Where(carrierfacility.ID(id), carrierfacility.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get carrierfacility %d: %w", id, err)
@@ -837,7 +838,7 @@ func getCarrierFacWithDepth(ctx context.Context, client *ent.Client, id, depth i
 func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		p, err := client.Poc.Query().
-			Where(poc.ID(id), poc.StatusIn("ok", "pending")).
+			Where(poc.ID(id), poc.StatusEQ("ok")).
 			WithNetwork().
 			Only(ctx)
 		if err != nil {
@@ -858,7 +859,7 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 	}
 
 	p, err := client.Poc.Query().
-		Where(poc.ID(id), poc.StatusIn("ok", "pending")).
+		Where(poc.ID(id), poc.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get poc %d: %w", id, err)
@@ -871,7 +872,7 @@ func getPocWithDepth(ctx context.Context, client *ent.Client, id, depth int) (an
 func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (any, error) {
 	if depth >= 1 {
 		p, err := client.IxPrefix.Query().
-			Where(ixprefix.ID(id), ixprefix.StatusIn("ok", "pending")).
+			Where(ixprefix.ID(id), ixprefix.StatusEQ("ok")).
 			WithIxLan().
 			Only(ctx)
 		if err != nil {
@@ -892,7 +893,7 @@ func getIXPfxWithDepth(ctx context.Context, client *ent.Client, id, depth int) (
 	}
 
 	p, err := client.IxPrefix.Query().
-		Where(ixprefix.ID(id), ixprefix.StatusIn("ok", "pending")).
+		Where(ixprefix.ID(id), ixprefix.StatusEQ("ok")).
 		Only(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get ixprefix %d: %w", id, err)

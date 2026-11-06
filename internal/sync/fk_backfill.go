@@ -377,8 +377,8 @@ type parentFKRef struct {
 // miss (nullOptionalFK). For backfilled rows, nullMissingOptionalFKs
 // (optionalFKSpec) nulls them without a backfill.
 //
-// Mirrors the upstream FK audit table in CLAUDE.md § Soft-delete
-// tombstones — keep these two in sync when a new FK is added.
+// See docs/ARCHITECTURE.md, FK backfill, for the repair policy.
+// Review this map and optionalFKSpec when adding a foreign key.
 var parentFKSpec = map[string][]parentFKRef{
 	peeringdb.TypeOrg:        {},
 	peeringdb.TypeCampus:     {{FieldName: "org_id", ParentType: peeringdb.TypeOrg}},

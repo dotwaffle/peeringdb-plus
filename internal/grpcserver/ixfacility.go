@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	"connectrpc.com/connect"
+	"connectrpc.com/connect/v2"
 	"entgo.io/ent/dialect/sql"
 
 	"github.com/dotwaffle/peeringdb-plus/ent"
 	"github.com/dotwaffle/peeringdb-plus/ent/ixfacility"
 	"github.com/dotwaffle/peeringdb-plus/ent/predicate"
 	pb "github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1"
+	"github.com/dotwaffle/peeringdb-plus/gen/peeringdb/v1/peeringdbv1connect"
 )
 
 // IxFacilityService implements the peeringdb.v1.IxFacilityService ConnectRPC
@@ -67,7 +68,7 @@ func (s *IxFacilityService) GetIxFacility(ctx context.Context, req *pb.GetIxFaci
 	ixf, err := s.Client.IxFacility.Get(ctx, int(req.GetId()))
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("entity ixfacility %d not found", req.GetId()))
+			return nil, connect.Errorf(connect.CodeNotFound, "entity ixfacility %d not found", req.GetId())
 		}
 		return nil, queryError(ctx, fmt.Sprintf("get ixfacility %d", req.GetId()), err)
 	}
@@ -113,7 +114,7 @@ func (s *IxFacilityService) ListIxFacilities(ctx context.Context, req *pb.ListIx
 
 // StreamIxFacilities streams all matching IX facilities via compound
 // (updated, id) keyset pagination under the (-updated, -created, -id) order.
-func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.StreamIxFacilitiesRequest, stream *connect.ServerStream[pb.IxFacility]) error {
+func (s *IxFacilityService) StreamIxFacilities(ctx context.Context, req *pb.StreamIxFacilitiesRequest, stream peeringdbv1connect.IxFacilityServiceStreamIxFacilitiesServerStream) error {
 	return StreamEntities(ctx, StreamParams[ent.IxFacility, pb.IxFacility]{
 		EntityName:   "ixfacilities",
 		Timeout:      s.StreamTimeout,
