@@ -155,3 +155,42 @@ tests:
   - eval_time: 0m
     alertname: PdbPlusMachineOOMKilled
     exp_alerts: []
+- name: late metrics of the primary region do not start the lease rule
+  interval: 1m
+  input_series:
+  - series: litefs_is_primary{app="peeringdb-plus",region="fra",instance="primary"}
+    values: 1x5
+  - series: litefs_is_primary{app="peeringdb-plus",region="nrt",instance="replica"}
+    values: 0x15
+  promql_expr_test:
+  - expr: ALERTS{alertname="PdbPlusLeaseHolderAbsent"}
+    eval_time: 9m
+    exp_samples: []
+- name: late metrics of a whole region do not start the LiteFS absent rule
+  interval: 1m
+  input_series:
+  - series: fly_instance_memory_mem_available{app="peeringdb-plus",region="nrt",instance="replica"}
+    values: 1x5
+  - series: litefs_is_primary{app="peeringdb-plus",region="nrt",instance="replica"}
+    values: 0x5
+  promql_expr_test:
+  - expr: ALERTS{alertname="PdbPlusLiteFSMetricsAbsent"}
+    eval_time: 9m
+    exp_samples: []
+- name: a lease loss that the primary reports starts the lease rule at once
+  interval: 1m
+  input_series:
+  - series: litefs_is_primary{app="peeringdb-plus",region="fra",instance="primary"}
+    values: 1x5 0x20
+  promql_expr_test:
+  - expr: ALERTS{alertname="PdbPlusLeaseHolderAbsent"}
+    eval_time: 7m
+    exp_samples:
+    - labels: ALERTS{alertname="PdbPlusLeaseHolderAbsent",alertstate="pending",severity="critical"}
+      value: 1
+  alert_rule_test:
+  - eval_time: 16m
+    alertname: PdbPlusLeaseHolderAbsent
+    exp_alerts:
+    - exp_labels:
+        severity: critical
