@@ -30,7 +30,7 @@ gqlgen = "0.17.98"
 protoc-gen-connect-go = "2.0.2"
 protoc-gen-go = "1.36.12"
 tailwindcss = { version = "latest", bin = "tailwindcss" }
-templ = "0.3.1100"
+templ = "0.3.1118"
 
 [tasks.format]
 description = "Format Go sources"

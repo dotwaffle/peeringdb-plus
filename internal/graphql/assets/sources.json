@@ -42,10 +42,10 @@
     "integrity": "sha384-EPrJMS0iYPhW7e9EQYXtQIFb5BbTYQpcmhxREQOPwX2cbJ1HKWk+1ib6vtdR+tFz"
   },
   {
-    "file": "94b9b64c9d64872c.mjs",
-    "url": "https://esm.sh/monaco-graphql@2.0.1/X-ZGdyYXBocWxAMTcuMS4wLG1vbmFjby1lZGl0b3JAMC41Ny4wLHByZXR0aWVyQDMuOS4xMA/es2022/esm/graphql.worker.bundle.mjs",
-    "upstreamIntegrity": "sha384-rtyV8SbIVrK3tDE80+PGx0K+TlSsBGrlfXSQnvWRYiG3oKL7QzsKrVZqHfhAmNr9",
-    "integrity": "sha384-XKVbh+3oABu7H4KkdAEk5Y+kH1pMIMPgJ5zonDN56WRW4a8OVbLUTns6qtiLFrgD"
+    "file": "d8d53598babe9db8.mjs",
+    "url": "https://esm.sh/monaco-graphql@2.0.1/X-ZGdyYXBocWxAMTcuMS4wLG1vbmFjby1lZGl0b3JAMC41Ny4wLHByZXR0aWVyQDMuMTAuMQ/es2022/esm/graphql.worker.bundle.mjs",
+    "upstreamIntegrity": "sha384-UM6fuQ8g8tC8lx8K7ZFL7ET89FJ/++QFhBApYIAkklA6WkUeZz+xyy8oa8+uEmwb",
+    "integrity": "sha384-kH6kQ4s4Ep54I7pKfcLmFd0ZctDmZ1h3ZzPfeMmWbPkTjB39XRN8YlI8HYP3oipR"
   },
   {
     "file": "d5a809b4f195fb63.mjs",
@@ -1074,21 +1074,21 @@
     "integrity": "sha384-bT9f1eRIbIrmSslSybM5KBZN1hUw+D9gUAEq6KgIzf0APdeD3u5nyvxCPH5VKkbV"
   },
   {
-    "file": "ee7adc8e766d5565.mjs",
-    "url": "https://esm.sh/prettier@3.9.10/es2022/standalone.mjs",
-    "upstreamIntegrity": "sha384-4m9/3x8yY3KOwV0Ygn42v571cvoRkxGcEk2VxMBfhV2uQ6PeskT9ZS0JrMtjw90a",
-    "integrity": "sha384-PEEE0GW+taqL6mvJ7kyoR90z/fdsEYbDGjaptC3kWFL0hd0d/08WJIIS1oZQ9JpQ"
+    "file": "273d38cdc6be8cef.mjs",
+    "url": "https://esm.sh/prettier@3.10.1/es2022/standalone.mjs",
+    "upstreamIntegrity": "sha384-IXpa7vt/6ESyXAQ38ouIsuS8Ie5T3Yaahx0mO2JMYNgHTGnEhwB6NQ9A4nVQDzKq",
+    "integrity": "sha384-HmzjEmL4znEnMtjJEBUc/ZaxQ9dCJPpi8Qy6N5xFby7xapTTmHmnHNjNcMwP912Z"
   },
   {
-    "file": "3ed08ebb8df5948a.mjs",
-    "url": "https://esm.sh/prettier@3.9.10/es2022/prettier.mjs",
-    "upstreamIntegrity": "sha384-J3RXIASwi9PUAkTPs4bM5O6zctsHEIfm14jpHDLkoe8VK77HS6CQCL8865JKQwuV",
-    "integrity": "sha384-pivo2pIuE4YK+e2JHQWytnNrshusUYVeqYGc/WrPl8wKYtmVdQ+u7Eba/qqT8rLc"
+    "file": "1807d1e84e8e3eef.mjs",
+    "url": "https://esm.sh/prettier@3.10.1/es2022/prettier.mjs",
+    "upstreamIntegrity": "sha384-hh1e7SwjZGG4bNTATjXtnTBoiqkCNcO92qXjDOTRpwcU19HaBHPknvDR2zjRRsQq",
+    "integrity": "sha384-Q+54oyMGLMQkMxwndE01JUXGsX8ibspwTP+51ocg2zFG+ZILOO6wkL6wg5tvSyP5"
   },
   {
-    "file": "6f7c652d9f2f9b80.mjs",
-    "url": "https://esm.sh/prettier@3.9.10/es2022/parser-graphql.mjs",
-    "upstreamIntegrity": "sha384-W/x+BXZYykEX2QNSeER8J1PbRJ4ovuPyne/IMlsMC+GreSYNdLG2G8kjxZRPs3f3",
-    "integrity": "sha384-8BFUuVpT/bY6IPNNYat6QCUckjQSBF2Pvl/YsiGhqsLsXt7Ye8HC4dz/q458EN2K"
+    "file": "ad747160d79bd762.mjs",
+    "url": "https://esm.sh/prettier@3.10.1/es2022/parser-graphql.mjs",
+    "upstreamIntegrity": "sha384-rFJo6D0e78NAy4xmTs8HqLla2HK7wFvrzasd4onJERT+T84quEbQ2J/oETDgJWoW",
+    "integrity": "sha384-5/l3+fdo45QWaZ9/lwC2WdWtU9KtQvtcAAPOzYqAj9BV0RlwejVPGqu2Iwt9cGUj"
   }
 ]
