@@ -144,6 +144,10 @@ Other APIs have project-defined contracts.
 Prioritize equal aggregate record sets over incidental ordering differences.
 Read [Validation Notes](docs/API.md#validation-notes) for upstream source anchors and later corrections.
 Do not treat an old upstream revision in a comment as the current release.
+Upstream production can run a release before its source, tag, or release notes are on GitHub.
+Read the live version from the `www.peeringdb.com` page source, and diff its `/s/<version>/api-schema.yaml` against the last published `api-schema.yaml`.
+A schema diff shows changes to fields, parameters, and descriptions only.
+Audit behavior again when upstream publishes the source.
 
 - Preserve `wireEntity` as the shared builder for List, Count, Match, ListIDs, and ListDepth.
   Append `applyStatusMatrix` last so caller filters can narrow, but cannot broaden, visible statuses.
