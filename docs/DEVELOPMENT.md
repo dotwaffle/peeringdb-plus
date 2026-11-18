@@ -14,7 +14,7 @@ For environment variables and runtime configuration, see [CONFIGURATION.md](CONF
   `mise run check` runs `mise run test`.
 
 Run `mise trust` once after cloning, then `mise install --locked`.
-Mise installs Go 1.27.3 and all contributor tools from the committed cross-platform lockfile.
+Mise installs Go 1.27.4 and all contributor tools from the committed cross-platform lockfile.
 
 The SQLite driver (`modernc.org/sqlite`) is pure Go.
 The server binary does not need cgo, and the Docker images build with `CGO_ENABLED=0`.
@@ -122,7 +122,7 @@ The main Web UI uses templ and htmx.
 The editor requires Chrome 127+, Firefox 138+, or Safari 18+ for import-map integrity support.
 Older browsers can ignore the module integrity map and are unsupported for this editor.
 
-`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 6.0.0.
+`internal/graphql/playground.html` pins React 19.3.1 and GraphiQL 6.0.1.
 It uses GraphQL.js 17.1.0 and the POST-only GraphiQL transport.
 Each CDN module has a SHA-384 digest, including modules imported by other modules.
 The stylesheet has its own integrity attribute.
@@ -132,7 +132,7 @@ Monaco 0.57.0 matches the `@graphiql/react` dependency and the `monaco-graphql` 
 Browsers do not accept an integrity option for worker scripts.
 The Go binary therefore embeds the worker modules and their dependencies from `internal/graphql/assets/`.
 The handler serves these files at `/graphql/assets/`.
-The vendored modules total about 1.43 MB, or 470 KB with gzip.
+The vendored modules total about 1.44 MB, or 473 KB with gzip.
 The `licenses/` directory contains their license texts and third-party notices and is also embedded.
 
 To update these assets:

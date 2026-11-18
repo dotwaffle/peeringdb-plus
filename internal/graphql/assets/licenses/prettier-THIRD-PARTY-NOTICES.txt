@@ -1,9 +1,9 @@
 # Licenses of bundled dependencies
 
 The published Prettier artifact additionally contains code with the following licenses:
-MIT, ISC, BSD-3-Clause, Apache-2.0, BSD-2-Clause, and BlueOak-1.0.0.
+MIT, BlueOak-1.0.0, ISC, BSD-3-Clause, Apache-2.0, and BSD-2-Clause.
 
-## @angular/compiler@v22.0.6
+## @angular/compiler@v22.2.5
 
 > Angular - the compiler library
 
@@ -35,7 +35,7 @@ Author: angular
 
 ----------------------------------------
 
-## @babel/code-frame@v8.0.0
+## @babel/code-frame@v8.0.6
 
 > Generate errors that contain a code frame that point to source locations.
 
@@ -69,7 +69,7 @@ Author: The Babel Team (https://babel.dev/team)
 
 ----------------------------------------
 
-## @babel/helper-validator-identifier@v8.0.2
+## @babel/helper-validator-identifier@v8.0.6
 
 > Validate identifier/keywords name
 
@@ -102,7 +102,7 @@ Author: The Babel Team (https://babel.dev/team)
 
 ----------------------------------------
 
-## @babel/parser@v8.0.0
+## @babel/parser@v8.1.0
 
 > A JavaScript parser
 
@@ -154,6 +154,45 @@ Repository: <git+https://github.com/stereobooster/braindb.git>
 Contributors:
  - Mark Hudnall <me@markhudnall.com> (https://markhudnall.com)
  - stereobooster
+
+----------------------------------------
+
+## @bybrave/json5@v3.1.0
+
+> Maintained fork of json5 — the JSON5 parser/stringifier with fixed dual ESM/CJS exports (named exports match, #240/#348), esbuild build, and bundled TypeScript types
+
+License: MIT  
+Homepage: <https://github.com/bybraveHQ/json5#readme>  
+Repository: <git+https://github.com/bybraveHQ/json5.git>  
+Author: bybrave (https://github.com/bybraveHQ)  
+Contributors:
+ - Aseem Kishore (author of the original json5)
+ - Jordan Tucker
+
+> MIT License
+>
+> Copyright (c) 2012-2018 Aseem Kishore, and [others].
+> Copyright (c) 2026 bybrave (maintained fork @bybrave/json5).
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
+>
+> [others]: https://github.com/json5/json5/contributors
 
 ----------------------------------------
 
@@ -217,12 +256,12 @@ Author: Jared Wray <me@jaredwray.com>
 
 ----------------------------------------
 
-## @glimmer/syntax@v0.95.0
+## @glimmer/syntax@v0.97.0
 
 License: MIT  
-Repository: <git+https://github.com/glimmerjs/glimmer-vm.git>  
+Repository: <git+https://github.com/emberjs/ember.js.git>  
 
-> Copyright (c) 2015 Tilde, Inc.
+> Copyright (c) 2011 Yehuda Katz, Tom Dale and Ember.js contributors
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy of
 > this software and associated documentation files (the "Software"), to deal in
@@ -244,69 +283,67 @@ Repository: <git+https://github.com/glimmerjs/glimmer-vm.git>
 
 ----------------------------------------
 
-## @glimmer/util@v0.94.8
+## @isaacs/nonrecursive-glob-match@v1.1.0
 
-> Common utilities used in Glimmer
+> a single-path-portion glob matcher not subject to recursive backtracking ReDoS
 
-License: MIT  
-Repository: <git+https://github.com/glimmerjs/glimmer-vm.git>  
+License: BlueOak-1.0.0  
 
-> Copyright (c) 2015 Tilde, Inc.
+> # Blue Oak Model License
 >
-> Permission is hereby granted, free of charge, to any person obtaining a copy of
-> this software and associated documentation files (the "Software"), to deal in
-> the Software without restriction, including without limitation the rights to
-> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-> of the Software, and to permit persons to whom the Software is furnished to do
-> so, subject to the following conditions:
+> Version 1.0.0
 >
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
+> ## Purpose
 >
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-> SOFTWARE.
-
-----------------------------------------
-
-## @glimmer/wire-format@v0.94.8
-
-License: MIT  
-Repository: <git+https://github.com/glimmerjs/glimmer-vm.git>  
-
-> Copyright (c) 2015 Tilde, Inc.
+> This license gives everyone as much permission to work with
+> this software as possible, while protecting contributors
+> from liability.
 >
-> Permission is hereby granted, free of charge, to any person obtaining a copy of
-> this software and associated documentation files (the "Software"), to deal in
-> the Software without restriction, including without limitation the rights to
-> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-> of the Software, and to permit persons to whom the Software is furnished to do
-> so, subject to the following conditions:
+> ## Acceptance
 >
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
+> In order to receive this license, you must agree to its
+> rules.  The rules of this license are both obligations
+> under that agreement and conditions to your license.
+> You must not do anything with this software that triggers
+> a rule that you cannot or will not follow.
 >
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-> SOFTWARE.
-
-----------------------------------------
-
-## @handlebars/parser@v2.2.2
-
-> The parser for the Handlebars language
-
-License: ISC  
-Homepage: <https://github.com/handlebars-lang/handlebars-parser#readme>  
-Repository: <git+https://github.com/handlebars-lang/handlebars-parser.git>  
+> ## Copyright
+>
+> Each contributor licenses you to do everything with this
+> software that would otherwise infringe that contributor's
+> copyright in it.
+>
+> ## Notices
+>
+> You must ensure that everyone who gets a copy of
+> any part of this software from you, with or without
+> changes, also gets the text of this license or a link to
+> <https://blueoakcouncil.org/license/1.0.0>.
+>
+> ## Excuse
+>
+> If anyone notifies you in writing that you have not
+> complied with [Notices](#notices), you can keep your
+> license by taking all practical steps to comply within 30
+> days after the notice.  If you do not do so, your license
+> ends immediately.
+>
+> ## Patent
+>
+> Each contributor licenses you to do everything with this
+> software that would otherwise infringe any patent claims
+> they can license or become able to license.
+>
+> ## Reliability
+>
+> No contributor can revoke this license.
+>
+> ## No Liability
+>
+> ***As far as the law allows, this software comes as is,
+> without any warranty or condition, and no contributor
+> will be liable to anyone for any damages related to this
+> software or this license, under any kind of legal claim.***
 
 ----------------------------------------
 
@@ -434,7 +471,7 @@ License: MIT
 
 ----------------------------------------
 
-## @prettier/cli@v0.12.0
+## @prettier/cli@v0.12.4
 
 > A faster CLI for Prettier.
 
@@ -514,7 +551,7 @@ Author: Alex Bell <alex@bellandwhistle.net>
 
 ----------------------------------------
 
-## @typescript-eslint/types@v8.70.0
+## @typescript-eslint/types@v8.72.2
 
 > Types for the TypeScript-ESTree AST spec
 
@@ -546,7 +583,7 @@ Repository: <https://github.com/typescript-eslint/typescript-eslint.git>
 
 ----------------------------------------
 
-## @typescript-eslint/typescript-estree@v8.70.0
+## @typescript-eslint/typescript-estree@v8.72.2
 
 > A parser that converts TypeScript source code into an ESTree compatible form
 
@@ -578,7 +615,7 @@ Repository: <https://github.com/typescript-eslint/typescript-eslint.git>
 
 ----------------------------------------
 
-## acorn@v8.17.0
+## acorn@v8.19.0
 
 > ECMAScript parser
 
@@ -672,7 +709,7 @@ Author: Ika <ikatyang@gmail.com> (https://github.com/ikatyang)
 
 ----------------------------------------
 
-## angular-html-parser@v10.12.0
+## angular-html-parser@v10.13.0
 
 > A HTML parser extracted from Angular with some modifications
 
@@ -734,7 +771,7 @@ License: MIT
 
 ----------------------------------------
 
-## ansi-regex@v6.2.2
+## ansi-regex@v6.6.0
 
 > Regular expression for matching ANSI escape codes
 
@@ -913,7 +950,7 @@ Author: T. Jameson Little <t.jameson.little@gmail.com>
 
 ----------------------------------------
 
-## binary-extensions@v3.1.0
+## binary-extensions@v3.2.0
 
 > List of binary file extensions
 
@@ -933,12 +970,12 @@ Author: Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
 
 ----------------------------------------
 
-## brace-expansion@v5.0.6
+## brace-expansion@v5.0.12
 
 > Brace expansion as known from sh/bash
 
 License: MIT  
-Repository: <git+ssh://git@github.com/juliangruber/brace-expansion.git>  
+Repository: <git+https://github.com/juliangruber/brace-expansion.git>  
 
 > MIT License
 >
@@ -1225,7 +1262,7 @@ Contributors:
 
 ----------------------------------------
 
-## ci-info@v4.4.0
+## ci-info@v4.5.0
 
 > Get details about the current Continuous Integration environment
 
@@ -1524,7 +1561,7 @@ Repository: <https://github.com/kpdecker/jsdiff.git>
 
 ----------------------------------------
 
-## editorconfig-without-wasm@v0.0.7
+## editorconfig-without-wasm@v0.2.1
 
 > EditorConfig File Locator and Interpreter for Node.js
 
@@ -1539,6 +1576,9 @@ Contributors:
  - SunsetTechuila (https://github.com/SunsetTechuila/)
  - Rex Lorenzo (https://github.com/rlorenzo/)
  - Gareth Jones (https://github.com/G-Rath)
+ - Lorie (https://github.com/Lorie-Capella)
+ - simpleqt (https://github.com/simpleqt)
+ - Eli (https://github.com/lishaduck)
 
 > Copyright © 2012 EditorConfig Team
 >
@@ -1562,7 +1602,7 @@ Contributors:
 
 ----------------------------------------
 
-## emoji-regex@v10.6.0
+## emoji-regex@v11.0.0
 
 > A regular expression to match all Emoji-only symbols as per the Unicode Standard.
 
@@ -1959,39 +1999,6 @@ License: MIT
 
 ----------------------------------------
 
-## fast-json-stable-stringify@v2.1.0
-
-> deterministic `JSON.stringify()` - a faster version of substack's json-stable-strigify without jsonify
-
-License: MIT  
-Homepage: <https://github.com/epoberezkin/fast-json-stable-stringify>  
-Repository: <git://github.com/epoberezkin/fast-json-stable-stringify.git>  
-Author: James Halliday <mail@substack.net> (http://substack.net)  
-
-> This software is released under the MIT license:
->
-> Copyright (c) 2017 Evgeny Poberezkin
-> Copyright (c) 2013 James Halliday
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy of
-> this software and associated documentation files (the "Software"), to deal in
-> the Software without restriction, including without limitation the rights to
-> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-> the Software, and to permit persons to whom the Software is furnished to do so,
-> subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-> FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-> COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-> IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-> CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-----------------------------------------
-
 ## fast-string-truncated-width@v3.0.3
 
 > A fast function for calculating where a string should be truncated, given an optional width limit and an ellipsis string.
@@ -2052,7 +2059,7 @@ License: MIT
 
 ----------------------------------------
 
-## fastq@v1.20.1
+## fastq@v1.20.3
 
 > Fast, in memory work queue
 
@@ -2306,7 +2313,7 @@ Author: Jared Wray <me@jaredwray.com>
 
 ----------------------------------------
 
-## flatted@v3.4.2
+## flatted@v3.4.4
 
 > A super light and fast circular JSON parser.
 
@@ -2368,24 +2375,24 @@ Contributors:
 
 ----------------------------------------
 
-## flow-estree@v0.322.0
+## flow-estree@v0.339.0
 
 > Flow types for the Flow-ESTree spec produced by the Flow Rust parser, forked from hermes-estree.
 
 License: MIT  
 Homepage: <https://flow.org>  
-Repository: <https://github.com/facebook/flow.git>  
+Repository: <https://github.com/meta/flow.git>  
 Author: Flow Team <flow@fb.com>  
 
 ----------------------------------------
 
-## flow-parser@v0.322.0
+## flow-parser@v0.339.0
 
 > JavaScript parser written in OCaml. Produces ESTree AST
 
 License: MIT  
 Homepage: <https://flow.org>  
-Repository: <git+https://github.com/facebook/flow.git>  
+Repository: <git+https://github.com/meta/flow.git>  
 Author: Flow Team <flow@fb.com>  
 
 ----------------------------------------
@@ -2450,7 +2457,7 @@ License: MIT
 
 ----------------------------------------
 
-## get-east-asian-width@v1.6.0
+## get-east-asian-width@v1.7.0
 
 > Determine the East Asian Width of a Unicode character
 
@@ -2516,7 +2523,7 @@ Contributors:
 
 ----------------------------------------
 
-## grammex@v3.1.12
+## grammex@v3.1.13
 
 > A tiny, PEG-like system for building language grammars with regexes.
 
@@ -2576,7 +2583,7 @@ License: MIT
 
 ----------------------------------------
 
-## graphql@v17.0.2
+## graphql@v17.1.0
 
 > A Query Language and Runtime which can target any service.
 
@@ -2694,12 +2701,12 @@ Contributors:
 
 ----------------------------------------
 
-## ignore@v7.0.5
+## ignore@v7.0.14
 
 > Ignore is a manager and filter for .gitignore rules, the one used by eslint, gitbook and many others.
 
 License: MIT  
-Repository: <git@github.com:kaelzhang/node-ignore.git>  
+Repository: <https://github.com/kaelzhang/node-ignore.git>  
 Author: kael  
 
 > Copyright (c) 2013 Kael Zhang <i@kael.me>, contributors
@@ -3135,7 +3142,7 @@ Contributors:
 
 ----------------------------------------
 
-## is-es5-identifier-name@v1.0.1
+## is-es5-identifier-name@v1.1.0
 
 > Check if provided string is an `IdentifierName` as specified in ECMA262 edition 5.1 section 7.6.
 
@@ -3483,7 +3490,7 @@ Author: fisker Cheung <lionkay@gmail.com> (https://www.fiskercheung.com/)
 
 ----------------------------------------
 
-## jest-docblock@v30.4.0
+## jest-docblock@v30.5.0
 
 License: MIT  
 Repository: <https://github.com/jestjs/jest.git>  
@@ -3544,7 +3551,7 @@ Author: Simon Lydell
 
 ----------------------------------------
 
-## js-yaml@v5.1.0
+## js-yaml@v5.5.0
 
 > YAML 1.2 parser and serializer
 
@@ -3606,6 +3613,38 @@ License: MIT
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 > FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 > DEALINGS IN THE SOFTWARE.
+
+----------------------------------------
+
+## json-stringify-stable-replacer@v0.0.1
+
+> Stable JSON stringify.
+
+License: MIT  
+Homepage: <https://github.com/fisker/json-stringify-stable-replacer#readme>  
+Author: fisker Cheung <lionkay@gmail.com> (https://www.fiskercheung.com/)  
+
+> MIT License
+>
+> Copyright (c) fisker Cheung <lionkay@gmail.com> (https://www.fiskercheung.com/)
+>
+> Permission is hereby granted, free of charge, to any person obtaining a copy
+> of this software and associated documentation files (the "Software"), to deal
+> in the Software without restriction, including without limitation the rights
+> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the Software is
+> furnished to do so, subject to the following conditions:
+>
+> The above copyright notice and this permission notice shall be included in all
+> copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+> SOFTWARE.
 
 ----------------------------------------
 
@@ -3889,7 +3928,7 @@ Contributors:
 
 ----------------------------------------
 
-## markdown-table@v3.0.4
+## markdown-table@v3.1.0
 
 > Generate a markdown (GFM) table
 
@@ -3923,7 +3962,7 @@ Contributors:
 
 ----------------------------------------
 
-## mdast-util-find-and-replace@v3.0.2
+## mdast-util-find-and-replace@v3.0.4
 
 > mdast utility to find and replace text in a tree
 
@@ -3957,7 +3996,7 @@ Contributors:
 
 ----------------------------------------
 
-## mdast-util-from-markdown@v2.0.3
+## mdast-util-from-markdown@v2.1.0
 
 > mdast utility to parse markdown
 
@@ -4093,7 +4132,7 @@ Contributors:
 
 ----------------------------------------
 
-## mdast-util-gfm-strikethrough@v2.0.0
+## mdast-util-gfm-strikethrough@v2.0.1
 
 > mdast extension to parse and serialize GFM strikethrough
 
@@ -4104,7 +4143,7 @@ Contributors:
 
 > (The MIT License)
 >
-> Copyright (c) 2020 Titus Wormer <tituswormer@gmail.com>
+> Copyright (c) Titus Wormer <tituswormer@gmail.com>
 >
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the
@@ -4127,7 +4166,7 @@ Contributors:
 
 ----------------------------------------
 
-## mdast-util-gfm-table@v2.0.0
+## mdast-util-gfm-table@v2.0.1
 
 > mdast extension to parse and serialize GFM tables
 
@@ -4138,7 +4177,7 @@ Contributors:
 
 > (The MIT License)
 >
-> Copyright (c) 2020 Titus Wormer <tituswormer@gmail.com>
+> Copyright (c) Titus Wormer <tituswormer@gmail.com>
 >
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the
@@ -4265,7 +4304,7 @@ Contributors:
 
 ----------------------------------------
 
-## mdast-util-to-markdown@v2.1.2
+## mdast-util-to-markdown@v2.2.2
 
 > mdast utility to serialize markdown
 
@@ -4365,7 +4404,7 @@ Repository: <git@github.com:teambition/merge2.git>
 
 ----------------------------------------
 
-## meriyah@v7.1.1
+## meriyah@v7.4.2
 
 > A 100% compliant, self-hosted javascript parser with high focus on both performance and stability
 
@@ -4386,7 +4425,7 @@ Contributors:
 
 ----------------------------------------
 
-## micromark@v4.0.2
+## micromark@v4.0.3
 
 > small commonmark compliant markdown parser with positional info and concrete tokens
 
@@ -4420,7 +4459,7 @@ Contributors:
 
 ----------------------------------------
 
-## micromark-core-commonmark@v2.0.3
+## micromark-core-commonmark@v2.0.4
 
 > The CommonMark markdown constructs
 
@@ -4794,7 +4833,7 @@ Contributors:
 
 ----------------------------------------
 
-## micromark-factory-space@v2.0.1
+## micromark-factory-space@v2.1.0
 
 > micromark factory to parse markdown space (found in lots of places)
 
@@ -5069,6 +5108,40 @@ Contributors:
 ## micromark-util-decode-string@v2.0.1
 
 > micromark utility to decode markdown strings
+
+License: MIT  
+Author: Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)  
+Contributors:
+ - Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)
+
+> (The MIT License)
+>
+> Copyright (c) Titus Wormer <tituswormer@gmail.com>
+>
+> Permission is hereby granted, free of charge, to any person obtaining
+> a copy of this software and associated documentation files (the
+> 'Software'), to deal in the Software without restriction, including
+> without limitation the rights to use, copy, modify, merge, publish,
+> distribute, sublicense, and/or sell copies of the Software, and to
+> permit persons to whom the Software is furnished to do so, subject to
+> the following conditions:
+>
+> The above copyright notice and this permission notice shall be
+> included in all copies or substantial portions of the Software.
+>
+> THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+> EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+> MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+> IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+> CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+> TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+> SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+----------------------------------------
+
+## micromark-util-edit-map@v1.0.0
+
+> micromark utility to batch changes to lists of events
 
 License: MIT  
 Author: Titus Wormer <tituswormer@gmail.com> (https://wooorm.com)  
@@ -5386,12 +5459,12 @@ Contributors:
 
 ----------------------------------------
 
-## minimatch@v10.2.5
+## minimatch@v11.0.6
 
 > a glob matcher in javascript
 
 License: BlueOak-1.0.0  
-Repository: <git@github.com:isaacs/minimatch>  
+Repository: <git+ssh://git@github.com/isaacs/minimatch.git>  
 Author: Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)  
 
 > # Blue Oak Model License
@@ -5513,7 +5586,7 @@ Author: Yoan Arnaudov <jonidev@gmail.com>
 
 ----------------------------------------
 
-## nanoid@v3.3.15
+## nanoid@v3.3.20
 
 > A tiny (116 bytes), secure URL-friendly unique string ID generator
 
@@ -5734,40 +5807,7 @@ Author: Sindre Sorhus <sindresorhus@gmail.com> (https://sindresorhus.com)
 
 ----------------------------------------
 
-## please-upgrade-node@v3.2.0
-
-> Displays a beginner-friendly message telling your user to upgrade their version of Node
-
-License: MIT  
-Homepage: <https://github.com/typicode/please-upgrade-node#readme>  
-Repository: <git+https://github.com/typicode/please-upgrade-node.git>  
-Author: typicode  
-
-> MIT License
->
-> Copyright (c) 2017 
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy
-> of this software and associated documentation files (the "Software"), to deal
-> in the Software without restriction, including without limitation the rights
-> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-> copies of the Software, and to permit persons to whom the Software is
-> furnished to do so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-> SOFTWARE.
-
-----------------------------------------
-
-## postcss@v8.5.16
+## postcss@v8.5.32
 
 > Tool for transforming styles with JS plugins
 
@@ -5798,12 +5838,12 @@ Author: Andrey Sitnik <andrey@sitnik.es>
 
 ----------------------------------------
 
-## postcss-less@v6.0.0
+## postcss-less@v7.0.1
 
 > LESS parser for PostCSS
 
 License: MIT  
-Homepage: <https://github.com/shellscape/postcss-less>  
+Homepage: <https://github.com/prettier/postcss-less>  
 Author: Denys Kniazevych <webschik@gmail.com>  
 
 > The MIT License (MIT)
@@ -6287,66 +6327,7 @@ Author: fisker Cheung <lionkay@gmail.com> (https://www.fiskercheung.com/)
 
 ----------------------------------------
 
-## semver-compare@v1.0.0
-
-> compare two semver version strings, returning -1, 0, or 1
-
-License: MIT  
-Homepage: <https://github.com/substack/semver-compare>  
-Repository: <git://github.com/substack/semver-compare.git>  
-Author: James Halliday <mail@substack.net> (http://substack.net)  
-
-> This software is released under the MIT license:
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy of
-> this software and associated documentation files (the "Software"), to deal in
-> the Software without restriction, including without limitation the rights to
-> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-> the Software, and to permit persons to whom the Software is furnished to do so,
-> subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-> FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-> COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-> IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-> CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-----------------------------------------
-
-## simple-html-tokenizer@v0.5.11
-
-> Simple HTML Tokenizer is a lightweight JavaScript library that can be used to tokenize the kind of HTML normally found in templates.
-
-License: MIT  
-Repository: <https://github.com/tildeio/simple-html-tokenizer.git>  
-
-> Copyright (c) 2014 Yehuda Katz and contributors
->
-> Permission is hereby granted, free of charge, to any person obtaining a copy of
-> this software and associated documentation files (the "Software"), to deal in
-> the Software without restriction, including without limitation the rights to
-> use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-> of the Software, and to permit persons to whom the Software is furnished to do
-> so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in all
-> copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-> SOFTWARE.
-
-----------------------------------------
-
-## smol-toml@v1.7.0
+## smol-toml@v1.9.1
 
 > A small, fast, and correct TOML parser/serializer
 
@@ -6764,7 +6745,7 @@ License: MIT
 
 ----------------------------------------
 
-## tiny-readdir@v2.7.4
+## tiny-readdir@v3.1.1
 
 > A simple promisified recursive readdir function.
 
@@ -6794,10 +6775,11 @@ License: MIT
 
 ----------------------------------------
 
-## tiny-readdir-glob@v1.23.2
+## tiny-readdir-glob@v2.0.0
 
 > A simple promisified recursive readdir function, with support for globs.
 
+License: MIT  
 
 > The MIT License (MIT)
 >
@@ -7372,7 +7354,7 @@ Contributors:
 
 ----------------------------------------
 
-## unist-util-visit@v5.1.0
+## unist-util-visit@v5.2.0
 
 > unist utility to visit nodes
 
@@ -7385,7 +7367,7 @@ Contributors:
 
 > (The MIT License)
 >
-> Copyright (c) 2015 Titus Wormer <tituswormer@gmail.com>
+> Copyright (c) Titus Wormer <tituswormer@gmail.com>
 >
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the
@@ -7408,7 +7390,7 @@ Contributors:
 
 ----------------------------------------
 
-## unist-util-visit-parents@v6.0.2
+## unist-util-visit-parents@v6.1.0
 
 > unist utility to recursively walk over nodes, with ancestral information
 
@@ -7419,7 +7401,7 @@ Contributors:
 
 > (The MIT License)
 >
-> Copyright (c) 2016 Titus Wormer <tituswormer@gmail.com>
+> Copyright (c) Titus Wormer <tituswormer@gmail.com>
 >
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the
@@ -7780,7 +7762,7 @@ Contributors:
 
 ----------------------------------------
 
-## yaml@v2.9.0
+## yaml@v2.9.1
 
 > JavaScript parser and stringifier for YAML
 
@@ -7804,7 +7786,7 @@ Author: Eemeli Aro <eemeli@gmail.com>
 
 ----------------------------------------
 
-## yaml-unist-parser@v3.2.0
+## yaml-unist-parser@v3.2.1
 
 > A YAML parser that produces output compatible with unist
 
@@ -7896,69 +7878,9 @@ License: MIT
 
 ----------------------------------------
 
-## zeptomatch-explode@v1.0.1
-
-> A little utility for exploding a zeptomatch-flavored glob into its dynamic and static parts.
-
-License: MIT  
-
-> The MIT License (MIT)
->
-> Copyright (c) 2024-present Fabio Spampinato
->
-> Permission is hereby granted, free of charge, to any person obtaining a
-> copy of this software and associated documentation files (the "Software"),
-> to deal in the Software without restriction, including without limitation
-> the rights to use, copy, modify, merge, publish, distribute, sublicense,
-> and/or sell copies of the Software, and to permit persons to whom the
-> Software is furnished to do so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in
-> all copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-> FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-> DEALINGS IN THE SOFTWARE.
-
-----------------------------------------
-
 ## zeptomatch-is-static@v1.0.1
 
 > A little utility for checking if a glob is fully static.
-
-License: MIT  
-
-> The MIT License (MIT)
->
-> Copyright (c) 2024-present Fabio Spampinato
->
-> Permission is hereby granted, free of charge, to any person obtaining a
-> copy of this software and associated documentation files (the "Software"),
-> to deal in the Software without restriction, including without limitation
-> the rights to use, copy, modify, merge, publish, distribute, sublicense,
-> and/or sell copies of the Software, and to permit persons to whom the
-> Software is furnished to do so, subject to the following conditions:
->
-> The above copyright notice and this permission notice shall be included in
-> all copies or substantial portions of the Software.
->
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-> FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-> DEALINGS IN THE SOFTWARE.
-
-----------------------------------------
-
-## zeptomatch-unescape@v1.0.1
-
-> A little utility for removing escape sequences from a glob.
 
 License: MIT  
 
