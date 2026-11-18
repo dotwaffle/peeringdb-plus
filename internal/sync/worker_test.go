@@ -1781,7 +1781,7 @@ func TestIncrementalFirstSyncFallsBackToBareList(t *testing.T) {
 	}
 
 	// v1.18.3 contract: zero cursor → bare list first, never ?since=1.
-	snapshotMax := strconv.FormatInt(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC).Unix(), 10)
+	snapshotMax := sinceParam(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC))
 	if got, want := f.sinceValues["org"].snapshot(), []string{"", snapshotMax}; !slices.Equal(got, want) {
 		t.Errorf("org since values = %q, want %q (bare list, then the snapshot window)", got, want)
 	}
@@ -4082,7 +4082,8 @@ func TestSyncFetchPass_UsesMaxUpdatedAsCursor(t *testing.T) {
 	if parseErr != nil {
 		t.Fatalf("parse cycle 2 since=%q: %v", cycle2Since, parseErr)
 	}
-	cycle2T := time.Unix(cycle2Unix, 0).UTC()
+	// The request starts sinceOverlap before the cursor.
+	cycle2T := time.Unix(cycle2Unix, 0).Add(sinceOverlap).UTC()
 	// Allow 1s tolerance for SQLite µs rounding when the boundary is right
 	// at t1 — accept any cursor within ±1s of t1.
 	delta := cycle2T.Sub(t1)

@@ -8,6 +8,12 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+### Fixed
+
+- Incremental sync no longer misses a row that upstream PeeringDB commits after a newer row (upstream #2071).
+  Each `?since=` request now starts 60 seconds before the cursor, as upstream 2.85.0 advises.
+  Before this change, a delete that committed late could stay live in the mirror.
+
 ## [1.45.2] - 2026-11-18
 
 ### Security

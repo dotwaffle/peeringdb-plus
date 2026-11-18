@@ -2822,6 +2822,11 @@ The [Known Divergences](#known-divergences) section records accepted differences
 Historical source revisions identify evidence, not the current upstream release.
 Filter exclusions and relation-prefix rules include PeeringDB 2.84.0 corrections.
 Pending-detail behavior follows PeeringDB 2.84.1, as described in [Soft-delete tombstones](#soft-delete-tombstones).
+PeeringDB 2.85.0 (tag `2.85.0`, `06f0044e`) was reviewed against 2.84.1 on 2026-11-18.
+It changes no read behavior of `/api/`.
+Its fix for `fields=ixf_ixp_member_list_url` on cached lists (`api_cache.py:326-331`) gives the shape that pdbcompat already returns (see [Fields parameter](#fields-parameter)).
+Its other API changes affect writes only.
+It confirms that `updated` can be earlier than the commit of a row (#2071), so each sync `?since=` request starts 60 seconds early (see [Incremental cursor](ARCHITECTURE.md#incremental-cursor)).
 
 Edit traversal allowlists in `schema.PrepareQueryAllows` in `ent/schema/pdb_allowlists.go`.
 Follow the [traversal procedure](DEVELOPMENT.md#adding-a-pdbcompat-1-hop-or-2-hop-traversal-filter) to regenerate the maps and check parity.

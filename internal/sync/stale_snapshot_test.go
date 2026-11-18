@@ -151,7 +151,7 @@ func TestSync_FullModeRepairsFromStaleSnapshot(t *testing.T) {
 		t.Fatalf("sync: %v", err)
 	}
 
-	want := []string{"", strconv.FormatInt(snapshotMax.Unix(), 10)}
+	want := []string{"", strconv.FormatInt(sync.RequestSince(snapshotMax).Unix(), 10)}
 	if got := server.sinceValues(); !slices.Equal(got, want) {
 		t.Errorf("org since values = %q, want %q (bare list, then a window from the snapshot's newest updated)", got, want)
 	}
@@ -230,7 +230,7 @@ func TestSync_ZeroCursorWindowFailureTolerated(t *testing.T) {
 			}
 			// The client retries the failed window request, so compact
 			// the repeats.
-			want := []string{"", strconv.FormatInt(snapshotMax.Unix(), 10)}
+			want := []string{"", strconv.FormatInt(sync.RequestSince(snapshotMax).Unix(), 10)}
 			if got := slices.Compact(server.sinceValues()); !slices.Equal(got, want) {
 				t.Errorf("org since values = %q, want %q", got, want)
 			}

@@ -276,11 +276,16 @@ func wmTime(t *testing.T, rfc3339 string) time.Time {
 	return ts
 }
 
-// unixOf returns the Unix seconds of an RFC 3339 time as a string, the
-// form of a since parameter.
-func unixOf(t *testing.T, rfc3339 string) string {
+// sinceParam returns the ?since= value that a window starting at t
+// requests (see requestSince).
+func sinceParam(t time.Time) string {
+	return strconv.FormatInt(requestSince(t).Unix(), 10)
+}
+
+// sinceOf returns sinceParam of an RFC 3339 time.
+func sinceOf(t *testing.T, rfc3339 string) string {
 	t.Helper()
-	return strconv.FormatInt(wmTime(t, rfc3339).Unix(), 10)
+	return sinceParam(wmTime(t, rfc3339))
 }
 
 // fixtureRows returns the rows of testdata/fixtures/<objType>.json, with
@@ -361,6 +366,78 @@ const (
 	wmT4 = "2024-05-01T00:00:00Z"
 )
 
+// TestRequestSince locks the overlap of a ?since= request and its floor.
+func TestRequestSince(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name  string
+		since time.Time
+		want  time.Time
+	}{
+		{"one minute earlier", time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), time.Date(2024, 1, 31, 23, 59, 0, 0, time.UTC)},
+		{"above the floor", time.Unix(62, 0), time.Unix(2, 0)},
+		{"at the floor", time.Unix(61, 0), time.Unix(1, 0)},
+		{"below the floor", time.Unix(30, 0), time.Unix(1, 0)},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := requestSince(tc.since); !got.Equal(tc.want) {
+				t.Errorf("requestSince(%v) = %v, want %v", tc.since.UTC(), got.UTC(), tc.want.UTC())
+			}
+		})
+	}
+}
+
+// TestSync_SinceOverlapCatchesLateCommits is the race that sinceOverlap
+// closes (upstream #2071). Upstream stamps updated when it saves a row
+// and the row becomes visible when its transaction commits. Org 1 is
+// deleted and org 3 is created with updated values before the cursor,
+// and both commit after the cycle 1 fetch. A request from the cursor
+// would never return them, so org 1 would stay live and org 3 would be
+// missing. A row that the overlap fetches again is not written: the local
+// name of org 2 survives cycle 3.
+func TestSync_SinceOverlapCatchesLateCommits(t *testing.T) {
+	t.Parallel()
+	u := newWatermarkUpstream(t)
+	u.put("org",
+		bumpUpdated(makeOrg(1, "Org1", "ok"), wmT0),
+		bumpUpdated(makeOrg(2, "Org2", "ok"), wmT1))
+	w, db, _ := newWatermarkWorker(t, u, 5)
+
+	mustSync(t, w, config.SyncModeIncremental)
+	assertWatermark(t, db, "org", wmT1)
+
+	cursor := wmTime(t, wmT1)
+	deleted := cursor.Add(-20 * time.Second).Format(time.RFC3339)
+	created := cursor.Add(-59 * time.Second).Format(time.RFC3339)
+	u.put("org",
+		bumpUpdated(makeOrg(1, "Org1", "deleted"), deleted),
+		bumpUpdated(makeOrg(3, "Org3", "ok"), created))
+
+	mark := u.mark()
+	mustSync(t, w, config.SyncModeIncremental)
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
+		t.Errorf("cycle 2 org since = %q, want %q", got, want)
+	}
+	assertOrg(t, w, 1, "deleted", deleted)
+	assertOrg(t, w, 3, "ok", created)
+	assertWatermark(t, db, "org", wmT1)
+
+	if _, err := db.ExecContext(t.Context(), `UPDATE organizations SET name = 'Local' WHERE id = 2`); err != nil {
+		t.Fatalf("set local name: %v", err)
+	}
+	mustSync(t, w, config.SyncModeIncremental)
+	org, err := w.entClient.Organization.Get(t.Context(), 2)
+	if err != nil {
+		t.Fatalf("get org 2: %v", err)
+	}
+	if org.Name != "Local" {
+		t.Errorf("org 2 name = %q after cycle 3, want %q (the overlap row is not written again)", org.Name, "Local")
+	}
+	assertOrg(t, w, 1, "deleted", deleted)
+}
+
 // TestSync_BackfilledParentKeepsCursor is the defect that the watermark
 // fixes. FK backfill lands org 2 (updated t3) after the org fetch of the
 // cycle. Upstream deleted org 3 (updated t2) between the org fetch and
@@ -393,7 +470,7 @@ func TestSync_BackfilledParentKeepsCursor(t *testing.T) {
 
 	mark := u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 3 org since = %q, want %q (the end of the cycle 2 org fetch)", got, want)
 	}
 	assertOrg(t, w, 3, "deleted", wmT2)
@@ -429,7 +506,7 @@ func runBackfillCycle(t *testing.T, u *wmUpstream, w *Worker) {
 	})
 	mark := u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 2 org since = %q, want %q", got, want)
 	}
 	if !slices.Contains(u.requestsFrom(mark), "org?id__in=2&since=1") {
@@ -473,7 +550,7 @@ func TestSync_EmptyTableBackfillKeepsOldestRow(t *testing.T) {
 
 	mark = u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 2 org since = %q, want %q (the oldest backfilled org)", got, want)
 	}
 	assertOrg(t, w, 2, "deleted", wmT2)
@@ -515,7 +592,7 @@ func TestSync_FacCampusBackfillKeepsCampusCursor(t *testing.T) {
 
 	mark = u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "campus"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "campus"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 3 campus since = %q, want %q", got, want)
 	}
 	if c := w.entClient.Campus.GetX(ctx, 3); c.Status != "deleted" {
@@ -571,7 +648,7 @@ func TestSync_GrandparentBackfillKeepsCursor(t *testing.T) {
 	mark = u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
 	for _, objType := range []string{"org", "carrier"} {
-		if got, want := u.listSince(mark, objType), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+		if got, want := u.listSince(mark, objType), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 			t.Errorf("cycle 3 %s since = %q, want %q", objType, got, want)
 		}
 	}
@@ -622,7 +699,7 @@ func TestSync_SideFKBackfillKeepsFacCursor(t *testing.T) {
 
 	mark = u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "fac"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "fac"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 3 fac since = %q, want %q", got, want)
 	}
 	if f := w.entClient.Facility.GetX(ctx, 3); f.Status != "deleted" {
@@ -685,7 +762,7 @@ func TestSync_WatermarkEqualsMaxWithoutBackfill(t *testing.T) {
 		var want []string
 		for _, name := range canonicalStepOrder {
 			if m := before[name]; !m.IsZero() {
-				want = append(want, fmt.Sprintf("%s?depth=0&since=%d", name, m.Unix()))
+				want = append(want, fmt.Sprintf("%s?depth=0&since=%s", name, sinceParam(m)))
 				continue
 			}
 			want = append(want, name+"?depth=0")
@@ -725,7 +802,7 @@ func TestSync_WatermarkEqualsMaxWithoutBackfill(t *testing.T) {
 			since = newest
 		}
 		if !since.IsZero() {
-			want = append(want, fmt.Sprintf("%s?depth=0&since=%d", name, since.Unix()))
+			want = append(want, fmt.Sprintf("%s?depth=0&since=%s", name, sinceParam(since)))
 		}
 	}
 	mark := u.mark()
@@ -760,7 +837,7 @@ func TestSync_WatermarkFallsBackToMaxUpdated(t *testing.T) {
 
 	mark := u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("org since = %q, want %q (MAX(updated))", got, want)
 	}
 	assertWatermark(t, db, "org", wmT2)
@@ -771,7 +848,7 @@ func TestSync_WatermarkFallsBackToMaxUpdated(t *testing.T) {
 
 	mark = u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT2)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT2)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 2 org since = %q, want %q", got, want)
 	}
 	if n := len(logs.records(t, "sync watermark missing, using MAX(updated)")); n != 1 {
@@ -799,7 +876,7 @@ func TestSync_WatermarkMissingTable(t *testing.T) {
 	var want []string
 	for _, name := range canonicalStepOrder {
 		if name == "org" || name == "net" {
-			want = append(want, name+"?depth=0&since="+unixOf(t, wmT1))
+			want = append(want, name+"?depth=0&since="+sinceOf(t, wmT1))
 			continue
 		}
 		want = append(want, name+"?depth=0")
@@ -836,7 +913,7 @@ func TestSync_WatermarkClamp(t *testing.T) {
 
 		mark := u.mark()
 		mustSync(t, w, config.SyncModeIncremental)
-		if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+		if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 			t.Errorf("org since = %q, want %q (MAX(updated))", got, want)
 		}
 		assertWatermark(t, db, "org", wmT1)
@@ -858,7 +935,7 @@ func TestSync_WatermarkClamp(t *testing.T) {
 		}
 
 		mustSync(t, w, config.SyncModeIncremental)
-		if got, want := u.listSince(0, "fac"), []string{"", unixOf(t, wmT2)}; !slices.Equal(got, want) {
+		if got, want := u.listSince(0, "fac"), []string{"", sinceOf(t, wmT2)}; !slices.Equal(got, want) {
 			t.Errorf("fac since = %q, want %q (bare list, then the snapshot window)", got, want)
 		}
 		assertWatermark(t, db, "fac", wmT2)
@@ -1091,7 +1168,7 @@ func TestSync_FKDroppedNewestRowRetried(t *testing.T) {
 
 	mark := u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "net"), []string{unixOf(t, wmT0)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "net"), []string{sinceOf(t, wmT0)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 3 net since = %q, want %q", got, want)
 	}
 	if _, err := w.entClient.Network.Get(ctx, 12); err != nil {
@@ -1121,7 +1198,7 @@ func TestSync_FullModeWindowStartsAtWatermark(t *testing.T) {
 
 	mark := u.mark()
 	mustSync(t, w, config.SyncModeFull)
-	if got, want := u.listSince(mark, "org"), []string{"", unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{"", sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("full cycle org since = %q, want %q (bare list, then the window from the watermark)", got, want)
 	}
 	assertOrg(t, w, 3, "deleted", wmT2)
@@ -1153,7 +1230,7 @@ func TestSync_WatermarkKeptWhenWindowDiscarded(t *testing.T) {
 	mark := u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
 	// The failed ?since= request, the bare list, and the failed window.
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1), "", unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1), "", sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 3 org since = %q, want %q", got, want)
 	}
 	assertOrg(t, w, 3, "ok", wmT1)
@@ -1171,7 +1248,7 @@ func TestSync_WatermarkKeptWhenWindowDiscarded(t *testing.T) {
 	u.setFailSince("fac", 0)
 	mark = u.mark()
 	mustSync(t, w, config.SyncModeIncremental)
-	if got, want := u.listSince(mark, "org"), []string{unixOf(t, wmT1)}; !slices.Equal(got, want) {
+	if got, want := u.listSince(mark, "org"), []string{sinceOf(t, wmT1)}; !slices.Equal(got, want) {
 		t.Errorf("cycle 4 org since = %q, want %q", got, want)
 	}
 	assertOrg(t, w, 3, "deleted", wmT2)

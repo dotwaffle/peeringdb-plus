@@ -109,7 +109,15 @@ A table with rows and no watermark row uses that newest `updated` value.
 This occurs once, in the first cycle after the upgrade, and the worker logs INFO `sync watermark missing, using MAX(updated)`.
 An empty table has no cursor, whatever its watermark row holds.
 
-In incremental mode, a type with rows fetches `?since=<cursor>&depth=0` in one response.
+In incremental mode, a type with rows fetches `?since=<cursor - 60 s>&depth=0` in one response.
+Each `?since=` request, the window after a bare list included, starts 60 seconds before its window (`sinceOverlap`, `internal/sync/scratch.go`), and never before `since=1`.
+Upstream sets `updated` when it saves a row, and the row becomes visible only when its transaction commits (2.85.0 `rest.py:978-1067`, django-handleref `UpdatedDateTimeField`).
+Without the overlap, a fetch between the save and the commit can return a newer row that committed first, and the next cursor passes the late row.
+A lost live row comes back at the next full cycle, but a lost tombstone stays live.
+Upstream asks pollers to start a few seconds before the previous fetch (2.85.0 `docs/api/op_list.md:44-46`).
+The overlap does not move the cursor or the watermark, and the upserts skip a row that it fetches again because the row's `updated` value did not advance.
+`TestSync_SinceOverlapCatchesLateCommits` checks both.
+`pdbplus.sync.type.objects` counts the rows that a cycle processes, so it also counts the rows that the overlap fetches again.
 The decoder streams each row into scratch storage, so a larger delta does not require a full in-memory row slice.
 Upstream orders a delta by `updated` alone (2.84.0 `rest.py:750-758`).
 Offset pages can omit tied rows or rows that move between requests; one response removes that page-boundary gap.
@@ -197,7 +205,7 @@ The `pdbplus.sync.type.orphans` counter records each dropped row or `NULL` FK.
 ### History sweep
 
 A bare list holds only live rows.
-A `?since=<cursor>` window holds only the rows that changed after the cursor.
+A `?since=` window holds only the rows that changed after its start, 60 seconds before the cursor.
 So a mirror that starts from bare lists never gets a row that upstream deleted before the first sync.
 It also misses a pending campus that did not change after the first sync.
 The history sweep (`internal/sync/history_sweep.go`) fetches these rows over many incremental cycles.
@@ -291,7 +299,7 @@ Observability:
 
 ### Daily full reconcile
 
-An incremental cycle streams `?since=<cursor>` in one response, and its upserts skip a row whose `updated` value did not advance.
+An incremental cycle streams one `?since=` response from its cursor (see [Incremental cursor](#incremental-cursor)), and its upserts skip a row whose `updated` value did not advance.
 It cannot see a change that upstream makes without a new `updated` value.
 Once per `PDBPLUS_FULL_SYNC_INTERVAL` (default `24h`), the cycle runs in full mode instead.
 It fetches each bare list in one request and also rewrites rows whose `updated` value did not advance: the `withReconcileAll` marker relaxes the `updated` skip gate of the upserts from `>` to `>=` (`internal/sync/upsert.go`).
@@ -327,6 +335,7 @@ The netixlan upsert also keeps a stored tombstone when the snapshot lists the ro
 Upstream changes `updated` on every real undelete, so only a stale cache sends that pair, except for a delete and an undelete in the same second (see [Netixlan cascade of deleted networks](#netixlan-cascade-of-deleted-networks)).
 
 Each fetch span carries `pdbplus.sync.snapshot.generated`, `pdbplus.sync.snapshot.max_updated` and `pdbplus.sync.window.since`.
+The `peeringdb.stream/<type>` span of a `?since=` request carries `peeringdb.since`, the requested value in Unix seconds, which is 60 seconds before the window start.
 When the window of a populated table starts at the snapshot, the worker logs `INFO "window starts at full snapshot"` with `snapshot_lag`, the cursor minus the snapshot's newest `updated` value.
 That is normal after any change since upstream built its cache, or when the newest stored row is a tombstone.
 A large `snapshot_lag`, or an old `snapshot_generated`, shows a stale cache.
@@ -775,7 +784,7 @@ To prevent this, full-mode staging issues a follow-up `?since=` fetch on top of 
 The window starts at the earlier of the pre-cycle cursor and the newest `updated` value in the snapshot (`snapshotWindowStart`), so it also replaces rows that a stale upstream cache lists in an old state (see [Daily full reconcile](#daily-full-reconcile)).
 The `INSERT OR REPLACE` of the scratch table is keyed on id, so window rows, tombstones included, replace their bare-list versions.
 In a full-mode cycle over a populated table, a failed window fetch fails the type, and the cycle retries: committing the snapshot without the window would advance the cursor past deletes that were never seen.
-On an empty table, the worker logs the failure and commits the snapshot, because the `?since=<cursor>` fetch of the next cycle is the same window.
+On an empty table, the worker logs the failure and commits the snapshot, because the `?since=` fetch of the next cycle is the same window.
 On the per-type fallback path, the window uses the request shape that just failed, and the worker tries it once.
 If that also fails, it logs a WARN, adds a `tombstone_window.discarded` span event, and commits the snapshot without the window.
 The deletes in that window are then lost, unless the cursor of the type was earlier than its newest row.
