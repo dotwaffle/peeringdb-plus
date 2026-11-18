@@ -8,6 +8,27 @@ Release notes for v1.0 through v1.15 and for v1.17.0 through v1.18.14 are in the
 
 ## [Unreleased]
 
+## [1.45.2] - 2026-11-18
+
+### Security
+
+- Build with Go 1.27.4, which fixes GO-2026-6859, an HTTP/1 server crash on a request-body limit race.
+
+### Fixed
+
+- Connect JSON health responses use the standard status names `SERVING` and `NOT_SERVING` (grpchealth 2.1.0).
+  The earlier `SERVING_STATUS_*` names made standard clients read a serving server as unknown.
+- Web UI swaps work again on Chrome 124 to 145 and browsers built on them (htmx 4.0.2).
+- `PdbPlusLiteFSMetricsAbsent` and `PdbPlusLeaseHolderAbsent` no longer fire when Fly.io delivers the metrics of one region late.
+  A lease loss that the primary reports still starts the lease alert at once.
+
+### Changed
+
+- Update SQLite driver 1.62.0 with libc 1.80.1, templ 0.3.1118, GraphiQL 6.0.1, graphql-ws 6.4.3, and the editor's Prettier 3.10.1.
+  The GraphiQL response pane no longer has a Tree view; JSON and Table remain.
+- Update the remaining Go modules and the locked rumdl, Tailwind CSS, and jactionlint tools.
+- Agent instructions describe how to check an upstream PeeringDB release that runs before its source is published.
+
 ## [1.45.1] - 2026-11-06
 
 ### Fixed
@@ -1562,7 +1583,8 @@ Do not deploy the `?limit=0` change in isolation — pdbcompat `?limit=0` now re
 - **`fac?ixlan__ix__fac_count__gt=0` (`pdb_api_test.py:2340`) is silent-ignored** — requires 3-hop traversal via `ixfac` which exceeds the documented 2-hop cap; the parity suite locks this as a documented divergence.
   The generic 2-hop mechanism works for entity pairs with direct edges (e.g. `ixpfx?ixlan__ix__id=20`).
 
-[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.1...HEAD
+[Unreleased]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.2...HEAD
+[1.45.2]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.1...v1.45.2
 [1.45.1]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.45.0...v1.45.1
 [1.45.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.44.0...v1.45.0
 [1.44.0]: https://github.com/dotwaffle/peeringdb-plus/compare/v1.43.2...v1.44.0
