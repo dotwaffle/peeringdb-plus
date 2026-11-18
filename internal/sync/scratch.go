@@ -340,6 +340,9 @@ func (w *Worker) sweepScratchDir(ctx context.Context) {
 // onFailure sets what a failed call does with the rows that it streamed
 // before the error (see stageFailure).
 //
+// A non-zero since requests ?since= from requestSince(since), which is
+// sinceOverlap earlier.
+//
 // Errors wrap the objectType for operator diagnostics. The cursor of
 // each type is its watermark (see watermark.go); the returned
 // stageStats bound the follow-up window fetch after a full snapshot.
@@ -385,7 +388,7 @@ func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, 
 
 	var opts []peeringdb.FetchOption
 	if !since.IsZero() {
-		opts = append(opts, peeringdb.WithSince(since))
+		opts = append(opts, peeringdb.WithSince(requestSince(since)))
 	}
 	meta, err := pdbClient.StreamAll(ctx, objectType, handler, opts...)
 	if err != nil {
@@ -402,6 +405,30 @@ func (s *scratchDB) stageType(ctx context.Context, pdbClient *peeringdb.Client, 
 	}
 	stats.generated = meta.Generated
 	return stats, nil
+}
+
+// sinceOverlap is how much earlier than the cursor a ?since= request
+// starts. Upstream sets updated when it saves a row, and the row becomes
+// visible only when its transaction commits (2.85.0 rest.py:978-1067
+// wrap create, update and destroy in transaction.atomic; django-handleref
+// UpdatedDateTimeField is auto_now). A fetch between the two can return a
+// newer row of a transaction that committed first, and the next cursor
+// then passes the late row. Upstream asks pollers to start a few seconds
+// before the previous fetch (2.85.0 docs/api/op_list.md:44-46). A row
+// that the overlap fetches again does not change the stored row: the
+// upserts skip it because its updated value did not advance.
+const sinceOverlap = 60 * time.Second
+
+// requestSince returns the ?since= value for the window that starts at
+// since: sinceOverlap earlier, and never before 1 s after the epoch.
+// Upstream ignores a since of 0 (2.85.0 rest.py:794), which would turn
+// the request into a bare list without tombstones.
+func requestSince(since time.Time) time.Time {
+	floor := time.Unix(1, 0)
+	if start := since.Add(-sinceOverlap); start.After(floor) {
+		return start
+	}
+	return floor
 }
 
 // errScratchDB marks a stageType error from the scratch DB itself (begin,

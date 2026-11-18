@@ -48,6 +48,7 @@ func (c *Client) StreamAll(ctx context.Context, objectType string, handler func(
 	u := fmt.Sprintf("%s/api/%s?depth=0", c.baseURL, objectType)
 	if !cfg.since.IsZero() {
 		u += fmt.Sprintf("&since=%d", cfg.since.Unix())
+		span.SetAttributes(attribute.Int64("peeringdb.since", cfg.since.Unix()))
 	}
 	resp, err := c.doWithRetry(ctx, u)
 	if err != nil {
